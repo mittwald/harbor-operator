@@ -1,0 +1,34 @@
+# Replication example with a destination registry
+# Using a destination registry equals using the 'Push-based' option for 'Replication Mode'
+# This pushes the specified resources from local to the remote registry
+# Filters and triggers are optional
+apiVersion: registries.mittwald.de/v1alpha1
+kind: Replication
+metadata:
+  name: test-replication-dst
+  namespace: harbor-operator
+spec:
+  id: 2
+  name: test-replication-dst
+  parentInstance:
+    name: test-harbor
+  deletion: false
+  override: true
+  enabled: true
+  dest_registry:
+    id: 1
+    name: test-registry
+    parentInstance:
+      name: test-harbor
+    type: docker-hub
+    url: https://hub.docker.com
+    insecure: false
+#  filters:
+#    - type: name
+#      value: alpine
+#    - type: tag
+#      value: latest
+#  trigger:
+#    type: manual
+#    trigger_settings:
+#      cron: ""

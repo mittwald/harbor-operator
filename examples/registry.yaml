@@ -1,0 +1,13 @@
+apiVersion: registries.mittwald.de/v1alpha1
+kind: Registry
+metadata:
+  name: test-registry
+  namespace: harbor-operator
+spec:
+  id: 1
+  name: test-registry
+  parentInstance:
+    name: test-harbor
+  type: docker-hub
+  url: https://hub.docker.com
+  insecure: false

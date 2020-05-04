@@ -1,0 +1,25 @@
+image:
+  repository: github.com/mittwald/harbor-operator
+  tag: latest
+  pullPolicy: Always
+  pullSecret: {}
+
+env:
+  helmClientRepositoryCachePath: /tmp/.helmcache
+  helmClientRepositoryConfigPath: /tmp/.helmrepo
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+nameOverride: {}
+
+fullnameOverride: {}
+
+serviceAccount:
+  name: {}
+  create: {}

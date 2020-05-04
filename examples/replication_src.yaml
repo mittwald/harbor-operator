@@ -1,0 +1,34 @@
+# Replication example with a source registry
+# Using a source registry equals using the 'Pull-based' option for 'Replication Mode'
+# This pulls the specified resources from the remote registry to the local registry
+# Filters and triggers are optional
+apiVersion: registries.mittwald.de/v1alpha1
+kind: Replication
+metadata:
+  name: test-replication-src
+  namespace: harbor-operator
+spec:
+  id: 1
+  name: test-replication-src
+  parentInstance:
+    name: test-harbor
+  deletion: false
+  override: true
+  enabled: true
+  src_registry:
+    id: 1
+    name: test-registry
+    parentInstance:
+      name: test-harbor
+    type: docker-hub
+    url: https://hub.docker.com
+    insecure: false
+#  filters:
+#    - type: name
+#      value: alpine
+#    - type: tag
+#      value: latest
+#  trigger:
+#    type: manual
+#    trigger_settings:
+#      cron: ""
