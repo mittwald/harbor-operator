@@ -43,7 +43,7 @@ func TestRegistryController_Transition_Creating(t *testing.T) {
 	instanceSecret := testingregistriesv1alpha1.CreateSecret(instance.Name+"-harbor-core", ns)
 
 	reg := testingregistriesv1alpha1.CreateRegistry("test-registry", ns, instance.Spec.Name)
-	reg.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseUnknown
+	reg.Status.Phase = ""
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&reg, &instance, &instanceSecret})
 

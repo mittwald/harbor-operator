@@ -29,7 +29,10 @@ func GenerateHashFromInterfaces(interfaces []interface{}) (InterfaceHash, error)
 	}
 
 	hash := sha256.New()
-	hash.Write(hashSrc)
+	_, err := hash.Write(hashSrc)
+	if err != nil {
+		return nil, err
+	}
 
 	return hash.Sum(nil), nil
 }

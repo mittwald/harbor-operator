@@ -9,22 +9,22 @@ import (
 type ReplicationStatusPhaseName string
 
 const (
-	ReplicationStatusPhaseUnknown     RepositoryStatusPhaseName = ""
-	ReplicationStatusPhaseCreating                              = "Creating"
-	ReplicationStatusPhaseReady                                 = "Ready"
-	ReplicationStatusPhaseTerminating                           = "Terminating"
+	ReplicationStatusPhaseUnknown     ReplicationStatusPhaseName = ""
+	ReplicationStatusPhaseCreating    ReplicationStatusPhaseName = "Creating"
+	ReplicationStatusPhaseReady       ReplicationStatusPhaseName = "Ready"
+	ReplicationStatusPhaseTerminating ReplicationStatusPhaseName = "Terminating"
 )
 
 // const definition
 const (
 	FilterTypeResource h.FilterType = "resource"
-	FilterTypeName                  = "name"
-	FilterTypeTag                   = "tag"
-	FilterTypeLabel                 = "label"
+	FilterTypeName     h.FilterType = "name"
+	FilterTypeTag      h.FilterType = "tag"
+	FilterTypeLabel    h.FilterType = "label"
 
 	TriggerTypeManual     h.TriggerType = "manual"
-	TriggerTypeScheduled                = "scheduled"
-	TriggerTypeEventBased               = "event_based"
+	TriggerTypeScheduled  h.TriggerType = "scheduled"
+	TriggerTypeEventBased h.TriggerType = "event_based"
 )
 
 // ReplicationSpec defines the desired state of Replication
@@ -83,7 +83,7 @@ type ReplicationSpec struct {
 // ReplicationStatus defines the observed state of Replication
 type ReplicationStatus struct {
 	Name    string                    `json:"name"`
-	Phase   RepositoryStatusPhaseName `json:"phase"`
+	Phase   ReplicationStatusPhaseName `json:"phase"`
 	Message string                    `json:"message"`
 	// Time of last observed transition into this state
 	// +optional

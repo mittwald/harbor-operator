@@ -9,7 +9,7 @@ type RepoState string
 
 const (
 	RepoStateReady RepoState = "Ready"
-	RepoStateError           = "Error"
+	RepoStateError RepoState = "Error"
 )
 
 // InstanceChartRepoSpec defines the desired state of InstanceChartRepo
