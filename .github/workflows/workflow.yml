@@ -12,8 +12,8 @@ on:
 env:
   KUBECONFIG: /tmp/kubeconfig
   OPERATOR_SDK_VERSION: v0.16.0
-  IMAGE_NAME: docker.pkg.github.com/mittwald/harbor-operator/harbor-operator
-  REGISTRY_URL: docker.pkg.github.com
+  IMAGE_NAME: quay.io/mittwald/harbor-operator
+  REGISTRY_URL: quay.io/mittwald
 
 jobs:
   lint:
@@ -34,7 +34,6 @@ jobs:
 
       - name: Run golangci-lint
         run: $(go env GOPATH)/bin/golangci-lint run -v --timeout 10m
-
 
   test:
     name: Test
