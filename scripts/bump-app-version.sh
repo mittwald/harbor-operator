@@ -9,7 +9,7 @@ fi
 
 ## make this script a bit more re-usable
 GIT_REPOSITORY="github.com/mittwald/harbor-operator.git"
-CHART_YAML="./deploy/chart/Chart.yaml"
+CHART_YAML="./deploy/helm-chart/harbor-operator/Chart.yaml"
 
 ## avoid noisy shellcheck warnings
 MODE="${1}"
@@ -31,7 +31,7 @@ cd "${TMP_DIR}"
 ## replace appVersion
 sed -i "s#appVersion:.*#appVersion: ${TAG}#g" "${CHART_YAML}"
 
-## replace chart version with current tag without 'v'-prefix
+## replace helm-chart version with current tag without 'v'-prefix
 sed -i "s#version:.*#version: ${TAG/v/}#g" "${CHART_YAML}"
 
 ## useful for debugging purposes

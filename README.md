@@ -19,7 +19,7 @@ The operator utilizes a [helm client](https://github.com/mittwald/go-helm-client
 - replications
 - registries
 
-**Helm Chart**: A Helm chart of this operator can be found under [./deploy/chart](./deploy/chart)
+**Helm Chart**: A Helm chart of this operator can be found under [./deploy/helm-chart/harbor-operator](./deploy/helm-chart/harbor-operator)
 
 ## CRDs
 - registriesv1alpha1:

@@ -16,8 +16,8 @@ env:
   REGISTRY_URL: docker.pkg.github.com
 
 jobs:
-  test:
-    name: Test
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go 1.13
@@ -34,6 +34,20 @@ jobs:
 
       - name: Run golangci-lint
         run: $(go env GOPATH)/bin/golangci-lint run -v --timeout 5m
+
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
 
       - name: Create kind cluster
         run: make kind
@@ -132,6 +146,5 @@ jobs:
       - name: Push images
         run: docker push "$IMAGE_NAME:latest" && docker push "$IMAGE_NAME:${GITHUB_REF##*/}"
 
-      # disabled temporarily
-      #- name: Bump Chart Version
-      #  run: bash ./scripts/bump-app-version.sh publish "${GITHUB_REF##*/}" "${{ secrets.githubToken }}"
+      - name: Bump Chart Version
+        run: bash ./scripts/bump-app-version.sh publish "${GITHUB_REF##*/}" "${{ secrets.githubToken }}"

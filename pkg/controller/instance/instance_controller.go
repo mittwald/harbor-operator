@@ -116,7 +116,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
 
 	case registriesv1alpha1.InstanceStatusPhaseInstalling:
-		reqLogger.Info("installing helm-chart")
+		reqLogger.Info("installing helm-helm-chart")
 		err := r.updateHelmRepos()
 		if err != nil {
 			return reconcile.Result{}, err

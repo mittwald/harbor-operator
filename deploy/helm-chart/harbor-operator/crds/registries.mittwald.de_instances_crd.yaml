@@ -73,7 +73,7 @@ spec:
                 reuseValues:
                   type: boolean
                 secretValues:
-                  description: set additional chart values from secret
+                  description: set additional helm-chart values from secret
                   properties:
                     key:
                       type: string
@@ -111,7 +111,7 @@ spec:
                 wait:
                   type: boolean
               required:
-              - chart
+              - helm-chart
               - namespace
               - release
               type: object

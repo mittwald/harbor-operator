@@ -69,7 +69,7 @@ An example `InstanceChartRepo`, using the official [goharbor/harbor-helm](https:
 apiVersion: registries.mittwald.de/v1alpha1
 kind: InstanceChartRepo
 metadata:
-  name: harbor # use this name as prefix for your chart (myrepo/mychart)
+  name: harbor # use this name as prefix for your helm-chart (myrepo/mychart)
   namespace: harbor-operator
 spec:
   url: https://helm.goharbor.io

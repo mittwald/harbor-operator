@@ -1,6 +1,6 @@
 {{/* vim: set filetype=mustache: */}}
 {{/*
-Expand the name of the chart.
+Expand the name of the helm-chart.
 */}}
 {{- define "chart.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
@@ -9,7 +9,7 @@ Expand the name of the chart.
 {{/*
 Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
+If release name contains helm-chart name it will be used as a full name.
 */}}
 {{- define "chart.fullname" -}}
 {{- if .Values.fullnameOverride -}}
@@ -25,7 +25,7 @@ If release name contains chart name it will be used as a full name.
 {{- end -}}
 
 {{/*
-Create chart name and version as used by the chart label.
+Create helm-chart name and version as used by the helm-chart label.
 */}}
 {{- define "chart.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
