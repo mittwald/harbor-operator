@@ -1,6 +1,7 @@
 image:
-  repository: github.com/mittwald/harbor-operator
-  tag: latest
+  repository: docker.pkg.github.com/mittwald/harbor-operator/harbor-operator
+  # if no tag is given, the chart's appVersion is used
+  # tag: latest
   pullPolicy: Always
   pullSecret: {}
 

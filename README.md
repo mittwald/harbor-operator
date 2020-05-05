@@ -5,7 +5,6 @@ A Kubernetes operator for managing [Goharbor](https://github.com/goharbor/harbor
 [![GitHub license](https://img.shields.io/github/license/mittwald/harbor-operator.svg)](https://github.com/mittwald/harbor-operator/blob/master/LICENSE)
 
 ##### This project is still under development and not stable yet - breaking changes may happen at any time and without notice
-
 ## Features
 
 **Easy deployment & scaling**: Every Harbor instance is bound only to the deployed Custom Resource.
