@@ -11,7 +11,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -67,9 +66,8 @@ var _ reconcile.Reconciler = &ReconcileInstanceChartRepo{}
 type ReconcileInstanceChartRepo struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client   client.Client
-	scheme   *runtime.Scheme
-	recorder record.EventRecorder
+	client client.Client
+	scheme *runtime.Scheme
 }
 
 func (r *ReconcileInstanceChartRepo) Reconcile(request reconcile.Request) (reconcile.Result, error) {

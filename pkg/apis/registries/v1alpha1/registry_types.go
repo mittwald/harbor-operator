@@ -10,9 +10,9 @@ type RegistryStatusPhaseName string
 
 const (
 	RegistryStatusPhaseUnknown     RepositoryStatusPhaseName = ""
-	RegistryStatusPhaseCreating                              = "Creating"
-	RegistryStatusPhaseReady                                 = "Ready"
-	RegistryStatusPhaseTerminating                           = "Terminating"
+	RegistryStatusPhaseCreating    RepositoryStatusPhaseName = "Creating"
+	RegistryStatusPhaseReady       RepositoryStatusPhaseName = "Ready"
+	RegistryStatusPhaseTerminating RepositoryStatusPhaseName = "Terminating"
 )
 
 // RegistrySpec defines the desired state of a Registry
