@@ -15,11 +15,11 @@ type ErrInstanceNotFound string
 type ErrInstanceNotReady string
 
 func (e ErrInstanceNotFound) Error() string {
-	return fmt.Sprintf("instance '%s' not found", e)
+	return fmt.Sprintf("instance '%s' not found", string(e))
 }
 
 func (e ErrInstanceNotReady) Error() string {
-	return fmt.Sprintf("instance '%s' not ready", e)
+	return fmt.Sprintf("instance '%s' not ready", string(e))
 }
 
 var ErrUserNotFound = errors.New("user not found")

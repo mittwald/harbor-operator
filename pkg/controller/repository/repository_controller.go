@@ -110,11 +110,11 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, repository.Namespace, repository.Spec.ParentInstance.Name, r.client)
 	if err != nil {
-		if err == internal.ErrInstanceNotFound(repository.Spec.ParentInstance.Name) {
+		if _, ok := err.(internal.ErrInstanceNotFound); ok {
 			repository.Status = registriesv1alpha1.RepositoryStatus{Name: string(registriesv1alpha1.RepositoryStatusPhaseCreating)}
 			// Requeue, the instance might not have been created yet
 			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
-		} else if err == internal.ErrInstanceNotReady(repository.Spec.ParentInstance.Name) {
+		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
 			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
 		} else {
 			repository.Status = registriesv1alpha1.RepositoryStatus{LastTransition: &now}
