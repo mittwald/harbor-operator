@@ -4,6 +4,12 @@ A Kubernetes operator for managing [Goharbor](https://github.com/goharbor/harbor
 
 [![GitHub license](https://img.shields.io/github/license/mittwald/harbor-operator.svg)](https://github.com/mittwald/harbor-operator/blob/master/LICENSE)
 
+[![Docker Repository on Quay](https://quay.io/repository/mittwald/harbor-operator/status "Docker Repository on Quay")](https://quay.io/repository/mittwald/harbor-operator)
+
+[![Maintainability](https://api.codeclimate.com/v1/badges/6208714b76fca48ea633/maintainability)](https://codeclimate.com/github/mittwald/harbor-operator/maintainability)
+
+[![Test Coverage](https://api.codeclimate.com/v1/badges/6208714b76fca48ea633/test_coverage)](https://codeclimate.com/github/mittwald/harbor-operator/test_coverage)
+
 ##### This project is still under development and not stable yet - breaking changes may happen at any time and without notice
 ## Features
 
