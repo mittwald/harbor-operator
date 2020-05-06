@@ -78,7 +78,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	ctx := context.Background()
 
-	// Fetch the Instance instance
+	// Fetch the Instance
 	harbor := &registriesv1alpha1.Instance{}
 	if err := r.client.Get(ctx, request.NamespacedName, harbor); err != nil {
 		if errors.IsNotFound(err) {

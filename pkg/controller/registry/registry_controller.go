@@ -2,7 +2,6 @@ package registry
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"reflect"
 	"time"
@@ -16,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -98,36 +96,20 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 	originalRegistry := registry.DeepCopy()
 
 	// Fetch the Instance
-	harbor := &registriesv1alpha1.Instance{}
-	ns := types.NamespacedName{
-		Namespace: registry.Namespace,
-		Name:      registry.Spec.ParentInstance.Name,
-	}
-	err = r.client.Get(ctx, ns, harbor)
-	if errors.IsNotFound(err) {
-		registry.Status = registriesv1alpha1.RegistryStatus{
-			Name:           string(registriesv1alpha1.RegistryStatusPhaseCreating),
-			Message:        "corresponding harbor instance does not exist",
-			LastTransition: &now,
+	harbor, err := internal.FetchReadyHarborInstance(ctx, registry.Namespace, registry.Spec.ParentInstance.Name, r.client)
+	if err != nil {
+		if _, ok := err.(internal.ErrInstanceNotFound); ok {
+			registry.Status = registriesv1alpha1.RegistryStatus{Name: string(registriesv1alpha1.RegistryStatusPhaseCreating)}
+			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
+		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
+			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
+		} else {
+			registry.Status = registriesv1alpha1.RegistryStatus{LastTransition: &now}
 		}
 		res, err := r.patchRegistry(ctx, originalRegistry, registry)
 		if err != nil {
 			return res, err
 		}
-		// Requeue, Instance might not have been created yet
-		return reconcile.Result{RequeueAfter: time.Second * 30}, nil
-	} else if err != nil {
-		registry.Status = registriesv1alpha1.RegistryStatus{
-			Name:           string(registriesv1alpha1.RegistryStatusPhaseUnknown),
-			Message:        "could not get existing harbor instance",
-			LastTransition: &now,
-		}
-		return r.patchRegistry(ctx, originalRegistry, registry)
-	}
-
-	// Reconcile only if the corresponding harbor instance is in 'Ready' state
-	if harbor.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseReady {
-		return reconcile.Result{RequeueAfter: 120 * time.Second}, fmt.Errorf("parent instance %s/%s is not ready", harbor.Namespace, harbor.Name)
 	}
 
 	// Build a client to connet to the harbor API
