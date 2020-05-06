@@ -50,6 +50,9 @@ helm repo update
 helm install harbor-operator mittwald/harbor-operator --namespace my-namespace
 ```
 
+#### Documentation
+For more specific documentation, please refer to the [godoc](https://pkg.go.dev/github.com/mittwald/harbor-operator) of this repository
+
 #### Web UI
 For a trouble-free experience, a valid TLS certificate is required.
 
