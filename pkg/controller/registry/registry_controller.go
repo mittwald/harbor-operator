@@ -98,11 +98,10 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, registry.Namespace, registry.Spec.ParentInstance.Name, r.client)
 	if err != nil {
-		if err == internal.ErrInstanceNotFound {
+		if err == internal.ErrInstanceNotFound(registry.Spec.ParentInstance.Name) {
 			registry.Status = registriesv1alpha1.RegistryStatus{Name: string(registriesv1alpha1.RegistryStatusPhaseCreating)}
-			// Requeue, the instance might not have been created yet
-			return reconcile.Result{RequeueAfter: time.Second * 30}, nil
-		} else if err == internal.ErrInstanceNotReady {
+			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
+		} else if err == internal.ErrInstanceNotReady(registry.Spec.ParentInstance.Name) {
 			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
 		} else {
 			registry.Status = registriesv1alpha1.RegistryStatus{LastTransition: &now}

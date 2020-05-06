@@ -98,11 +98,11 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, replication.Namespace, replication.Spec.ParentInstance.Name, r.client)
 	if err != nil {
-		if err == internal.ErrInstanceNotFound {
+		if err == internal.ErrInstanceNotFound(replication.Spec.ParentInstance.Name) {
 			replication.Status = registriesv1alpha1.ReplicationStatus{Name: string(registriesv1alpha1.ReplicationStatusPhaseCreating)}
 			// Requeue, the instance might not have been created yet
-			return reconcile.Result{RequeueAfter: time.Second * 30}, nil
-		} else if err == internal.ErrInstanceNotReady {
+			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
+		} else if err == internal.ErrInstanceNotReady(replication.Spec.ParentInstance.Name) {
 			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
 		} else {
 			replication.Status = registriesv1alpha1.ReplicationStatus{LastTransition: &now}

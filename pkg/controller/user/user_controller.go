@@ -116,11 +116,11 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, user.Namespace, user.Spec.ParentInstance.Name, r.client)
 	if err != nil {
-		if err == internal.ErrInstanceNotFound {
+		if err == internal.ErrInstanceNotFound(user.Spec.ParentInstance.Name) {
 			user.Status = registriesv1alpha1.UserStatus{Name: string(registriesv1alpha1.UserStatusPhaseCreating)}
 			// Requeue, the instance might not have been created yet
-			return reconcile.Result{RequeueAfter: time.Second * 30}, nil
-		} else if err == internal.ErrInstanceNotReady {
+			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
+		} else if err == internal.ErrInstanceNotReady(user.Spec.ParentInstance.Name) {
 			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
 		} else {
 			user.Status = registriesv1alpha1.UserStatus{LastTransition: &now}
