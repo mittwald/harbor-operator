@@ -93,9 +93,16 @@ func TestUserController_Transition_Creating(t *testing.T) {
 }
 
 func TestUserController_Empty_User_Spec(t *testing.T) {
+	ns := "test-namespace"
+
+	instance := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
+	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+
+	instanceSecret := testingregistriesv1alpha1.CreateSecret(instance.Name+"-harbor-core", ns)
+
 	u := registriesv1alpha1.User{}
 
-	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&u})
+	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&u, &instance, &instanceSecret})
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
