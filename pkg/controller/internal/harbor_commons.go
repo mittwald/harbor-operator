@@ -1,14 +1,20 @@
 package internal
 
 import (
+	"context"
 	"errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	h "github.com/mittwald/goharbor-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var ErrUserNotFound = errors.New("user not found")
 var ErrRegistryNotFound = errors.New("registry not found")
 var ErrReplicationNotFound = errors.New("replication not found")
+var ErrInstanceNotFound = errors.New("instance not found")
+var ErrInstanceNotReady = errors.New("instance not ready")
 
 func GetUser(user *registriesv1alpha1.User, harborClient *h.Client) (h.User, error) {
 	// Need to get the user's id (which is determined by harbor itself) to reliably get the user's ID
@@ -90,4 +96,25 @@ func CheckFilterType(filterType h.FilterType) error {
 		return nil
 	}
 	return errors.New("the provided filter type could not be checked")
+}
+
+func FetchReadyHarborInstance(ctx context.Context, namespace, parentInstance string, r client.Client) (*registriesv1alpha1.Instance, error) {
+	harbor := &registriesv1alpha1.Instance{}
+	ns := types.NamespacedName{
+		Namespace: namespace,
+		Name:      parentInstance,
+	}
+
+	err := r.Get(ctx, ns, harbor)
+	if apierrors.IsNotFound(err) {
+		return nil, ErrInstanceNotFound
+	} else if err != nil {
+		return nil, err
+	}
+
+	// Reconcile only if the corresponding harbor instance is in 'Ready' state
+	if harbor.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseReady {
+		return nil, ErrInstanceNotReady
+	}
+	return harbor, nil
 }
