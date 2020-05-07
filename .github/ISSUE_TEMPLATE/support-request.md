@@ -22,11 +22,12 @@ How did you install / run the operator (e.g. Helm, Docker image, operator-sdk, .
 **Kubernetes context**
 Kubernetes Server version:
 
+
+**Operator output** (remove section, if not applicable):
+
 ```
 # Please post the output of the operator logs, if applicable
 ```
-
-**Operator output** (remove section, if not applicable):
 
 **Additional context**
 Add any other context about your question here.
