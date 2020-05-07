@@ -49,8 +49,7 @@ func GetUser(user *registriesv1alpha1.User, harborClient *h.Client) (h.User, err
 	return harborClient.Users().GetUser(uReq)
 }
 
-// GetRegistry
-// Wrapper function checking the command issued to the API, returning a custom error
+// GetRegistry gets and returns a registry object
 func GetRegistry(harborClient *h.Client, registry *registriesv1alpha1.Registry) (h.Registry, error) {
 	reg, err := harborClient.Registries().GetRegistryByID(registry.Spec.ID)
 	if err != nil {
@@ -59,7 +58,7 @@ func GetRegistry(harborClient *h.Client, registry *registriesv1alpha1.Registry) 
 	return reg, nil
 }
 
-// GetReplication
+// GetReplication gets and returns a replication object
 func GetReplication(harborClient *h.Client, replication *registriesv1alpha1.Replication) (h.ReplicationPolicy, error) {
 	rep, err := harborClient.Replications().GetReplicationPolicyByID(replication.Spec.ID)
 	if err != nil {
@@ -68,6 +67,7 @@ func GetReplication(harborClient *h.Client, replication *registriesv1alpha1.Repl
 	return rep, nil
 }
 
+// GetRoleInt enumerates the specified role (string) and returns a role ID (int) used by Harbor
 func GetRoleInt(RoleString string) int {
 	switch RoleString {
 	case "projectAdmin":
@@ -82,6 +82,7 @@ func GetRoleInt(RoleString string) int {
 	return 1
 }
 
+// CheckAndGetReplicationTriggerType enumerates the specified trigger type and returns a trigger type used by Harbor
 func CheckAndGetReplicationTriggerType(providedType registriesv1alpha1.TriggerType) (h.TriggerType, error) {
 	switch providedType {
 	case "event_based":
@@ -94,6 +95,7 @@ func CheckAndGetReplicationTriggerType(providedType registriesv1alpha1.TriggerTy
 	return "", errors.New("the provided trigger type could not be validated")
 }
 
+// CheckFilterType enumerates the specified filter type
 func CheckFilterType(filterType h.FilterType) error {
 	switch filterType {
 	case registriesv1alpha1.FilterTypeLabel:

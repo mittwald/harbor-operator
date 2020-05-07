@@ -229,12 +229,14 @@ func (r *ReconcileUser) assertExistingUser(ctx context.Context, harborClient *h.
 	return r.ensureUser(harborClient, heldUser, user, pw)
 }
 
+// createUser constructs a user request and triggers the Harbor API to create that user
 func (r *ReconcileUser) createUser(harborClient *h.Client, user *registriesv1alpha1.User, newPassword string) error {
 	usr := r.newUserRequest(user, newPassword)
 
 	return harborClient.Users().AddUser(usr)
 }
 
+// labelsForUserSecret returns a list of labels for a user's secret
 func (r *ReconcileUser) labelsForUserSecret(user *registriesv1alpha1.User, instanceName string) map[string]string {
 	return map[string]string{
 		labelUserRegistry:  instanceName,
@@ -243,6 +245,7 @@ func (r *ReconcileUser) labelsForUserSecret(user *registriesv1alpha1.User, insta
 	}
 }
 
+// newUserRequest builds a new user request from a user CR object
 func (r *ReconcileUser) newUserRequest(user *registriesv1alpha1.User, pw string) h.UserRequest {
 	userReq := h.UserRequest{
 		Username:     user.Spec.Name,
@@ -256,8 +259,9 @@ func (r *ReconcileUser) newUserRequest(user *registriesv1alpha1.User, pw string)
 	return userReq
 }
 
+// ensureUser updates a users profile, if changed - Afterwards, it updates the password if changed
 func (r *ReconcileUser) ensureUser(harborClient *h.Client, heldUser h.User, desiredUser *registriesv1alpha1.User, password string) error {
-	// First patch the users profile, if changed - Afterwards, change the password if changed
+
 	newUsr := h.UserRequest{
 		UserID: int64(heldUser.UserID),
 	}
@@ -279,6 +283,7 @@ func (r *ReconcileUser) ensureUser(harborClient *h.Client, heldUser h.User, desi
 	return harborClient.Users().UpdateUserPasswordAsAdmin(newUsr.UserID, password)
 }
 
+// isUserRequestEqual compares the individual values of an existing user with a user request
 func isUserRequestEqual(existing h.User, new h.UserRequest) bool {
 	if new.Username != existing.Username {
 		return false
@@ -294,6 +299,7 @@ func isUserRequestEqual(existing h.User, new h.UserRequest) bool {
 	return true
 }
 
+// assertDeletedUser deletes a user, first ensuring its existence
 func (r *ReconcileUser) assertDeletedUser(log logr.Logger, harborClient *h.Client, user *registriesv1alpha1.User) error {
 	harborUser, err := internal.GetUser(user, harborClient)
 	if err != nil {

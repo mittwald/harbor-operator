@@ -192,8 +192,7 @@ func (r *ReconcileReplication) patchReplication(ctx context.Context, originalRep
 	return reconcile.Result{Requeue: true}, nil
 }
 
-// assertExistingReplication
-// Check a harbor replication for its existence and create it accordingly
+// assertExistingReplication checks a harbor replication for existence and creates it accordingly
 func (r *ReconcileReplication) assertExistingReplication(harborClient *h.Client, originalReplication *registriesv1alpha1.Replication) error {
 	_, err := internal.GetReplication(harborClient, originalReplication)
 	if err == internal.ErrReplicationNotFound {
@@ -211,8 +210,7 @@ func (r *ReconcileReplication) assertExistingReplication(harborClient *h.Client,
 	return r.ensureReplication(harborClient, originalReplication)
 }
 
-// ensureReplication
-// gets and compares the spec of the replication held by the harbor API with the spec of the existing CR
+// ensureReplication gets and compares the spec of the replication held by the harbor API with the spec of the existing CR
 func (r *ReconcileReplication) ensureReplication(harborClient *h.Client, originalReplication *registriesv1alpha1.Replication) error {
 	// Get the registry held by harbor
 	heldReplication, err := internal.GetReplication(harborClient, originalReplication)
@@ -233,11 +231,12 @@ func (r *ReconcileReplication) ensureReplication(harborClient *h.Client, origina
 	return nil
 }
 
+// updateReplication triggers an update of a replication (policy)
 func (r *ReconcileReplication) updateReplication(harborClient *h.Client, rep h.ReplicationPolicy) error {
 	return harborClient.Replications().UpdateReplicationPolicyByID(rep.ID, rep)
 }
 
-// Return an API conformed ReplicationPolicy object
+// buildReplicationFromSpec returns an API conformed ReplicationPolicy object
 func (r *ReconcileReplication) buildReplicationFromSpec(originalReplication *registriesv1alpha1.Replication) (h.ReplicationPolicy, error) {
 	var hf []*h.Filter
 	hf = append(hf, &h.Filter{})
@@ -289,6 +288,7 @@ func (r *ReconcileReplication) buildReplicationFromSpec(originalReplication *reg
 	return newRep, nil
 }
 
+// assertDeletedReplication deletes a replication, first ensuring its existence
 func (r *ReconcileReplication) assertDeletedReplication(log logr.Logger, harborClient *h.Client, replication *registriesv1alpha1.Replication) error {
 	rep, err := internal.GetReplication(harborClient, replication)
 	if err != nil {

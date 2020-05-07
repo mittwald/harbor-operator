@@ -205,6 +205,7 @@ func (r *ReconcileRepository) patchRepository(ctx context.Context, originalRepos
 	return reconcile.Result{Requeue: true}, nil
 }
 
+// assertDeletedRepository deletes a Harbor project, first ensuring its existence
 func (r *ReconcileRepository) assertDeletedRepository(log logr.Logger, harborClient *h.Client, repository *registriesv1alpha1.Repository) error {
 	opt := h.ListProjectsOptions{Name: repository.Name}
 	repos, err := harborClient.Projects().ListProjects(opt)
@@ -252,6 +253,7 @@ func (r *ReconcileRepository) assertExistingRepository(harborClient *h.Client, r
 	return r.ensureRepository(&heldRepos[0], harborClient, repository)
 }
 
+// generateRepositoryMetadata constructs the repository metadata for a Harbor project
 func (r *ReconcileRepository) generateRepositoryMetadata(projectMeta *registriesv1alpha1.RepositoryMetadata) (map[string]string, error) {
 	pm := map[string]string{
 		"auto_scan":               helper.BoolToString(projectMeta.AutoScan),
@@ -264,6 +266,7 @@ func (r *ReconcileRepository) generateRepositoryMetadata(projectMeta *registries
 	return pm, nil
 }
 
+// reconcileProjectMembers reconciles the user-defined project members for a repository based on the actual Harbor user
 func (r *ReconcileRepository) reconcileProjectMembers(repository *registriesv1alpha1.Repository, harborClient *h.Client, heldRepository *h.Project) error {
 	members, err := harborClient.Projects().GetProjectMembers(heldRepository.ProjectID)
 	if err != nil {
@@ -322,6 +325,7 @@ func (r *ReconcileRepository) reconcileProjectMembers(repository *registriesv1al
 	return nil
 }
 
+// getMemberUserFromList returns a project member from a list of members, filtered by the username
 func getMemberUserFromList(members []h.Member, user registriesv1alpha1.User) *h.Member {
 	for i := range members {
 		if members[i].Entityname == user.Spec.Name {
@@ -331,6 +335,7 @@ func getMemberUserFromList(members []h.Member, user registriesv1alpha1.User) *h.
 	return nil
 }
 
+// ensureRepository triggers reconciliation of project members and compares the state of the CR object with the project held by Harbor
 func (r *ReconcileRepository) ensureRepository(heldRepository *h.Project, harborClient *h.Client, repository *registriesv1alpha1.Repository) error {
 	updatedRepository := &h.Project{}
 	// Copy the held projects spec into a new object of the same type* harbor.Repository
