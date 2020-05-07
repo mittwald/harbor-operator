@@ -10,6 +10,12 @@ assignees: ''
 **Describe the bug**
 A clear and concise description of what the bug is with.
 
+**To Reproduce**
+Steps to reproduce the behavior
+
+**Expected behavior**
+A clear and concise description of what you expected to happen.
+
 **Operator context**
 How did you install / run the operator (e.g. Helm, Docker image, operator-sdk, ...)?
 
@@ -21,12 +27,6 @@ How did you install / run the operator (e.g. Helm, Docker image, operator-sdk, .
 
 **Kubernetes context**
 Kubernetes Server version:
-
-**To Reproduce**
-Steps to reproduce the behavior
-
-**Expected behavior**
-A clear and concise description of what you expected to happen.
 
 **Additional context**
 Add any other context about the problem here.
