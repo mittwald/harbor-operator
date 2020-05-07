@@ -261,7 +261,6 @@ func (r *ReconcileUser) newUserRequest(user *registriesv1alpha1.User, pw string)
 
 // ensureUser updates a users profile, if changed - Afterwards, it updates the password if changed
 func (r *ReconcileUser) ensureUser(harborClient *h.Client, heldUser h.User, desiredUser *registriesv1alpha1.User, password string) error {
-
 	newUsr := h.UserRequest{
 		UserID: int64(heldUser.UserID),
 	}
