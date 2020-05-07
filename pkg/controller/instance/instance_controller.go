@@ -169,6 +169,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 	return r.patchInstance(ctx, originalInstance, harbor)
 }
 
+// reconcileTerminatingInstance triggers a helm uninstall for the created release
 func (r *ReconcileInstance) reconcileTerminatingInstance(ctx context.Context, log logr.Logger, harbor *registriesv1alpha1.Instance) error {
 	chartSpec, err := harbor.ToChartSpec(ctx, r.client)
 	if err != nil {
@@ -187,6 +188,7 @@ func (r *ReconcileInstance) reconcileTerminatingInstance(ctx context.Context, lo
 	return nil
 }
 
+// updateHelmRepos updates helm chart repositories
 func (r *ReconcileInstance) updateHelmRepos() error {
 	helmClient, err := helmclient.New(&helmclient.Options{
 		RepositoryCache:  config.Config.HelmClientRepositoryCachePath,
@@ -199,6 +201,7 @@ func (r *ReconcileInstance) updateHelmRepos() error {
 	return helmClient.UpdateChartRepos()
 }
 
+// createSpecHash returns a hash string constructed with the helm chart spec
 func (r *ReconcileInstance) createSpecHash(spec *helmclient.ChartSpec) (string, error) {
 	hashSrc, err := json.Marshal(spec)
 	if err != nil {
@@ -236,6 +239,7 @@ func (r *ReconcileInstance) patchInstance(ctx context.Context, originalInstance,
 	return reconcile.Result{Requeue: true}, nil
 }
 
+// installOrUpgradeHelmChart installs and upgrades a helm chart
 func (r *ReconcileInstance) installOrUpgradeHelmChart(helmChart *helmclient.ChartSpec) error {
 	restClientOpts := helmclient.RestConfClientOptions{
 		Options: &helmclient.Options{
@@ -255,6 +259,7 @@ func (r *ReconcileInstance) installOrUpgradeHelmChart(helmChart *helmclient.Char
 	return helmClient.InstallOrUpgradeChart(helmChart)
 }
 
+// uninstallHelmRelease uninstalls a helm release
 func (r *ReconcileInstance) uninstallHelmRelease(helmChart *helmclient.ChartSpec) error {
 	restClientOpts := helmclient.RestConfClientOptions{
 		Options: &helmclient.Options{

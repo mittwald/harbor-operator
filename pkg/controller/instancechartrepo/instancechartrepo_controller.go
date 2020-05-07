@@ -113,6 +113,7 @@ func (r *ReconcileInstanceChartRepo) Reconcile(request reconcile.Request) (recon
 	return reconcile.Result{}, err
 }
 
+// setErrStatus sets the error status of an instancechartrepo objec
 func (r *ReconcileInstanceChartRepo) setErrStatus(cr *registriesv1alpha1.InstanceChartRepo, err error) (reconcile.Result, error) {
 	cr.Status.State = registriesv1alpha1.RepoStateError
 	updateErr := r.client.Status().Update(context.TODO(), cr)
@@ -122,6 +123,7 @@ func (r *ReconcileInstanceChartRepo) setErrStatus(cr *registriesv1alpha1.Instanc
 	return reconcile.Result{}, err
 }
 
+// specToRepoEntry constructs and returns a repository entry from an instancechartrepo CR object
 func (r *ReconcileInstanceChartRepo) specToRepoEntry(ctx context.Context, cr *registriesv1alpha1.InstanceChartRepo) (*repo.Entry, error) {
 	entry := repo.Entry{
 		Name: cr.Name,
@@ -153,6 +155,7 @@ func (r *ReconcileInstanceChartRepo) specToRepoEntry(ctx context.Context, cr *re
 	return &entry, nil
 }
 
+// getSecret gets and returns a kubernetes secret
 func (r *ReconcileInstanceChartRepo) getSecret(ctx context.Context, cr *registriesv1alpha1.InstanceChartRepo) (*corev1.Secret, error) {
 	var secret corev1.Secret
 	existing, err := helper.ObjExists(ctx, r.client, cr.Spec.SecretRef.Name, cr.Namespace, &secret)

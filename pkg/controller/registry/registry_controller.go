@@ -192,8 +192,7 @@ func (r *ReconcileRegistry) patchRegistry(ctx context.Context, originalRegistry,
 	return reconcile.Result{Requeue: true}, nil
 }
 
-// assertExistingRegistry
-// Check a harbor registry for its existence and create it accordingly
+// assertExistingRegistry checks a harbor registry for existence and creates it accordingly
 func (r *ReconcileRegistry) assertExistingRegistry(harborClient *h.Client, originalRegistry *registriesv1alpha1.Registry) error {
 	_, err := internal.GetRegistry(harborClient, originalRegistry)
 	if err == internal.ErrRegistryNotFound {
@@ -220,8 +219,7 @@ func parseURL(raw string) (string, error) {
 	return parsed.String(), nil
 }
 
-// ensureRegistry
-// Gets and compares the spec of the registry held by the harbor API with the spec of the existing CR
+// ensureRegistry gets and compares the spec of the registry held by the harbor API with the spec of the existing CR
 func (r *ReconcileRegistry) ensureRegistry(harborClient *h.Client, originalRegistry *registriesv1alpha1.Registry) error {
 	// Get the registry held by harbor
 	heldRegistry, err := internal.GetRegistry(harborClient, originalRegistry)
@@ -246,10 +244,12 @@ func (r *ReconcileRegistry) ensureRegistry(harborClient *h.Client, originalRegis
 
 }
 
+// updateRegistry triggers the update of a registry
 func (r *ReconcileRegistry) updateRegistry(harborClient *h.Client, reg h.Registry) error {
 	return harborClient.Registries().UpdateRegistryByID(reg)
 }
 
+// buildRegistryFromSpec constructs and returns a Harbor registry object from the CR object's spec
 func (r *ReconcileRegistry) buildRegistryFromSpec(originalRegistry *registriesv1alpha1.Registry) (h.Registry, error) {
 	parsedURL, err := parseURL(originalRegistry.Spec.URL)
 
@@ -279,6 +279,7 @@ func (r *ReconcileRegistry) buildRegistryFromSpec(originalRegistry *registriesv1
 
 }
 
+// assertDeletedRegistry deletes a registry, first ensuring its existence
 func (r *ReconcileRegistry) assertDeletedRegistry(log logr.Logger, harborClient *h.Client, registry *registriesv1alpha1.Registry) error {
 	reg, err := internal.GetRegistry(harborClient, registry)
 	if err != nil {

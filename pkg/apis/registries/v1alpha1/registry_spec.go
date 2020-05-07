@@ -4,6 +4,7 @@ import (
 	h "github.com/mittwald/goharbor-client"
 )
 
+// ToHarborRegistry returns a Harbor registry constructed from the provided spec
 func (spec *RegistrySpec) ToHarborRegistry() *h.Registry {
 	return &h.Registry{
 		ID:              spec.ID,

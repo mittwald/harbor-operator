@@ -82,9 +82,9 @@ type ReplicationSpec struct {
 
 // ReplicationStatus defines the observed state of Replication
 type ReplicationStatus struct {
-	Name    string                    `json:"name"`
+	Name    string                     `json:"name"`
 	Phase   ReplicationStatusPhaseName `json:"phase"`
-	Message string                    `json:"message"`
+	Message string                     `json:"message"`
 	// Time of last observed transition into this state
 	// +optional
 	LastTransition *metav1.Time `json:"lastTransition,omitempty"`
