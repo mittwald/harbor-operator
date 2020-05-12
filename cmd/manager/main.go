@@ -112,7 +112,7 @@ func main() {
 	// Create a new Cmd to provide shared dependencies and start components
 	mgr, err := manager.New(cfg, manager.Options{
 		Namespace:          namespace,
-		MetricsBindAddress: fmt.Sprintf("%s:%s", viper.GetString("metrics-host"), viper.GetString("metrics-port")),
+		MetricsBindAddress: fmt.Sprintf("%s:%d", viper.GetString("metrics-host"), viper.GetInt32("metrics-port")),
 	})
 	if err != nil {
 		log.Error(err, "")
