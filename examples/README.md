@@ -73,11 +73,9 @@ metadata:
   namespace: harbor-operator
 spec:
   url: https://helm.goharbor.io
-  secretRef:
-    name: harbor-instancechartrepo-secret
 ```
 
-If you need credentials accessing the desired helm repository, you can use kubernetes secrets.
+If you need credentials accessing the desired helm repository, you can use kubernetes secrets and reference it with `spec.secretRef.name: <my-secret-name>`
 
 #### InstanceChartRepo Secrets
 For an `instancechartrepo` to work correctly, a secret like this example is needed:

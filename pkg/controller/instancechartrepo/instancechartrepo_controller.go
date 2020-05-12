@@ -135,10 +135,10 @@ func (r *ReconcileInstanceChartRepo) specToRepoEntry(ctx context.Context, cr *re
 	}
 
 	if cr.Spec.SecretRef == nil {
-		return nil, fmt.Errorf("no secret ref defined in spec")
+		return &entry, nil
 	}
-	secret, err := r.getSecret(ctx, cr)
 
+	secret, err := r.getSecret(ctx, cr)
 	if err != nil {
 		return nil, err
 	}
