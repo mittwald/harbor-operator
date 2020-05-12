@@ -13,6 +13,10 @@ rules:
   resources: ['deployments', 'daemonsets', 'replicasets', 'statefulsets']
   verbs: ['create' ,'delete' ,'get' ,'list' ,'patch' ,'update' ,'watch']
 
+- apiGroups: [extensions]
+  resources: ['ingresses']
+  verbs: ['get', 'create', 'delete']
+
 - apiGroups: [monitoring.coreos.com]
   resources: ['servicemonitors']
   verbs: ['get', 'create']
