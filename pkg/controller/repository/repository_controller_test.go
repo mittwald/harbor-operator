@@ -2,6 +2,9 @@ package repository
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	testingregistriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/testing/registriesv1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -9,8 +12,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"testing"
-	"time"
 )
 
 // buildReconcileWithFakeClientWithMocks
