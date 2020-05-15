@@ -15,12 +15,6 @@ func CreateRepository(name, namespace, instanceRef string) registriesv1alpha1.Re
 		Spec: registriesv1alpha1.RepositorySpec{
 			Name:           name,
 			ParentInstance: corev1.LocalObjectReference{Name: instanceRef},
-			ProjectID:      0,
-			OwnerID:        nil,
-			Deleted:        false,
-			Toggleable:     false,
-			RoleID:         0,
-			CVEWhitelist:   registriesv1alpha1.CVEWhitelist{},
 			Metadata:       registriesv1alpha1.RepositoryMetadata{},
 			MemberRequests: nil,
 		},

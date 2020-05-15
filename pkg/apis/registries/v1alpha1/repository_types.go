@@ -6,12 +6,18 @@ import (
 )
 
 type RepositoryStatusPhaseName string
+type MemberRole string
 
 const (
 	RepositoryStatusPhaseUnknown     RepositoryStatusPhaseName = ""
 	RepositoryStatusPhaseCreating    RepositoryStatusPhaseName = "Creating"
 	RepositoryStatusPhaseReady       RepositoryStatusPhaseName = "Ready"
 	RepositoryStatusPhaseTerminating RepositoryStatusPhaseName = "Terminating"
+
+	MemberRoleProjectAdmin MemberRole = "ProjectAdmin"
+	MemberRoleDeveloper    MemberRole = "Developer"
+	MemberRoleGuest        MemberRole = "Guest"
+	MemberRoleMaster       MemberRole = "Master"
 )
 
 type RepositorySpec struct {
@@ -21,53 +27,11 @@ type RepositorySpec struct {
 	// name of the harbor instance the repository is created for
 	ParentInstance corev1.LocalObjectReference `json:"parentInstance"`
 
-	// +optional
-	ProjectID int64 `json:"projectID,omitempty"`
-
-	// The owner ID of the repository creator
-	// +optional
-	OwnerID *int `json:"ownerID,omitempty"`
-
-	// +optional
-	Deleted bool `json:"deleted,omitempty"`
-
-	// Correspond to the UI about whether the repository's publicity is updatable (for UI)
-	Toggleable bool `json:"toggleable"`
-
-	// +optional
-	RoleID int `json:"roleID,omitempty"`
-
-	// +optional
-	CVEWhitelist CVEWhitelist `json:"CVEWhitelist,omitempty"`
-
 	Metadata RepositoryMetadata `json:"metadata"`
 
 	// Ref to the name of a 'User' resource
 	// +optional
-	MemberRequests []RepositoryMemberRequest `json:"memberRequests,omitempty"`
-}
-
-type RepositoryMemberRequest struct {
-	RoleID     int        `json:"roleID"`
-	MemberUser MemberUser `json:"memberUser"`
-}
-
-type MemberUser struct {
-	Username string `json:"username"`
-	// +optional
-	UserID int `json:"userID,omitempty"`
-}
-
-type CVEWhitelistItem struct {
-	// +optional
-	CVEID string `json:"CVEID,omitempty"`
-}
-
-type CVEWhitelist struct {
-	ID        int64 `json:"id"`
-	ProjectID int64 `json:"projectID"`
-	// +optional
-	Items []CVEWhitelistItem `orm:"-" json:"items,omitempty"`
+	MemberRequests []MemberRequest `json:"memberRequests,omitempty"`
 }
 
 type RepositoryMetadata struct {
@@ -84,6 +48,11 @@ type RepositoryMetadata struct {
 	PreventVul bool `json:"preventVul"`
 	// Public status of the Repository
 	Public bool `json:"public"`
+}
+
+type MemberRequest struct {
+	Role MemberRole                  `json:"role"`
+	User corev1.LocalObjectReference `json:"user"` // reference to an User object
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

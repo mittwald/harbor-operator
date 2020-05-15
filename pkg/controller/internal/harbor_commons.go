@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	h "github.com/mittwald/goharbor-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -65,21 +66,6 @@ func GetReplication(harborClient *h.Client, replication *registriesv1alpha1.Repl
 		return h.ReplicationPolicy{}, ErrReplicationNotFound
 	}
 	return rep, nil
-}
-
-// GetRoleInt enumerates the specified role (string) and returns a role ID (int) used by Harbor
-func GetRoleInt(RoleString string) int {
-	switch RoleString {
-	case "projectAdmin":
-		return 1
-	case "developer":
-		return 2
-	case "guest":
-		return 3
-	case "master":
-		return 4
-	}
-	return 1
 }
 
 // CheckAndGetReplicationTriggerType enumerates the specified trigger type and returns a trigger type used by Harbor

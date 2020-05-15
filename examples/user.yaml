@@ -11,10 +11,4 @@ spec:
   email: test@example.com
   userSecretRef:
     name: harbor-user
-  # available Role IDs:
-  # projectAdmin
-  # developer
-  # guest
-  # master
-  roleID: projectAdmin
   adminRole: true

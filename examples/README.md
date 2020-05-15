@@ -110,13 +110,12 @@ metadata:
   namespace: harbor-operator
 spec:
   memberRequests:
-  - roleID: 1
-    memberUser:
-     username: "harbor-user"
+  - role: ProjectAdmin # one of "ProjectAdmin", "Developer", "Guest" or "Master"
+    user:
+     name: "harbor-user" # reference to an user
   name: repository-1
   parentInstance:
     name: test-harbor
-  toggleable: false
   metadata:
     enableContentTrust:     false
     autoScan:               false
@@ -248,12 +247,6 @@ spec:
   email: test@example.com
   userSecretRef:
     name: harbor-user
-  # available Role IDs:
-  # projectAdmin
-  # developer
-  # guest
-  # master
-  roleID: projectAdmin
   adminRole: true
 ```
 

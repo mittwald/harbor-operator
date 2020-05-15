@@ -252,7 +252,6 @@ func (r *ReconcileUser) newUserRequest(user *registriesv1alpha1.User, pw string)
 		RealName:     user.Spec.RealName,
 		Email:        user.Spec.Email,
 		Password:     pw,
-		Role:         internal.GetRoleInt(user.Spec.RoleID),
 		HasAdminRole: user.Spec.AdminRole,
 	}
 
@@ -268,7 +267,6 @@ func (r *ReconcileUser) ensureUser(harborClient *h.Client, heldUser h.User, desi
 	newUsr.Username = desiredUser.Spec.Name
 	newUsr.Email = desiredUser.Spec.Email
 	newUsr.RealName = desiredUser.Spec.RealName
-	newUsr.Role = internal.GetRoleInt(desiredUser.Spec.RoleID)
 	newUsr.HasAdminRole = desiredUser.Spec.AdminRole
 
 	if !isUserRequestEqual(heldUser, newUsr) {
