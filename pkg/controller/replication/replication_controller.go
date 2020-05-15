@@ -281,13 +281,13 @@ func (r *ReconcileReplication) buildReplicationFromSpec(originalReplication *reg
 		return h.ReplicationPolicy{}, fmt.Errorf("both dest_registry and src_registry are set! Please specify only one of them")
 	}
 	if originalReplication.Spec.SrcRegistry != nil {
-		hReg, err := r.getHarborRegistryFromRegistry(context.Background(), originalReplication.Spec.SrcRegistry, originalReplication.Namespace)
+		hReg, err := r.getHarborRegistryFromRef(context.Background(), originalReplication.Spec.SrcRegistry, originalReplication.Namespace)
 		if err != nil {
 			return h.ReplicationPolicy{}, err
 		}
 		newRep.SrcRegistry = hReg
 	} else if originalReplication.Spec.DestRegistry != nil {
-		hReg, err := r.getHarborRegistryFromRegistry(context.Background(), originalReplication.Spec.DestRegistry, originalReplication.Namespace)
+		hReg, err := r.getHarborRegistryFromRef(context.Background(), originalReplication.Spec.DestRegistry, originalReplication.Namespace)
 		if err != nil {
 			return h.ReplicationPolicy{}, err
 		}
@@ -297,8 +297,8 @@ func (r *ReconcileReplication) buildReplicationFromSpec(originalReplication *reg
 	return newRep, nil
 }
 
-// getHarborRegistryFromRegistry retrieves the registryRef and returns a pointer to a goharbor-client Registry Object
-func (r *ReconcileReplication) getHarborRegistryFromRegistry (ctx context.Context, registryRef *v1.LocalObjectReference, namespace string) (*h.Registry, error) {
+// getHarborRegistryFromRef retrieves the registryRef and returns a pointer to a goharbor-client Registry Object
+func (r *ReconcileReplication) getHarborRegistryFromRef(ctx context.Context, registryRef *v1.LocalObjectReference, namespace string) (*h.Registry, error) {
 	var registry registriesv1alpha1.Registry
 	err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: registryRef.Name}, &registry)
 	if err != nil {
