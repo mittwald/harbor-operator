@@ -213,7 +213,7 @@ func (r *ReconcileUser) assertExistingUser(ctx context.Context, harborClient *h.
 	if err != nil {
 		return err
 	}
-	pw, err := helper.GetKeyFromSecret(sec, "password")
+	pw, err := helper.GetValueFromSecret(sec, "password")
 	if err != nil {
 		return err
 	}

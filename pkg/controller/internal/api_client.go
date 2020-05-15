@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// buildClient builds a harbor client to interact with the API
+// BuildClient builds a harbor client to interact with the API
 // using the default (admin) credentials of an existing harbor instance
 func BuildClient(ctx context.Context, client client.Client, harbor *registriesv1alpha1.Instance) (*h.Client, error) {
 	sec := &corev1.Secret{}
@@ -23,7 +23,7 @@ func BuildClient(ctx context.Context, client client.Client, harbor *registriesv1
 		return nil, err
 	}
 
-	corePassword, err := helper.GetKeyFromSecret(sec, "HARBOR_ADMIN_PASSWORD")
+	corePassword, err := helper.GetValueFromSecret(sec, "HARBOR_ADMIN_PASSWORD")
 	if err != nil {
 		return nil, err
 	}
