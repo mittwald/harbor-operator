@@ -16,7 +16,7 @@ spec:
   override: true
   enabled: true
   src_registry: # you have to create the src_registry via a registry custom resource first
-    name: some-existing-registry
+    name: test-registry
 #  filters:
 #    - type: name
 #      value: alpine
