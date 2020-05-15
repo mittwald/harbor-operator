@@ -2,7 +2,6 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -52,8 +51,8 @@ type RepositoryMetadata struct {
 }
 
 type MemberRequest struct {
-	Role MemberRole              `json:"role"`
-	User v1.LocalObjectReference `json:"user"` // reference to an User object
+	Role MemberRole                  `json:"role"`
+	User corev1.LocalObjectReference `json:"user"` // reference to an User object
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
