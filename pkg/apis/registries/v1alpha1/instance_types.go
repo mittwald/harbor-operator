@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"github.com/mittwald/go-helm-client"
+	h "github.com/mittwald/goharbor-client"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -56,6 +57,23 @@ type InstanceSpec struct {
 	Options *InstanceDeployOptions `json:"options,omitempty"`
 
 	HelmChart *InstanceHelmChartSpec `json:"helmChart"`
+
+	// +optional
+	GarbageCollection *GarbageCollectionReq `json:"garbageCollection,omitempty"`
+}
+
+// GarbageCollectionReq holds request information for a garbage collection schedule
+type GarbageCollectionReq struct {
+	Schedule *h.ScheduleParam `json:"schedule"`
+
+	// +optional
+	Name string `json:"name,omitempty"`
+	// +optional
+	Status string `json:"status,omitempty"`
+	// +optional
+	ID int64 `json:"id,omitempty"`
+	// +optional
+	Parameters map[string]byte `json:"parameters,omitempty"`
 }
 
 type InstanceDeployOptions struct {

@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	corev1 "k8s.io/api/core/v1"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	h "github.com/mittwald/goharbor-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

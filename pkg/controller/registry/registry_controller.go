@@ -112,7 +112,7 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 	}
 
-	// Build a client to connet to the harbor API
+	// Build a client to connect to the harbor API
 	harborClient, err := internal.BuildClient(ctx, r.client, harbor)
 	if err != nil {
 		return reconcile.Result{Requeue: true}, err

@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+
 	h "github.com/mittwald/goharbor-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"

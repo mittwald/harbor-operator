@@ -5,10 +5,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/spf13/viper"
 	"os"
 	"runtime"
 	"strings"
+
+	"github.com/spf13/viper"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	"k8s.io/client-go/rest"
