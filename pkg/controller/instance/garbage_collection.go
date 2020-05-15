@@ -22,9 +22,15 @@ func (r *ReconcileInstance) reconcileGarbageCollection(ctx context.Context, harb
 	// While the API returns HTTP status 200 if garbage collection is not yet configured,
 	// the object received is an empty h.AdminJobReq{}
 	gc, err := harborClient.System().GetSystemGarbageCollectionSchedule()
+	if err != nil {
+		return err
+	}
 
 	// Construct a new garbage collection from the provided instance spec
 	newGc, err := BuildGarbageCollectionScheduleFromSpec(harbor)
+	if err != nil {
+		return err
+	}
 
 	// Assume that the garbage collection's Schedule is nil, if it has not been created yet
 	if gc.AdminJobSchedule == nil {
