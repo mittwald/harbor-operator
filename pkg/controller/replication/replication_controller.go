@@ -3,6 +3,7 @@ package replication
 import (
 	"context"
 	"fmt"
+	v1 "k8s.io/api/core/v1"
 	"reflect"
 	"time"
 
@@ -257,7 +258,7 @@ func (r *ReconcileReplication) buildReplicationFromSpec(originalReplication *reg
 	if originalReplication.Spec.Trigger != nil {
 		validatedType, err := internal.CheckAndGetReplicationTriggerType(originalReplication.Spec.Trigger.Type)
 		if err != nil {
-			return h.ReplicationPolicy{}, nil
+			return h.ReplicationPolicy{}, err
 		}
 		ht.Type = validatedType
 		ht.Settings = &h.TriggerSettings{Cron: originalReplication.Spec.Trigger.Settings.Cron}
@@ -280,12 +281,31 @@ func (r *ReconcileReplication) buildReplicationFromSpec(originalReplication *reg
 		return h.ReplicationPolicy{}, fmt.Errorf("both dest_registry and src_registry are set! Please specify only one of them")
 	}
 	if originalReplication.Spec.SrcRegistry != nil {
-		newRep.SrcRegistry = originalReplication.Spec.SrcRegistry.ToHarborRegistry()
+		hReg, err := r.getHarborRegistryFromRegistry(context.Background(), originalReplication.Spec.SrcRegistry, originalReplication.Namespace)
+		if err != nil {
+			return h.ReplicationPolicy{}, err
+		}
+		newRep.SrcRegistry = hReg
 	} else if originalReplication.Spec.DestRegistry != nil {
-		newRep.DestRegistry = originalReplication.Spec.DestRegistry.ToHarborRegistry()
+		hReg, err := r.getHarborRegistryFromRegistry(context.Background(), originalReplication.Spec.DestRegistry, originalReplication.Namespace)
+		if err != nil {
+			return h.ReplicationPolicy{}, err
+		}
+		newRep.DestRegistry = hReg
 	}
 
 	return newRep, nil
+}
+
+// getHarborRegistryFromRegistry retrieves the registryRef and returns a pointer to a goharbor-client Registry Object
+func (r *ReconcileReplication) getHarborRegistryFromRegistry (ctx context.Context, registryRef *v1.LocalObjectReference, namespace string) (*h.Registry, error) {
+	var registry registriesv1alpha1.Registry
+	err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: registryRef.Name}, &registry)
+	if err != nil {
+		return nil, err
+	}
+
+	return registry.Spec.ToHarborRegistry(), nil
 }
 
 // assertDeletedReplication deletes a replication, first ensuring its existence
