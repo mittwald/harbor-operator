@@ -13,7 +13,6 @@ func CreateUser(name, namespace string) registriesv1alpha1.User {
 			Namespace: namespace,
 		},
 		Spec: registriesv1alpha1.UserSpec{
-			RoleID:         "1",
 			Name:           name,
 			ParentInstance: corev1.LocalObjectReference{},
 			RealName:       "harbor user",

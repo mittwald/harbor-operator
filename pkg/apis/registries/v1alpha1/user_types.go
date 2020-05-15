@@ -15,8 +15,7 @@ const (
 )
 
 type UserSpec struct {
-	RoleID string `json:"roleID"`
-	Name   string `json:"name"`
+	Name string `json:"name"`
 
 	// ParentInstance is a LocalObjectReference to the
 	// name of the harbor instance the user is created for

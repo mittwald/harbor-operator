@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
+
 	"github.com/go-logr/logr"
 	"github.com/jinzhu/copier"
 	h "github.com/mittwald/goharbor-client"
@@ -274,19 +276,20 @@ func (r *ReconcileRepository) reconcileProjectMembers(repository *registriesv1al
 	}
 
 	for _, memberRequestUser := range repository.Spec.MemberRequests {
-		user := registriesv1alpha1.User{
-			Spec: registriesv1alpha1.UserSpec{
-				Name: memberRequestUser.MemberUser.Username,
-			},
-		}
-
-		harborUser, err := internal.GetUser(&user, harborClient)
+		user, err := r.getUserFromRef(memberRequestUser.User, repository.Namespace)
 		if err != nil {
 			return err
 		}
 
+		harborUser, err := internal.GetUser(user, harborClient)
+		if err != nil {
+			return err
+		}
+
+		roleID := memberRequestUser.Role.ID()
+
 		projectMember := h.MemberReq{
-			Role: memberRequestUser.RoleID,
+			Role: roleID,
 			MemberUser: h.User{
 				Username: harborUser.Username,
 				UserID:   harborUser.UserID,
@@ -309,14 +312,14 @@ func (r *ReconcileRepository) reconcileProjectMembers(repository *registriesv1al
 			return err
 		}
 
-		if memberRequestUser.RoleID == role.RoleID {
+		if roleID == role.RoleID {
 			break
 		}
 
 		err = harborClient.Projects().UpdateProjectMember(
 			heldRepository.ProjectID,
 			int64(member.ID),
-			h.RoleRequest{Role: memberRequestUser.RoleID})
+			h.RoleRequest{Role: roleID})
 		if err != nil {
 			return err
 		}
@@ -325,8 +328,14 @@ func (r *ReconcileRepository) reconcileProjectMembers(repository *registriesv1al
 	return nil
 }
 
+func (r *ReconcileRepository) getUserFromRef(userRef v1.LocalObjectReference, namespace string) (*registriesv1alpha1.User, error) {
+	var user registriesv1alpha1.User
+	err := r.client.Get(context.Background(), client.ObjectKey{Name: userRef.Name, Namespace: namespace}, &user)
+	return &user, err
+}
+
 // getMemberUserFromList returns a project member from a list of members, filtered by the username
-func getMemberUserFromList(members []h.Member, user registriesv1alpha1.User) *h.Member {
+func getMemberUserFromList(members []h.Member, user *registriesv1alpha1.User) *h.Member {
 	for i := range members {
 		if members[i].Entityname == user.Spec.Name {
 			return &members[i]
