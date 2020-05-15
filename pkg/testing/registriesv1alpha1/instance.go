@@ -2,6 +2,7 @@ package registriesv1alpha1
 
 import (
 	"github.com/mittwald/go-helm-client"
+	h "github.com/mittwald/goharbor-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,7 +19,17 @@ func CreateInstance(name, namespace string) registriesv1alpha1.Instance {
 			Version:     "v1.0.0",
 			Type:        "manual",
 			InstanceURL: "https://core.harbor.domain",
-			Options:     &registriesv1alpha1.InstanceDeployOptions{},
+			GarbageCollection: &registriesv1alpha1.GarbageCollectionReq{
+				Schedule: &h.ScheduleParam{
+					Type: "Hourly",
+					Cron: "0 0 * * *",
+				},
+				Name:       "test-schedule",
+				Status:     "",
+				ID:         1,
+				Parameters: nil,
+			},
+			Options: &registriesv1alpha1.InstanceDeployOptions{},
 			HelmChart: &registriesv1alpha1.InstanceHelmChartSpec{
 				ChartSpec: helmclient.ChartSpec{
 					ReleaseName: name,
