@@ -16,9 +16,9 @@ const (
 	RepositoryStatusPhaseTerminating RepositoryStatusPhaseName = "Terminating"
 
 	MemberRoleProjectAdmin MemberRole = "ProjectAdmin"
-	MemberRoleDeveloper               = "Developer"
-	MemberRoleGuest                   = "Guest"
-	MemberRoleMaster                  = "Master"
+	MemberRoleDeveloper    MemberRole = "Developer"
+	MemberRoleGuest        MemberRole = "Guest"
+	MemberRoleMaster       MemberRole = "Master"
 )
 
 type RepositorySpec struct {
