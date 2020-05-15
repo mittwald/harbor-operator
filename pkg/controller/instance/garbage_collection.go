@@ -102,5 +102,5 @@ func enumScheduleParam(param *h.ScheduleParam) error {
 		return nil
 	}
 
-	return errors.New(fmt.Sprintf("the provided garbage collection schedule type is invalid %s", param.Type))
+	return fmt.Errorf("the provided garbage collection schedule type is invalid %s", param.Type)
 }
