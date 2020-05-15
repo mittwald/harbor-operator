@@ -47,14 +47,14 @@ type ReplicationSpec struct {
 	DestNamespace string `json:"dest_namespace,omitempty"`
 
 	// Source Registry
-	// This uses the registriesv1alpha1 custom Registry specification
+	// Reference to a registry cr
 	// +optional
-	SrcRegistry *RegistrySpec `json:"src_registry,omitempty"`
+	SrcRegistry *corev1.LocalObjectReference `json:"src_registry,omitempty"`
 
 	// Destination Registry
-	// This uses the registriesv1alpha1 custom Registry specification
+	// Reference to a registry cr
 	// +optional
-	DestRegistry *RegistrySpec `json:"dest_registry,omitempty"`
+	DestRegistry *corev1.LocalObjectReference `json:"dest_registry,omitempty"`
 
 	// Whether to override the resources on the destination registry or not
 	Override bool `json:"override"`
