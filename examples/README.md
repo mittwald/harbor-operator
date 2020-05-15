@@ -189,13 +189,7 @@ spec:
   override: true
   enabled: true
   src_registry:
-    id: 1
     name: test-registry
-    parentInstance:
-      name: test-harbor
-    type: docker-hub
-    url: https://hub.docker.com
-    insecure: false
 #  filters:
 #    - type: name
 #      value: alpine
@@ -231,13 +225,7 @@ spec:
   override: true
   enabled: true
   dest_registry:
-    id: 1
     name: test-registry
-    parentInstance:
-      name: test-harbor
-    type: docker-hub
-    url: https://hub.docker.com
-    insecure: false
 #  filters:
 #    - type: name
 #      value: alpine

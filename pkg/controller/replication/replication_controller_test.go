@@ -2,10 +2,6 @@ package replication
 
 import (
 	"context"
-	"testing"
-	"time"
-
-	h "github.com/mittwald/goharbor-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	testingregistriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/testing/registriesv1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -26,6 +22,7 @@ func buildReconcileWithFakeClientWithMocks(objs []runtime.Object) *ReconcileRepl
 		registriesv1alpha1.SchemeGroupVersion,
 		&registriesv1alpha1.Replication{},
 		&registriesv1alpha1.Instance{},
+		&registriesv1alpha1.Registry{},
 	)
 
 	// create a fake client to mock API calls with the mock objects
@@ -146,6 +143,7 @@ func TestReplicationController_Instance_Phase(t *testing.T) {
 // or with only 'destination registry' set in the replication spec
 // Also tests ToHarborRegistry() for convenience
 func TestReplicationController_Registry_Type(t *testing.T) {
+	regName := "test-registry"
 	repName := "test-replication"
 	instanceName := "test-instance"
 	ns := "test-namespace"
@@ -155,24 +153,17 @@ func TestReplicationController_Registry_Type(t *testing.T) {
 
 	instanceSecret := testingregistriesv1alpha1.CreateSecret(instance.Name+"-harbor-core", ns)
 
+	reg := testingregistriesv1alpha1.CreateRegistry(regName, ns, instance.Spec.Name)
+	reg.Status.Phase = registriesv1alpha1.RegistryStatusPhaseReady
+
 	t.Run("SourceRegistry", func(t *testing.T) {
 		rep := testingregistriesv1alpha1.CreateReplication(repName, ns, instance.Spec.Name)
 		rep.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseCreating
-		rep.Spec.SrcRegistry = &registriesv1alpha1.RegistrySpec{
-			ID:              1,
-			Name:            repName + "-registry",
-			Description:     "test",
-			Type:            "docker-registry",
-			URL:             "http://core.registry.domain",
-			TokenServiceURL: "http://core.registry.domain",
-			Credential:      &h.Credential{},
-			Insecure:        false,
-			ParentInstance:  corev1.LocalObjectReference{Name: instanceName},
+		rep.Spec.SrcRegistry = &corev1.LocalObjectReference{
+			Name:            regName,
 		}
 
-		rep.Spec.SrcRegistry.ToHarborRegistry()
-
-		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&rep, &instance, &instanceSecret})
+		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&rep, &instance, &instanceSecret, &reg})
 
 		req := reconcile.Request{
 			NamespacedName: types.NamespacedName{
@@ -193,21 +184,11 @@ func TestReplicationController_Registry_Type(t *testing.T) {
 	t.Run("DestinationRegistry", func(t *testing.T) {
 		rep := testingregistriesv1alpha1.CreateReplication(repName, ns, instance.Spec.Name)
 		rep.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseCreating
-		rep.Spec.DestRegistry = &registriesv1alpha1.RegistrySpec{
-			ID:              1,
-			Name:            repName + "-registry",
-			Description:     "test",
-			Type:            "docker-registry",
-			URL:             "http://core.registry.domain",
-			TokenServiceURL: "http://core.registry.domain",
-			Credential:      &h.Credential{},
-			Insecure:        false,
-			ParentInstance:  corev1.LocalObjectReference{Name: instanceName},
+		rep.Spec.DestRegistry = &corev1.LocalObjectReference{
+			Name:            regName,
 		}
 
-		rep.Spec.DestRegistry.ToHarborRegistry()
-
-		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&rep, &instance, &instanceSecret})
+		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&rep, &instance, &instanceSecret, &reg})
 
 		req := reconcile.Request{
 			NamespacedName: types.NamespacedName{

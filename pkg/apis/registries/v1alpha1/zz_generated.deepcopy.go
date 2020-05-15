@@ -588,13 +588,13 @@ func (in *ReplicationSpec) DeepCopyInto(out *ReplicationSpec) {
 	*out = *in
 	if in.SrcRegistry != nil {
 		in, out := &in.SrcRegistry, &out.SrcRegistry
-		*out = new(RegistrySpec)
-		(*in).DeepCopyInto(*out)
+		*out = new(v1.LocalObjectReference)
+		**out = **in
 	}
 	if in.DestRegistry != nil {
 		in, out := &in.DestRegistry, &out.DestRegistry
-		*out = new(RegistrySpec)
-		(*in).DeepCopyInto(*out)
+		*out = new(v1.LocalObjectReference)
+		**out = **in
 	}
 	if in.Trigger != nil {
 		in, out := &in.Trigger, &out.Trigger
