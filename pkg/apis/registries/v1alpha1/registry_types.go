@@ -37,7 +37,7 @@ type RegistrySpec struct {
 	// TokenServiceURL is only used for local harbor instances to
 	// avoid the requests passing through the external proxy for now
 	// +optional
-	TokenServiceURL string `json:"token_service_url,omitempty"`
+	TokenServiceURL string `json:"tokenServiceUrl,omitempty"`
 
 	// +optional
 	Credential *h.Credential `json:"credential,omitempty"`

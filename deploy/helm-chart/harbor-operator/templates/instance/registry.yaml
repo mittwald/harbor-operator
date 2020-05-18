@@ -1,0 +1,38 @@
+{{- range $instance := .Values.instances }}
+  {{- range $registry := .registries }}
+apiVersion: registries.mittwald.de/v1alpha1
+kind: Registry
+metadata:
+  name: {{ $instance.name }}-{{ $registry.name }}
+  labels:
+    {{- include "chart.labels" $ | nindent 4 }}
+spec:
+  parentInstance:
+    name: {{ $instance.name }}
+  name: {{ $registry.name }}
+  type: {{ $registry.type }}
+  url: {{ $registry.url }}
+
+  {{- if $registry.id }}
+  id: {{ $registry.id }}
+  {{- end }}
+
+  {{- if $registry.description }}
+  description: {{ $registry.description }}
+  {{- end }}
+
+  {{- if $registry.tokenServiceUrl }}
+  tokenServiceUrl: {{ $registry.tokenServiceUrl }}
+  {{- end }}
+
+  {{- with $registry.credential }}
+  credential:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- if $registry.insecure }}
+  insecure: {{ $registry.insecure }}
+  {{- end }}
+---
+  {{- end }}
+{{- end }}

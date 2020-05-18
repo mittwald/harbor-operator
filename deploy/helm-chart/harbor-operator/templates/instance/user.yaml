@@ -1,0 +1,29 @@
+{{- range $instance := .Values.instances }}
+  {{- range $user := .users }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $instance.name }}-{{ $user.name }}
+  labels:
+    {{- include "chart.labels" $ | nindent 4 }}
+data:
+  password: {{ $user.password | b64enc }}
+---
+apiVersion: registries.mittwald.de/v1alpha1
+kind: User
+metadata:
+  name: {{ $user.name }}
+  labels:
+    {{- include "chart.labels" $ | nindent 4 }}
+spec:
+  parentInstance:
+    name: {{ $instance.name }}
+  userSecretRef:
+    name: {{ $instance.name }}-{{ $user.name }}
+  name: {{ $user.name }}
+  realname: {{ $user.realname }}
+  email: {{ $user.email }}
+  adminRole: {{ $user.adminRole }}
+---
+  {{- end }}
+{{- end }}

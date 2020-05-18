@@ -1,0 +1,11 @@
+{{- if .Values.installHarborChartRepo }}
+apiVersion: registries.mittwald.de/v1alpha1
+kind: InstanceChartRepo
+metadata:
+  name: harbor
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  name: harbor
+  url: https://helm.goharbor.io
+{{- end }}
