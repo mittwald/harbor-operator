@@ -209,7 +209,7 @@ func (r *ReconcileRepository) patchRepository(ctx context.Context, originalRepos
 
 // assertDeletedRepository deletes a Harbor project, first ensuring its existence
 func (r *ReconcileRepository) assertDeletedRepository(log logr.Logger, harborClient *h.Client, repository *registriesv1alpha1.Repository) error {
-	opt := h.ListProjectsOptions{Name: repository.Name}
+	opt := h.ListProjectsOptions{Name: repository.Spec.Name}
 	repos, err := harborClient.Projects().ListProjects(opt)
 	if err != nil {
 		return err
@@ -232,7 +232,7 @@ func (r *ReconcileRepository) assertDeletedRepository(log logr.Logger, harborCli
 // Check harbor projects and their components for their existence,
 // create and delete either of those to match the specification
 func (r *ReconcileRepository) assertExistingRepository(harborClient *h.Client, repository *registriesv1alpha1.Repository) error {
-	opt := h.ListProjectsOptions{Name: repository.Name}
+	opt := h.ListProjectsOptions{Name: repository.Spec.Name}
 	heldRepos, err := harborClient.Projects().ListProjects(opt)
 	if err != nil {
 		return err
@@ -247,7 +247,7 @@ func (r *ReconcileRepository) assertExistingRepository(harborClient *h.Client, r
 		}
 
 		pReq := h.ProjectRequest{
-			Name:     repository.Name,
+			Name:     repository.Spec.Name,
 			Metadata: newRepositoryMeta,
 		}
 		return harborClient.Projects().CreateProject(pReq)
