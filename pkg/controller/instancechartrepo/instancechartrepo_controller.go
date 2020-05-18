@@ -6,6 +6,7 @@ import (
 	"github.com/mittwald/go-helm-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/config"
+	"github.com/mittwald/harbor-operator/pkg/helmexecutor"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	"helm.sh/helm/v3/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
@@ -25,12 +26,18 @@ var log = logf.Log.WithName("controller_instancechartrepo")
 // Add creates a new InstanceChartRepo Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+	e := &helmexecutor.HelmClientExecutor{
+		RepositoryCache:  config.Config.HelmClientRepositoryCachePath,
+		RepositoryConfig: config.Config.HelmClientRepositoryConfigPath,
+		RestConfig:       mgr.GetConfig(),
+	}
+
+	return add(mgr, newReconciler(mgr, e))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileInstanceChartRepo{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+func newReconciler(mgr manager.Manager, e helmexecutor.HelmExecutor) reconcile.Reconciler {
+	return &ReconcileInstanceChartRepo{client: mgr.GetClient(), scheme: mgr.GetScheme(), helmExecutor: e}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -68,6 +75,7 @@ type ReconcileInstanceChartRepo struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
+	helmExecutor helmexecutor.HelmExecutor
 }
 
 func (r *ReconcileInstanceChartRepo) Reconcile(request reconcile.Request) (reconcile.Result, error) {
