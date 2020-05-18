@@ -50,8 +50,6 @@ spec:
               type: object
             realname:
               type: string
-            roleID:
-              type: string
             userSecretRef:
               description: LocalObjectReference contains enough information to let
                 you locate the referenced object inside the same namespace.
@@ -67,7 +65,6 @@ spec:
           - name
           - parentInstance
           - realname
-          - roleID
           - userSecretRef
           type: object
         status:
