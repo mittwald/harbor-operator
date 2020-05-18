@@ -240,7 +240,7 @@ func (r *ReconcileUser) createUser(harborClient *h.Client, user *registriesv1alp
 func (r *ReconcileUser) labelsForUserSecret(user *registriesv1alpha1.User, instanceName string) map[string]string {
 	return map[string]string{
 		labelUserRegistry:  instanceName,
-		labelUserComponent: user.Name + "-secret",
+		labelUserComponent: user.Spec.Name + "-secret",
 		labelUserRelease:   "harbor",
 	}
 }
