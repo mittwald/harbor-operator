@@ -152,9 +152,9 @@ spec:
 ### Replications
 Replications (or *replication policies*) enable a harbor registry to replicate resources between each other, or between a harbor instance and an external registry.
 
-Using a [**source registry**](#Source-Registries) via `.spec.src_registry` equals using the **'Pull-based'** option for **'Replication Mode'** in the harbor web UI.
+Using a [**source registry**](#Source-Registries) via `.spec.srcRegistry` equals using the **'Pull-based'** option for **'Replication Mode'** in the harbor web UI.
 
-Using a [**destination registry**](#Destination-Registries) via `.spec.dest_registry` equals using the **'Push-based'** option for **'Replication Mode'** in the harbor web UI.
+Using a [**destination registry**](#Destination-Registries) via `.spec.destRegistry` equals using the **'Push-based'** option for **'Replication Mode'** in the harbor web UI.
 
 #### Source Registries
 Specifying a source registry will trigger harbor to pull the specified resource from the remote registry to the local registry.
@@ -178,7 +178,7 @@ spec:
   deletion: false
   override: true
   enabled: true
-  src_registry:
+  srcRegistry:
     name: test-registry
 #  filters:
 #    - type: name
@@ -187,7 +187,7 @@ spec:
 #      value: latest
 #  trigger:
 #    type: manual
-#    trigger_settings:
+#    triggerSettings:
 #      cron: ""
 ```
 
@@ -214,7 +214,7 @@ spec:
   deletion: false
   override: true
   enabled: true
-  dest_registry:
+  destRegistry:
     name: test-registry
 #  filters:
 #    - type: name
@@ -223,7 +223,7 @@ spec:
 #      value: latest
 #  trigger:
 #    type: manual
-#    trigger_settings:
+#    triggerSettings:
 #      cron: ""
 ```
 

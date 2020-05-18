@@ -42,11 +42,11 @@ spec:
               type: boolean
             description:
               type: string
-            dest_namespace:
+            destNamespace:
               description: The destination namespace If left empty, the resource will
                 be but in the same namespace as the source
               type: string
-            dest_registry:
+            destRegistry:
               description: Destination Registry Reference to a registry cr
               properties:
                 name:
@@ -91,10 +91,10 @@ spec:
                     TODO: Add other useful fields. apiVersion, kind, uid?'
                   type: string
               type: object
-            replicate_deletion:
+            replicateDeletion:
               description: Whether to replicate the deletion operation
               type: boolean
-            src_registry:
+            srcRegistry:
               description: Source Registry Reference to a registry cr
               properties:
                 name:
@@ -105,7 +105,7 @@ spec:
             trigger:
               description: The replication policy trigger type
               properties:
-                trigger_settings:
+                triggerSettings:
                   description: TriggerSettings holds the settings of a trigger
                   properties:
                     cron:
@@ -117,7 +117,7 @@ spec:
                   description: TriggerType represents the type of trigger.
                   type: string
               required:
-              - trigger_settings
+              - triggerSettings
               - type
               type: object
           required:

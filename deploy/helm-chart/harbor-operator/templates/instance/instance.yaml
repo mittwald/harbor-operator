@@ -1,11 +1,10 @@
-{{- $this := . }}
 {{- range .Values.instances }}
 apiVersion: registries.mittwald.de/v1alpha1
 kind: Instance
 metadata:
   name: {{ .name }}
   labels:
-    {{- include "chart.labels" $this | nindent 4 }}
+    {{- include "chart.labels" $ | nindent 4 }}
 spec:
   name: {{ .name }}
   version: {{ .version }}
@@ -19,13 +18,14 @@ spec:
     release: {{ .name }}
     chart: harbor/harbor
     version: {{ .version }}
-    namespace: {{ $this.Release.Namespace }}
+    namespace: {{ $.Release.Namespace }}
     valuesYaml: |
       {{- with .values }}
       {{- toYaml . | nindent 6 }}
       {{- end }}
-  {{- if .options }}
-  options: .options
+  {{- with .options }}
+  options:
+    {{- toYaml . | nindent 6 }}
   {{- end }}
 ---
 {{- end }}

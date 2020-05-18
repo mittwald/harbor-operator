@@ -77,7 +77,7 @@ spec:
                     TODO: Add other useful fields. apiVersion, kind, uid?'
                   type: string
               type: object
-            token_service_url:
+            tokenServiceUrl:
               description: TokenServiceURL is only used for local harbor instances
                 to avoid the requests passing through the external proxy for now
               type: string

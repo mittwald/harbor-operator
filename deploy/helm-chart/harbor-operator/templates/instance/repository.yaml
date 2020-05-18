@@ -1,12 +1,11 @@
-{{- $this := . }}
 {{- range $instance := .Values.instances }}
   {{- range $repo := .repositories }}
 apiVersion: registries.mittwald.de/v1alpha1
 kind: Repository
 metadata:
-  name: {{ $repo.name }}
+  name: {{ $instance.name }}-{{ $repo.name }}
   labels:
-    {{- include "chart.labels" $this | nindent 4 }}
+    {{- include "chart.labels" $ | nindent 4 }}
 spec:
   parentInstance:
     name: {{ $instance.name }}
@@ -17,11 +16,9 @@ spec:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 
-  {{- if $repo.memberRequests }}
+  {{- with $repo.memberRequests }}
   memberRequests:
-    {{- with $repo.memberRequests }}
     {{- toYaml . | nindent 4 }}
-    {{- end }}
   {{- end }}
 ---
   {{- end }}

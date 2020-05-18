@@ -44,17 +44,17 @@ type ReplicationSpec struct {
 	// The destination namespace
 	// If left empty, the resource will be but in the same namespace as the source
 	// +optional
-	DestNamespace string `json:"dest_namespace,omitempty"`
+	DestNamespace string `json:"destNamespace,omitempty"`
 
 	// Source Registry
 	// Reference to a registry cr
 	// +optional
-	SrcRegistry *corev1.LocalObjectReference `json:"src_registry,omitempty"`
+	SrcRegistry *corev1.LocalObjectReference `json:"srcRegistry,omitempty"`
 
 	// Destination Registry
 	// Reference to a registry cr
 	// +optional
-	DestRegistry *corev1.LocalObjectReference `json:"dest_registry,omitempty"`
+	DestRegistry *corev1.LocalObjectReference `json:"destRegistry,omitempty"`
 
 	// Whether to override the resources on the destination registry or not
 	Override bool `json:"override"`
@@ -73,7 +73,7 @@ type ReplicationSpec struct {
 
 	// Whether to replicate the deletion operation
 	// +optional
-	ReplicateDeletion bool `json:"replicate_deletion,omitempty"`
+	ReplicateDeletion bool `json:"replicateDeletion,omitempty"`
 
 	// ParentInstance is a LocalObjectReference to the
 	// name of the harbor instance the replication policy gets created for
@@ -101,7 +101,7 @@ type Filter struct {
 // Trigger holds info for a trigger
 type Trigger struct {
 	Type     TriggerType      `json:"type"`
-	Settings *TriggerSettings `json:"trigger_settings"`
+	Settings *TriggerSettings `json:"triggerSettings"`
 }
 
 // TriggerSettings holds the settings of a trigger
