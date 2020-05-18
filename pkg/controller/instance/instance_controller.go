@@ -145,8 +145,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 
 		if harbor.Spec.GarbageCollection != nil {
-			err := r.reconcileGarbageCollection(ctx, harbor)
-			if err != nil {
+			if err := r.reconcileGarbageCollection(ctx, harbor); err != nil {
 				return reconcile.Result{}, err
 			}
 		}

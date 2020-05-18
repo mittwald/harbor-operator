@@ -38,7 +38,7 @@ spec:
   garbageCollection:
     schedule:
       type: Hourly
-      cron: "0 0 * * * "
+      cron: "0 0 * * *"
   helmChart:
       release: test-harbor
       chart: harbor/harbor
@@ -62,7 +62,15 @@ Note: Specyfing an empty string for the `harborAdminPassword`-key in `spec.helmC
 The admin password will then be saved under the key `HARBOR_ADMIN_PASSWORD` in a secret named `HELM_RELEASE_NAME`-`harbor-core`.
 
 [Harbor Garbage Collection](https://goharbor.io/docs/1.10/administration/garbage-collection/) can be configured via `spec.garbageCollection`.
-Valid values for `.spec.garbageCollection.schedule.type` are `Hourly`, `Daily`, `Weekly`, `Custom`, `Manual`, and `None` (each starting with a capital letter).
+Valid values for `.schedule.type` are `Hourly`, `Daily`, `Weekly`, `Custom`, `Manual`, and `None` (each starting with a capital letter).
+The `.schedule.cron` parameter is a cron expression:
+
+```yaml
+spec:
+    schedule:
+      type: Hourly
+      cron: "0 0 * * *"
+```
 
 The `None`-value of the schedule type effectively deactivates the garbage collection.
  

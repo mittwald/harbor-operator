@@ -73,7 +73,7 @@ type GarbageCollectionReq struct {
 	// +optional
 	ID int64 `json:"id,omitempty"`
 	// +optional
-	Parameters map[string]byte `json:"parameters,omitempty"`
+	Parameters map[string]string `json:"parameters,omitempty"`
 }
 
 type InstanceDeployOptions struct {

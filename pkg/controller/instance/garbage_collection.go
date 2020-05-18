@@ -27,18 +27,14 @@ func (r *ReconcileInstance) reconcileGarbageCollection(ctx context.Context, harb
 	}
 
 	// Construct a new garbage collection from the provided instance spec
-	newGc, err := BuildGarbageCollectionScheduleFromSpec(harbor)
+	newGc, err := buildGarbageCollectionScheduleFromSpec(harbor)
 	if err != nil {
 		return err
 	}
 
 	// Assume that the garbage collection's Schedule is nil, if it has not been created yet
 	if gc.AdminJobSchedule == nil {
-		err = harborClient.System().CreateSystemGarbageCollectionSchedule(newGc)
-		if err != nil {
-			return err
-		}
-		return nil
+		return harborClient.System().CreateSystemGarbageCollectionSchedule(newGc)
 	}
 
 	// Compare the constructed garbage collection to the existing one and update accordingly
@@ -52,8 +48,8 @@ func (r *ReconcileInstance) reconcileGarbageCollection(ctx context.Context, harb
 	return nil
 }
 
-// BuildGarbageCollectionScheduleFromSpec constructs and returns a Harbor AdminJobReq from the spec
-func BuildGarbageCollectionScheduleFromSpec(harbor *registriesv1alpha1.Instance) (h.AdminJobReq, error) {
+// buildGarbageCollectionScheduleFromSpec constructs and returns a Harbor AdminJobReq from the spec
+func buildGarbageCollectionScheduleFromSpec(harbor *registriesv1alpha1.Instance) (h.AdminJobReq, error) {
 	if harbor.Spec.GarbageCollection.Schedule == nil {
 		return h.AdminJobReq{}, errors.New("no garbage collection schedule provided")
 	}
@@ -88,19 +84,9 @@ func enumScheduleParam(param *h.ScheduleParam) error {
 	}
 
 	switch param.Type {
-	case h.ScheduleTypeCustom:
+	case h.ScheduleTypeCustom, h.ScheduleTypeHourly, h.ScheduleTypeDaily, h.ScheduleTypeWeekly, h.ScheduleTypeManual, h.ScheduleTypeNone:
 		return nil
-	case h.ScheduleTypeHourly:
-		return nil
-	case h.ScheduleTypeDaily:
-		return nil
-	case h.ScheduleTypeWeekly:
-		return nil
-	case h.ScheduleTypeManual:
-		return nil
-	case h.ScheduleTypeNone:
-		return nil
+	default:
+		return fmt.Errorf("the provided garbage collection schedule type is invalid %s", param.Type)
 	}
-
-	return fmt.Errorf("the provided garbage collection schedule type is invalid %s", param.Type)
 }

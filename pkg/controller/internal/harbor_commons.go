@@ -14,6 +14,7 @@ import (
 
 // ErrInstanceNotFound is called when the corresponding Harbor instance could not be found
 type ErrInstanceNotFound string
+
 // ErrInstanceNotFound is called when the corresponding Harbor instance is not ready
 type ErrInstanceNotReady string
 
@@ -27,8 +28,10 @@ func (e ErrInstanceNotReady) Error() string {
 
 // ErrUserNotFound is a custom error type describing the absence of a user
 var ErrUserNotFound = errors.New("user not found")
+
 // ErrRegistryNotFound is a custom error type describing the absence of a registry
 var ErrRegistryNotFound = errors.New("registry not found")
+
 // ErrReplicationNotFound is a custom error type describing the absence of a replication
 var ErrReplicationNotFound = errors.New("replication not found")
 

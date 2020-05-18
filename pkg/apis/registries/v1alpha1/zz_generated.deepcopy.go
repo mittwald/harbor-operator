@@ -73,7 +73,7 @@ func (in *GarbageCollectionReq) DeepCopyInto(out *GarbageCollectionReq) {
 	}
 	if in.Parameters != nil {
 		in, out := &in.Parameters, &out.Parameters
-		*out = make(map[string]byte, len(*in))
+		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}

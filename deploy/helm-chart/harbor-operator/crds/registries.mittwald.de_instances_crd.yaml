@@ -51,7 +51,7 @@ spec:
                   type: string
                 parameters:
                   additionalProperties:
-                    type: integer
+                    type: string
                   type: object
                 schedule:
                   description: ScheduleParam defines the parameters of a schedule
@@ -174,7 +174,7 @@ spec:
                   type: object
               type: object
             type:
-              description: 'can''t use the resulting string-type so this is a simple
+              description: 'cant use the resulting string-type so this is a simple
                 string and will be casted to an OperatorType in the resolver: error:
                 Hit an unsupported type invalid type for invalid type'
               type: string
