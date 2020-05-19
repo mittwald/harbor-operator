@@ -2,6 +2,9 @@ package user
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	testingregistriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/testing/registriesv1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -10,8 +13,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"testing"
-	"time"
 )
 
 // buildReconcileWithFakeClientWithMocks
@@ -387,11 +388,11 @@ func TestUserController_User_Create_Secret(t *testing.T) {
 
 	user := testingregistriesv1alpha1.CreateUser("test-user", ns)
 	user.Spec.ParentInstance.Name = instance.Spec.Name
-	user.Spec.UserSecretRef.Name = "test-secret"
+	user.Spec.UserSecretRef.Name = instanceSecret.Name
 	user.Status.Phase = registriesv1alpha1.UserStatusPhaseCreating
 
 	userSecret := corev1.Secret{}
-	userSecret.Name = user.Spec.ParentInstance.Name + "-" + user.Spec.UserSecretRef.Name
+	userSecret.Name = user.Spec.UserSecretRef.Name
 	userSecret.Namespace = user.Namespace
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&user, &instance, &instanceSecret})

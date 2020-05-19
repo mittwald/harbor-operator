@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	corev1 "k8s.io/api/core/v1"
@@ -12,7 +13,7 @@ import (
 
 func (r *ReconcileUser) getSecretForUser(ctx context.Context, user *registriesv1alpha1.User) (*corev1.Secret, error) {
 	sec := &corev1.Secret{}
-	sec.Name = user.Spec.ParentInstance.Name + "-" + user.Spec.UserSecretRef.Name
+	sec.Name = user.Spec.UserSecretRef.Name
 	sec.Namespace = user.Namespace
 	err := r.client.Get(ctx, types.NamespacedName{Name: sec.Name, Namespace: sec.Namespace}, sec)
 	if err != nil {
@@ -25,7 +26,7 @@ func (r *ReconcileUser) newSecretForUser(ctx context.Context, user *registriesv1
 	ls := r.labelsForUserSecret(user, user.Spec.ParentInstance.Name)
 
 	sec := &corev1.Secret{}
-	sec.Name = user.Spec.ParentInstance.Name + "-" + user.Spec.UserSecretRef.Name
+	sec.Name = user.Spec.UserSecretRef.Name
 	sec.Namespace = user.Namespace
 
 	err := r.client.Get(ctx, types.NamespacedName{Name: sec.Name, Namespace: sec.Namespace}, sec)
@@ -40,7 +41,7 @@ func (r *ReconcileUser) newSecretForUser(ctx context.Context, user *registriesv1
 				APIVersion: "v1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      user.Spec.ParentInstance.Name + "-" + user.Spec.UserSecretRef.Name,
+				Name:      user.Spec.UserSecretRef.Name,
 				Namespace: user.Namespace,
 				Labels:    ls,
 				OwnerReferences: []metav1.OwnerReference{{
@@ -51,7 +52,7 @@ func (r *ReconcileUser) newSecretForUser(ctx context.Context, user *registriesv1
 				}},
 			},
 			Data: map[string][]byte{
-				"username": []byte(user.Name),
+				"username": []byte(user.Spec.Name),
 				"password": []byte(pw),
 			},
 		}
