@@ -6,7 +6,6 @@ import (
 	"github.com/mittwald/go-helm-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/config"
-	"github.com/mittwald/harbor-operator/pkg/helmexecutor"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	"helm.sh/helm/v3/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
@@ -26,18 +25,27 @@ var log = logf.Log.WithName("controller_instancechartrepo")
 // Add creates a new InstanceChartRepo Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	e := &helmexecutor.HelmClientExecutor{
-		RepositoryCache:  config.Config.HelmClientRepositoryCachePath,
-		RepositoryConfig: config.Config.HelmClientRepositoryConfigPath,
-		RestConfig:       mgr.GetConfig(),
+	// This function is used to dynamically generate a helmclient
+	// and is passed as a field value to the ReconcileInstance struct.
+	f := func(repoCache, repoConfig, namespace string) (*helmclient.Client, error) {
+		opts := &helmclient.RestConfClientOptions{
+			Options: &helmclient.Options{
+				Namespace:        namespace,
+				RepositoryCache:  repoCache,
+				RepositoryConfig: repoConfig,
+			},
+			RestConfig: mgr.GetConfig(),
+		}
+
+		return helmclient.NewClientFromRestConf(opts)
 	}
 
-	return add(mgr, newReconciler(mgr, e))
+	return add(mgr, newReconciler(mgr, f))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, e helmexecutor.HelmExecutor) reconcile.Reconciler {
-	return &ReconcileInstanceChartRepo{client: mgr.GetClient(), scheme: mgr.GetScheme(), helmExecutor: e}
+func newReconciler(mgr manager.Manager, f func(repoCache, repoConfig, namespace string)(*helmclient.Client, error)) reconcile.Reconciler {
+	return &ReconcileInstanceChartRepo{client: mgr.GetClient(), scheme: mgr.GetScheme(), helmClientReceiver: f}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -72,10 +80,14 @@ var _ reconcile.Reconciler = &ReconcileInstanceChartRepo{}
 // ReconcileInstanceChartRepo reconciles a InstanceChartRepo object
 type ReconcileInstanceChartRepo struct {
 	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
+	// that reads objects from the cache and writes to the apiserver.
 	client client.Client
+
+	// The Scheme of this reconciler.
 	scheme *runtime.Scheme
-	helmExecutor helmexecutor.HelmExecutor
+
+	// helmClientReceiver is a receiver function to generate a helmclient dynamically.
+	helmClientReceiver func(repoCache, repoConfig, namespace string) (*helmclient.Client, error)
 }
 
 func (r *ReconcileInstanceChartRepo) Reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -103,10 +115,8 @@ func (r *ReconcileInstanceChartRepo) Reconcile(request reconcile.Request) (recon
 		return r.setErrStatus(instance, err)
 	}
 
-	helmClient, err := helmclient.New(&helmclient.Options{
-		RepositoryCache:  config.Config.HelmClientRepositoryCachePath,
-		RepositoryConfig: config.Config.HelmClientRepositoryConfigPath,
-	})
+	helmClient, err := r.helmClientReceiver(config.Config.HelmClientRepositoryCachePath,
+		config.Config.HelmClientRepositoryConfigPath, "")
 	if err != nil {
 		return reconcile.Result{}, err
 	}
