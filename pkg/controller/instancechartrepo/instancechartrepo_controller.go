@@ -6,6 +6,7 @@ import (
 	"github.com/mittwald/go-helm-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/config"
+	"github.com/mittwald/harbor-operator/pkg/controller/internal"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	"helm.sh/helm/v3/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
@@ -44,7 +45,7 @@ func Add(mgr manager.Manager) error {
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, f func(repoCache, repoConfig, namespace string)(*helmclient.Client, error)) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, f internal.HelmClientFactory) reconcile.Reconciler {
 	return &ReconcileInstanceChartRepo{client: mgr.GetClient(), scheme: mgr.GetScheme(), helmClientReceiver: f}
 }
 
