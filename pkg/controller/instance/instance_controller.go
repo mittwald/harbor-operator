@@ -3,17 +3,18 @@ package instance
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"github.com/mittwald/harbor-operator/pkg/config"
+	"github.com/mittwald/harbor-operator/pkg/controller/internal"
 	"reflect"
 
 	"github.com/go-logr/logr"
 	"github.com/mittwald/go-helm-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
-	"github.com/mittwald/harbor-operator/pkg/config"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -30,12 +31,27 @@ var log = logf.Log.WithName("controller_harbor")
 // Add creates a new Instance Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+	// This function is used to dynamically generate a helmclient
+	// and is passed as a field value to the ReconcileInstance struct.
+	f := func(repoCache, repoConfig, namespace string) (*helmclient.Client, error) {
+		opts := &helmclient.RestConfClientOptions{
+			Options: &helmclient.Options{
+				Namespace:        namespace,
+				RepositoryCache:  repoCache,
+				RepositoryConfig: repoConfig,
+			},
+			RestConfig: mgr.GetConfig(),
+		}
+
+		return helmclient.NewClientFromRestConf(opts)
+	}
+
+	return add(mgr, newReconciler(mgr, f))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileInstance{client: mgr.GetClient(), scheme: mgr.GetScheme(), config: mgr.GetConfig()}
+func newReconciler(mgr manager.Manager, f internal.HelmClientFactory) reconcile.Reconciler {
+	return &ReconcileInstance{client: mgr.GetClient(), scheme: mgr.GetScheme(), helmClientReceiver: f}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -61,10 +77,14 @@ var _ reconcile.Reconciler = &ReconcileInstance{}
 // ReconcileInstance reconciles a Instance object
 type ReconcileInstance struct {
 	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
+	// that reads objects from the cache and writes to the apiserver.
 	client client.Client
+
+	// The Scheme of this operator.
 	scheme *runtime.Scheme
-	config *rest.Config
+
+	// helmClientReceiver is a receiver function to generate a helmclient dynamically.
+	helmClientReceiver func(repoCache, repoConfig, namespace string) (*helmclient.Client, error)
 }
 
 // Reconcile reads that state of the cluster for a Instance object and makes changes based on the state read
@@ -81,7 +101,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 	// Fetch the Instance
 	harbor := &registriesv1alpha1.Instance{}
 	if err := r.client.Get(ctx, request.NamespacedName, harbor); err != nil {
-		if errors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -117,6 +137,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	case registriesv1alpha1.InstanceStatusPhaseInstalling:
 		reqLogger.Info("installing helm-chart")
+
 		err := r.updateHelmRepos()
 		if err != nil {
 			return reconcile.Result{}, err
@@ -126,6 +147,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+
 		err = r.installOrUpgradeHelmChart(chartSpec)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -171,12 +193,17 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 // reconcileTerminatingInstance triggers a helm uninstall for the created release
 func (r *ReconcileInstance) reconcileTerminatingInstance(ctx context.Context, log logr.Logger, harbor *registriesv1alpha1.Instance) error {
+	if harbor == nil {
+		return errors.New("no harbor instance provided")
+	}
+
 	chartSpec, err := harbor.ToChartSpec(ctx, r.client)
 	if err != nil {
 		return err
 	}
 
 	log.Info("deleting helm release", "release", chartSpec.ReleaseName)
+
 	err = r.uninstallHelmRelease(chartSpec)
 	if err != nil {
 		return err
@@ -186,19 +213,6 @@ func (r *ReconcileInstance) reconcileTerminatingInstance(ctx context.Context, lo
 	helper.PullFinalizer(harbor, FinalizerName)
 
 	return nil
-}
-
-// updateHelmRepos updates helm chart repositories
-func (r *ReconcileInstance) updateHelmRepos() error {
-	helmClient, err := helmclient.New(&helmclient.Options{
-		RepositoryCache:  config.Config.HelmClientRepositoryCachePath,
-		RepositoryConfig: config.Config.HelmClientRepositoryConfigPath,
-	})
-	if err != nil {
-		return err
-	}
-
-	return helmClient.UpdateChartRepos()
 }
 
 // createSpecHash returns a hash string constructed with the helm chart spec
@@ -239,18 +253,22 @@ func (r *ReconcileInstance) patchInstance(ctx context.Context, originalInstance,
 	return reconcile.Result{Requeue: true}, nil
 }
 
-// installOrUpgradeHelmChart installs and upgrades a helm chart
-func (r *ReconcileInstance) installOrUpgradeHelmChart(helmChart *helmclient.ChartSpec) error {
-	restClientOpts := helmclient.RestConfClientOptions{
-		Options: &helmclient.Options{
-			Namespace:        helmChart.Namespace,
-			RepositoryCache:  config.Config.HelmClientRepositoryCachePath,
-			RepositoryConfig: config.Config.HelmClientRepositoryConfigPath,
-		},
-		RestConfig: r.config,
+// updateHelmRepos updates helm chart repositories
+func (r *ReconcileInstance) updateHelmRepos() error {
+	helmClient, err := r.helmClientReceiver(config.Config.HelmClientRepositoryCachePath,
+		config.Config.HelmClientRepositoryConfigPath, "")
+
+	if err != nil {
+		return err
 	}
 
-	helmClient, err := helmclient.NewClientFromRestConf(&restClientOpts)
+	return helmClient.UpdateChartRepos()
+}
+
+// installOrUpgradeHelmChart installs and upgrades a helm chart
+func (r *ReconcileInstance) installOrUpgradeHelmChart(helmChart *helmclient.ChartSpec) error {
+	helmClient, err := r.helmClientReceiver(config.Config.HelmClientRepositoryCachePath,
+		config.Config.HelmClientRepositoryConfigPath, helmChart.Namespace)
 
 	if err != nil {
 		return err
@@ -261,16 +279,8 @@ func (r *ReconcileInstance) installOrUpgradeHelmChart(helmChart *helmclient.Char
 
 // uninstallHelmRelease uninstalls a helm release
 func (r *ReconcileInstance) uninstallHelmRelease(helmChart *helmclient.ChartSpec) error {
-	restClientOpts := helmclient.RestConfClientOptions{
-		Options: &helmclient.Options{
-			Namespace:        helmChart.Namespace,
-			RepositoryCache:  config.Config.HelmClientRepositoryCachePath,
-			RepositoryConfig: config.Config.HelmClientRepositoryConfigPath,
-		},
-		RestConfig: r.config,
-	}
-
-	helmClient, err := helmclient.NewClientFromRestConf(&restClientOpts)
+	helmClient, err := r.helmClientReceiver(config.Config.HelmClientRepositoryCachePath,
+		config.Config.HelmClientRepositoryConfigPath, helmChart.Namespace)
 
 	if err != nil {
 		return err
