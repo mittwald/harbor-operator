@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+
 	"github.com/imdario/mergo"
 	"github.com/mittwald/go-helm-client"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"

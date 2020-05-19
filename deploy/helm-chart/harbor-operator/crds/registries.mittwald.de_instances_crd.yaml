@@ -40,6 +40,40 @@ spec:
         spec:
           description: InstanceSpec defines the desired state of Instance
           properties:
+            garbageCollection:
+              description: GarbageCollectionReq holds request information for a garbage
+                collection schedule
+              properties:
+                id:
+                  format: int64
+                  type: integer
+                name:
+                  type: string
+                parameters:
+                  additionalProperties:
+                    type: string
+                  type: object
+                schedule:
+                  description: ScheduleParam defines the parameters of a schedule
+                    trigger
+                  properties:
+                    cron:
+                      description: The cron string of scheduled job
+                      type: string
+                    type:
+                      description: 'Daily, Hourly, Weekly, Custom, Manual, None Note:
+                        When creating pre-defined schedule types (e.g. ''Hourly''),
+                        the Cron string has to be provided.'
+                      type: string
+                  required:
+                  - cron
+                  - type
+                  type: object
+                status:
+                  type: string
+              required:
+              - schedule
+              type: object
             helmChart:
               properties:
                 NameTemplate:

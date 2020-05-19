@@ -166,6 +166,12 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 			return r.patchInstance(ctx, originalInstance, harbor)
 		}
 
+		if harbor.Spec.GarbageCollection != nil {
+			if err := r.reconcileGarbageCollection(ctx, harbor); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+
 		chartSpec, err := harbor.ToChartSpec(ctx, r.client)
 		if err != nil {
 			return reconcile.Result{}, err

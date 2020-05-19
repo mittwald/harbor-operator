@@ -12,7 +12,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ErrInstanceNotFound is called when the corresponding Harbor instance could not be found
 type ErrInstanceNotFound string
+
+// ErrInstanceNotFound is called when the corresponding Harbor instance is not ready
 type ErrInstanceNotReady string
 
 func (e ErrInstanceNotFound) Error() string {
@@ -23,10 +26,16 @@ func (e ErrInstanceNotReady) Error() string {
 	return fmt.Sprintf("instance '%s' not ready", string(e))
 }
 
+// ErrUserNotFound is a custom error type describing the absence of a user
 var ErrUserNotFound = errors.New("user not found")
+
+// ErrRegistryNotFound is a custom error type describing the absence of a registry
 var ErrRegistryNotFound = errors.New("registry not found")
+
+// ErrReplicationNotFound is a custom error type describing the absence of a replication
 var ErrReplicationNotFound = errors.New("replication not found")
 
+// GetUser returns a Harbor user, filtering the results of a user search query for the specified user
 func GetUser(user *registriesv1alpha1.User, harborClient *h.Client) (h.User, error) {
 	// Need to get the user's id (which is determined by harbor itself) to reliably get the user's ID
 	resUsers, err := harborClient.Users().SearchUser(h.UserMember{

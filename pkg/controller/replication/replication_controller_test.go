@@ -162,7 +162,7 @@ func TestReplicationController_Registry_Type(t *testing.T) {
 		rep := testingregistriesv1alpha1.CreateReplication(repName, ns, instance.Spec.Name)
 		rep.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseCreating
 		rep.Spec.SrcRegistry = &corev1.LocalObjectReference{
-			Name:            regName,
+			Name: regName,
 		}
 
 		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&rep, &instance, &instanceSecret, &reg})
@@ -187,7 +187,7 @@ func TestReplicationController_Registry_Type(t *testing.T) {
 		rep := testingregistriesv1alpha1.CreateReplication(repName, ns, instance.Spec.Name)
 		rep.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseCreating
 		rep.Spec.DestRegistry = &corev1.LocalObjectReference{
-			Name:            regName,
+			Name: regName,
 		}
 
 		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&rep, &instance, &instanceSecret, &reg})

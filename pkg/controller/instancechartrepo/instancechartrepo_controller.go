@@ -3,6 +3,7 @@ package instancechartrepo
 import (
 	"context"
 	"fmt"
+
 	"github.com/mittwald/go-helm-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/config"

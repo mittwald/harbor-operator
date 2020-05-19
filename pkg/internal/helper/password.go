@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 )
 
+// NewRandomPassword returns a random secret string with a given length
 func NewRandomPassword(passwordStrength int32) (string, error) {
 	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
 	buf := make([]byte, passwordStrength)

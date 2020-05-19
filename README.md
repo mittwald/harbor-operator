@@ -20,6 +20,7 @@ The operator utilizes a [helm client](https://github.com/mittwald/go-helm-client
 - repositories
 - replications
 - registries
+- garbage collections
 
 **Helm Chart**: [Installation Guide](#Helm)
 

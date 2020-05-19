@@ -8,6 +8,10 @@ spec:
   version: v1.3.1
   type: manual
   instanceURL: https://core.harbor.domain/
+  garbageCollection:
+    schedule:
+      type: Hourly
+      cron: "0 0 * * * "
   helmChart:
       release: test-harbor
       chart: harbor/harbor
