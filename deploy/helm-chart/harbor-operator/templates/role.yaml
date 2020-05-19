@@ -15,7 +15,7 @@ rules:
 
 - apiGroups: [extensions]
   resources: ['ingresses']
-  verbs: ['get', 'create', 'delete']
+  verbs: ['get', 'create', 'delete', 'patch']
 
 - apiGroups: [monitoring.coreos.com]
   resources: ['servicemonitors']
