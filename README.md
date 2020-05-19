@@ -3,7 +3,7 @@
 A Kubernetes operator for managing [Goharbor](https://github.com/goharbor/harbor) instances
 
 [![GitHub license](https://img.shields.io/github/license/mittwald/harbor-operator.svg)](https://github.com/mittwald/harbor-operator/blob/master/LICENSE)
-[![GoDoc](https://godoc.org/github.com/mittwald/harbor-operator?status.svg)](https://godoc.org/github.com/mittwald/go-powerdns)
+[![GoDoc](https://godoc.org/github.com/mittwald/harbor-operator?status.svg)](https://pkg.go.dev/github.com/mittwald/harbor-operator)
 ![Go](https://github.com/mittwald/harbor-operator/workflows/Go/badge.svg?branch=master)
 [![Maintainability](https://api.codeclimate.com/v1/badges/6208714b76fca48ea633/maintainability)](https://codeclimate.com/github/mittwald/harbor-operator/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/6208714b76fca48ea633/test_coverage)](https://codeclimate.com/github/mittwald/harbor-operator/test_coverage)
