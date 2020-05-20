@@ -5,6 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+	helmclient "github.com/mittwald/go-helm-client"
+	helmclientmock "github.com/mittwald/go-helm-client/mock"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	testingregistriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/testing/registriesv1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -173,45 +176,104 @@ func TestInstanceController_Transition_Installing(t *testing.T) {
 	}
 }
 
-// TestInstanceController_Instance_Deletion
-// Test the deletion of an instance object
-func TestInstanceController_Instance_Deletion(t *testing.T) {
-	ns := "test-namespace"
-
-	i := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
-
-	instanceSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", ns)
-	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
-
-	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &instanceSecret})
-
+// TestInstanceController_Istance_Installation
+// Test if an instance object triggers the installation of an helm chart.
+func TestInstanceController_Istance_Installation(t *testing.T) {
+	i := testingregistriesv1alpha1.CreateInstance("harbor", "foobar")
+	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
 	i.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      i.Name,
-			Namespace: i.Namespace,
-		},
+	chartSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", "foobar")
+	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &chartSecret})
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockClient := helmclientmock.NewMockClient(ctrl)
+	gomock.InOrder(
+		mockClient.EXPECT().UpdateChartRepos(),
+		mockClient.EXPECT().InstallOrUpgradeChart(&helmclient.ChartSpec{
+			ReleaseName: i.Spec.HelmChart.ReleaseName,
+			ChartName:   i.Spec.HelmChart.ChartName,
+			Namespace:   i.Spec.HelmChart.Namespace,
+			ValuesYaml:  i.Spec.HelmChart.ValuesYaml,
+			Version:     i.Spec.HelmChart.Version,
+		}),
+	)
+	r.helmClientReceiver = func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
+		return helmclient.Client(mockClient), nil
 	}
 
-	err := r.client.Delete(context.TODO(), &i)
-	if err != nil {
-		t.Error("could not delete instance")
-	}
-
+	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: i.Name, Namespace: i.Namespace}}
 	res, err := r.Reconcile(req)
+
 	if err != nil {
-		t.Fatalf("reconcile returned error: (%v)", err)
+		t.Fatalf("reconcile returned error: %v", err)
+	}
+	if !res.Requeue {
+		t.Errorf("object got requeued, but should have not")
 	}
 
-	if res.Requeue {
-		t.Error("reconciliation was erroneously requeued")
+	fetched := &registriesv1alpha1.Instance{}
+	err = r.client.Get(context.TODO(), req.NamespacedName, fetched)
+	if err != nil {
+		t.Fatalf("could not get instance: %v", err)
 	}
 
-	instance := &registriesv1alpha1.Instance{}
-	err = r.client.Get(context.TODO(), req.NamespacedName, instance)
-	if err == nil {
-		t.Error("instance was not deleted")
+	if fetched.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseReady {
+		t.Errorf("wrong phase of received instance, want: %s, got: %s",
+			registriesv1alpha1.InstanceStatusPhaseReady, i.Status.Phase.Name)
+	}
+	if fetched.Status.Version != i.Spec.Version {
+		t.Errorf("wrong status.version of received instance, want: %s, got: %s",
+			i.Spec.Version, fetched.Status.Version)
+	}
+}
+
+// TestInstanceController_Instance_Deletion
+// Test the deletion of an instance object.
+// Expect the helm chart to be deleted and no finalizers on the object anymore,
+// so Kubernetes would be able to delete the object.
+func TestInstanceController_Instance_Deletion(t *testing.T) {
+	i := testingregistriesv1alpha1.CreateInstance("harbor", "foobar")
+	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseTerminating
+	i.SetFinalizers([]string{"harbor-operator.registries.mittwald.de"})
+	i.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+
+	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i})
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockClient := helmclientmock.NewMockClient(ctrl)
+	mockClient.EXPECT().UninstallRelease(&helmclient.ChartSpec{
+		ReleaseName: i.Spec.HelmChart.ReleaseName,
+		ChartName:   i.Spec.HelmChart.ChartName,
+		Namespace:   i.Spec.HelmChart.Namespace,
+		ValuesYaml:  i.Spec.HelmChart.ValuesYaml,
+		Version:     i.Spec.HelmChart.Version,
+	})
+	r.helmClientReceiver = func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
+		return helmclient.Client(mockClient), nil
+	}
+
+	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: i.Name, Namespace: i.Namespace}}
+	res, err := r.Reconcile(req)
+
+	if err != nil {
+		t.Fatalf("reconcile returned error: %v", err)
+	}
+
+	if !res.Requeue {
+		t.Error("object should have been requeued")
+	}
+
+	fetched := &registriesv1alpha1.Instance{}
+	err = r.client.Get(context.TODO(), req.NamespacedName, fetched)
+	if err != nil {
+		t.Fatalf("could not get instance: %v", err)
+	}
+
+	if len(fetched.GetFinalizers()) != 0 {
+		t.Errorf("Unexpected length of finalizers, expected: %d, got: %d", 0, len(fetched.GetFinalizers()))
 	}
 }
 
