@@ -147,6 +147,11 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 		}
 	}
 
+	if repository.ObjectMeta.DeletionTimestamp != nil {
+		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseTerminating}
+		return r.patchRepository(ctx, originalRepository, repository)
+	}
+
 	switch repository.Status.Phase {
 	default:
 		return reconcile.Result{}, nil
@@ -165,10 +170,6 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 	case registriesv1alpha1.RepositoryStatusPhaseReady:
 		// Compare the state of spec to the state of what the API returns
 		// If the Repository object is deleted, assume that the repository needs deletion, too
-		if repository.ObjectMeta.DeletionTimestamp != nil {
-			repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseTerminating}
-			return r.patchRepository(ctx, originalRepository, repository)
-		}
 		err := r.assertExistingRepository(harborClient, repository)
 		if err != nil {
 			return reconcile.Result{}, err
