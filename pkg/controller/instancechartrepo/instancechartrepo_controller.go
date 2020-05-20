@@ -2,6 +2,7 @@ package instancechartrepo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	helmclient "github.com/mittwald/go-helm-client"
@@ -11,7 +12,7 @@ import (
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	"helm.sh/helm/v3/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -102,7 +103,7 @@ func (r *ReconcileInstanceChartRepo) Reconcile(request reconcile.Request) (recon
 	instance := &registriesv1alpha1.InstanceChartRepo{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -114,7 +115,7 @@ func (r *ReconcileInstanceChartRepo) Reconcile(request reconcile.Request) (recon
 
 	entry, err := r.specToRepoEntry(ctx, instance)
 	if err != nil {
-		return r.setErrStatus(instance, err)
+		return r.setErrStatus(ctx, instance, err)
 	}
 
 	helmClient, err := r.helmClientReceiver(config.Config.HelmClientRepositoryCachePath,
@@ -125,7 +126,7 @@ func (r *ReconcileInstanceChartRepo) Reconcile(request reconcile.Request) (recon
 
 	err = helmClient.AddOrUpdateChartRepo(*entry)
 	if err != nil {
-		return r.setErrStatus(instance, err)
+		return r.setErrStatus(ctx, instance, err)
 	}
 
 	instance.Status.State = registriesv1alpha1.RepoStateReady
@@ -134,17 +135,25 @@ func (r *ReconcileInstanceChartRepo) Reconcile(request reconcile.Request) (recon
 }
 
 // setErrStatus sets the error status of an instancechartrepo objec
-func (r *ReconcileInstanceChartRepo) setErrStatus(cr *registriesv1alpha1.InstanceChartRepo, err error) (reconcile.Result, error) {
+func (r *ReconcileInstanceChartRepo) setErrStatus(ctx context.Context, cr *registriesv1alpha1.InstanceChartRepo, err error) (reconcile.Result, error) {
+	if cr == nil {
+		return reconcile.Result{}, errors.New("no instance chart repo provided")
+	}
+
 	cr.Status.State = registriesv1alpha1.RepoStateError
-	updateErr := r.client.Status().Update(context.TODO(), cr)
+	updateErr := r.client.Status().Update(ctx, cr)
 	if updateErr != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{}, updateErr
 	}
 	return reconcile.Result{}, err
 }
 
 // specToRepoEntry constructs and returns a repository entry from an instancechartrepo CR object
 func (r *ReconcileInstanceChartRepo) specToRepoEntry(ctx context.Context, cr *registriesv1alpha1.InstanceChartRepo) (*repo.Entry, error) {
+	if cr == nil {
+		return nil, errors.New("no instance chart repo provided")
+	}
+
 	entry := repo.Entry{
 		Name: cr.Name,
 		URL:  cr.Spec.URL,
