@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mittwald/go-helm-client"
+	helmclient "github.com/mittwald/go-helm-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/config"
 	"github.com/mittwald/harbor-operator/pkg/controller/internal"
@@ -29,7 +29,7 @@ var log = logf.Log.WithName("controller_instancechartrepo")
 func Add(mgr manager.Manager) error {
 	// This function is used to dynamically generate a helmclient
 	// and is passed as a field value to the ReconcileInstance struct.
-	f := func(repoCache, repoConfig, namespace string) (*helmclient.Client, error) {
+	f := func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
 		opts := &helmclient.RestConfClientOptions{
 			Options: &helmclient.Options{
 				Namespace:        namespace,
@@ -89,7 +89,7 @@ type ReconcileInstanceChartRepo struct {
 	scheme *runtime.Scheme
 
 	// helmClientReceiver is a receiver function to generate a helmclient dynamically.
-	helmClientReceiver func(repoCache, repoConfig, namespace string) (*helmclient.Client, error)
+	helmClientReceiver internal.HelmClientFactory
 }
 
 func (r *ReconcileInstanceChartRepo) Reconcile(request reconcile.Request) (reconcile.Result, error) {
