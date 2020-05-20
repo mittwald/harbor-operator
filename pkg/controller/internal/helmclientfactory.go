@@ -5,4 +5,4 @@ import (
 )
 
 // HelmClientFactory represent functions to dynamically generate helm clients.
-type HelmClientFactory func(repoCache, repoConfig, namespace string)(*helmclient.Client, error)
+type HelmClientFactory func(repoCache, repoConfig, namespace string) (helmclient.Client, error)

@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/mittwald/harbor-operator/pkg/config"
-	"github.com/mittwald/harbor-operator/pkg/controller/internal"
 	"reflect"
 
+	"github.com/mittwald/harbor-operator/pkg/config"
+	"github.com/mittwald/harbor-operator/pkg/controller/internal"
+
 	"github.com/go-logr/logr"
-	"github.com/mittwald/go-helm-client"
+	helmclient "github.com/mittwald/go-helm-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,7 +34,7 @@ var log = logf.Log.WithName("controller_harbor")
 func Add(mgr manager.Manager) error {
 	// This function is used to dynamically generate a helmclient
 	// and is passed as a field value to the ReconcileInstance struct.
-	f := func(repoCache, repoConfig, namespace string) (*helmclient.Client, error) {
+	f := func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
 		opts := &helmclient.RestConfClientOptions{
 			Options: &helmclient.Options{
 				Namespace:        namespace,
@@ -84,7 +85,7 @@ type ReconcileInstance struct {
 	scheme *runtime.Scheme
 
 	// helmClientReceiver is a receiver function to generate a helmclient dynamically.
-	helmClientReceiver func(repoCache, repoConfig, namespace string) (*helmclient.Client, error)
+	helmClientReceiver internal.HelmClientFactory
 }
 
 // Reconcile reads that state of the cluster for a Instance object and makes changes based on the state read
