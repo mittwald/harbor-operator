@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	helmclient "github.com/mittwald/go-helm-client"
 )
 
 type InterfaceHash []byte
@@ -38,4 +39,20 @@ func GenerateHashFromInterfaces(interfaces []interface{}) (InterfaceHash, error)
 	}
 
 	return hash.Sum(nil), nil
+}
+
+// CreateSpecHash returns a hash string constructed with the helm chart spec
+func CreateSpecHash(spec *helmclient.ChartSpec) (string, error) {
+	hashSrc, err := json.Marshal(spec)
+	if err != nil {
+		return "", err
+	}
+
+	toHash := []interface{}{hashSrc}
+	hash, err := GenerateHashFromInterfaces(toHash)
+	if err != nil {
+		return "", err
+	}
+
+	return hash.String(), nil
 }

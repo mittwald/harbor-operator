@@ -2,7 +2,6 @@ package instance
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"reflect"
 
@@ -155,6 +154,18 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
 		harbor.Status.Version = harbor.Spec.Version
 
+		// Creating a spec hash of the chart spec pre-installation
+		// ensures that it is set in "InstanceStatusPhaseReady", preventing the controller
+		// to jump right back into "InstanceStatusPhaseInstalling"
+		specHash, err := helper.CreateSpecHash(chartSpec)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if harbor.Status.SpecHash == "" {
+			harbor.Status.SpecHash = specHash
+			return r.patchInstance(ctx, originalInstance, harbor)
+		}
+
 	case registriesv1alpha1.InstanceStatusPhaseReady:
 		if harbor.Spec.GarbageCollection != nil {
 			if err := r.reconcileGarbageCollection(ctx, harbor); err != nil {
@@ -167,7 +178,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 			return reconcile.Result{}, err
 		}
 
-		specHash, err := r.createSpecHash(chartSpec)
+		specHash, err := helper.CreateSpecHash(chartSpec)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -210,22 +221,6 @@ func (r *ReconcileInstance) reconcileTerminatingInstance(ctx context.Context, lo
 	helper.PullFinalizer(harbor, FinalizerName)
 
 	return nil
-}
-
-// createSpecHash returns a hash string constructed with the helm chart spec
-func (r *ReconcileInstance) createSpecHash(spec *helmclient.ChartSpec) (string, error) {
-	hashSrc, err := json.Marshal(spec)
-	if err != nil {
-		return "", err
-	}
-
-	toHash := []interface{}{hashSrc}
-	hash, err := helper.GenerateHashFromInterfaces(toHash)
-	if err != nil {
-		return "", err
-	}
-
-	return hash.String(), nil
 }
 
 // patchInstance compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
