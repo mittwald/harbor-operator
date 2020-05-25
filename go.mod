@@ -10,7 +10,7 @@ require (
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/json-iterator/go v1.1.8 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
-	github.com/mittwald/go-helm-client v0.1.1
+	github.com/mittwald/go-helm-client v0.2.0
 	github.com/mittwald/goharbor-client v0.1.1
 	github.com/operator-framework/operator-sdk v0.16.0
 	github.com/parnurzeal/gorequest v0.2.16 // indirect
