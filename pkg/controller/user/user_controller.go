@@ -151,11 +151,6 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 		}
 	}
 
-	if user.ObjectMeta.DeletionTimestamp != nil {
-		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseTerminating}
-		return r.patchUser(ctx, originalUser, user)
-	}
-
 	// Handle user reconciliation
 	switch user.Status.Phase {
 	default:
@@ -172,6 +167,10 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseReady}
 
 	case registriesv1alpha1.UserStatusPhaseReady:
+		if user.ObjectMeta.DeletionTimestamp != nil {
+			user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseTerminating}
+			return r.patchUser(ctx, originalUser, user)
+		}
 		err := r.assertExistingUser(ctx, harborClient, user)
 		if err != nil {
 			return reconcile.Result{}, err

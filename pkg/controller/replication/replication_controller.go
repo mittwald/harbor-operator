@@ -3,10 +3,9 @@ package replication
 import (
 	"context"
 	"fmt"
+	v1 "k8s.io/api/core/v1"
 	"reflect"
 	"time"
-
-	v1 "k8s.io/api/core/v1"
 
 	"github.com/go-logr/logr"
 	h "github.com/mittwald/goharbor-client"
@@ -135,12 +134,6 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		}
 	}
 
-	// If the Replication object is deleted, assume that the repository needs deletion, too
-	if replication.ObjectMeta.DeletionTimestamp != nil {
-		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseTerminating}
-		return r.patchReplication(ctx, originalReplication, replication)
-	}
-
 	switch replication.Status.Phase {
 	default:
 		return reconcile.Result{}, nil
@@ -157,6 +150,11 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 
 	case registriesv1alpha1.ReplicationStatusPhaseReady:
 		// Compare the state of spec to the state of what the API returns
+		// If the Replication object is deleted, assume that the repository needs deletion, too
+		if replication.ObjectMeta.DeletionTimestamp != nil {
+			replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseTerminating}
+			return r.patchReplication(ctx, originalReplication, replication)
+		}
 
 		err := r.assertExistingReplication(harborClient, replication)
 		if err != nil {

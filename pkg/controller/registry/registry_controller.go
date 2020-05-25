@@ -132,11 +132,6 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 	}
 
-	if registry.ObjectMeta.DeletionTimestamp != nil {
-		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
-		return r.patchRegistry(ctx, originalRegistry, registry)
-	}
-
 	switch registry.Status.Phase {
 	default:
 		return reconcile.Result{}, nil
@@ -154,6 +149,11 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 	case registriesv1alpha1.RegistryStatusPhaseReady:
 		// Compare the state of spec to the state of what the API returns
 		// If the Registry object is deleted, assume that the repository needs deletion, too
+		if registry.ObjectMeta.DeletionTimestamp != nil {
+			registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
+			return r.patchRegistry(ctx, originalRegistry, registry)
+		}
+
 		err := r.assertExistingRegistry(harborClient, registry)
 		if err != nil {
 			return reconcile.Result{}, err
