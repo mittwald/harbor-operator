@@ -1,7 +1,7 @@
 package registriesv1alpha1
 
 import (
-	"github.com/mittwald/go-helm-client"
+	helmclient "github.com/mittwald/go-helm-client"
 	h "github.com/mittwald/goharbor-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	corev1 "k8s.io/api/core/v1"

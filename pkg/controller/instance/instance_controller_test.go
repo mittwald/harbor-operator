@@ -128,6 +128,13 @@ func TestInstanceController_Transition_Installing(t *testing.T) {
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &instanceSecret})
 
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockClient := helmclientmock.NewMockClient(ctrl)
+	r.helmClientReceiver = func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
+		return helmclient.Client(mockClient), nil
+	}
+
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      i.Name,
@@ -145,22 +152,6 @@ func TestInstanceController_Transition_Installing(t *testing.T) {
 	}
 
 	instance := &registriesv1alpha1.Instance{}
-
-	err = r.client.Get(context.TODO(), req.NamespacedName, instance)
-	if err != nil {
-		t.Errorf("could not get instance: %v", err)
-	}
-
-	if !res.Requeue {
-		t.Error("reconciliation was not requeued")
-	}
-
-	res, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile returned error: (%v)", err)
-	}
-
-	instance = &registriesv1alpha1.Instance{}
 
 	err = r.client.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
@@ -285,6 +276,7 @@ func TestInstanceController_Add_Finalizer(t *testing.T) {
 	// Create mock instance + secret
 	i := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
 	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+	i.Spec.GarbageCollection = nil
 
 	instanceSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", ns)
 
@@ -329,6 +321,7 @@ func TestInstanceController_Existing_Finalizer(t *testing.T) {
 	// Create mock instance + secret
 	i := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
 	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+	i.Spec.GarbageCollection = nil
 
 	instanceSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", ns)
 
