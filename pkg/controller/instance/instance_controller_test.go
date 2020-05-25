@@ -164,7 +164,6 @@ func TestInstanceController_Transition_Installing(t *testing.T) {
 func TestInstanceController_Istance_Installation(t *testing.T) {
 	i := testingregistriesv1alpha1.CreateInstance("harbor", "foobar")
 	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
-	//i.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 
 	chartSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", "foobar")
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &chartSecret})
