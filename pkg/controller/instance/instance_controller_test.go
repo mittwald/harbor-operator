@@ -3,7 +3,6 @@ package instance
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	helmclient "github.com/mittwald/go-helm-client"
@@ -128,13 +127,6 @@ func TestInstanceController_Transition_Installing(t *testing.T) {
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &instanceSecret})
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockClient := helmclientmock.NewMockClient(ctrl)
-	r.helmClientReceiver = func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
-		return helmclient.Client(mockClient), nil
-	}
-
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      i.Name,
@@ -172,7 +164,7 @@ func TestInstanceController_Transition_Installing(t *testing.T) {
 func TestInstanceController_Istance_Installation(t *testing.T) {
 	i := testingregistriesv1alpha1.CreateInstance("harbor", "foobar")
 	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
-	i.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+	//i.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 
 	chartSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", "foobar")
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &chartSecret})
@@ -228,7 +220,6 @@ func TestInstanceController_Instance_Deletion(t *testing.T) {
 	i := testingregistriesv1alpha1.CreateInstance("harbor", "foobar")
 	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseTerminating
 	i.SetFinalizers([]string{"harbor-operator.registries.mittwald.de"})
-	i.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i})
 
@@ -275,12 +266,29 @@ func TestInstanceController_Add_Finalizer(t *testing.T) {
 
 	// Create mock instance + secret
 	i := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
-	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
 	i.Spec.GarbageCollection = nil
 
 	instanceSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", ns)
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &instanceSecret})
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockClient := helmclientmock.NewMockClient(ctrl)
+	gomock.InOrder(
+		mockClient.EXPECT().UpdateChartRepos(),
+		mockClient.EXPECT().InstallOrUpgradeChart(&helmclient.ChartSpec{
+			ReleaseName: i.Spec.HelmChart.ReleaseName,
+			ChartName:   i.Spec.HelmChart.ChartName,
+			Namespace:   i.Spec.HelmChart.Namespace,
+			ValuesYaml:  i.Spec.HelmChart.ValuesYaml,
+			Version:     i.Spec.HelmChart.Version,
+		}),
+	)
+	r.helmClientReceiver = func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
+		return helmclient.Client(mockClient), nil
+	}
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
@@ -299,11 +307,9 @@ func TestInstanceController_Add_Finalizer(t *testing.T) {
 
 	instance := &registriesv1alpha1.Instance{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, instance)
-
 	if err != nil {
 		t.Error("could not get instance")
 	}
-
 	if instance.Finalizers == nil || len(instance.Finalizers) == 0 {
 		t.Error("finalizer has not been added")
 	}
@@ -320,12 +326,29 @@ func TestInstanceController_Existing_Finalizer(t *testing.T) {
 
 	// Create mock instance + secret
 	i := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
-	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
 	i.Spec.GarbageCollection = nil
 
 	instanceSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", ns)
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &instanceSecret})
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockClient := helmclientmock.NewMockClient(ctrl)
+	gomock.InOrder(
+		mockClient.EXPECT().UpdateChartRepos(),
+		mockClient.EXPECT().InstallOrUpgradeChart(&helmclient.ChartSpec{
+			ReleaseName: i.Spec.HelmChart.ReleaseName,
+			ChartName:   i.Spec.HelmChart.ChartName,
+			Namespace:   i.Spec.HelmChart.Namespace,
+			ValuesYaml:  i.Spec.HelmChart.ValuesYaml,
+			Version:     i.Spec.HelmChart.Version,
+		}),
+	)
+	r.helmClientReceiver = func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
+		return helmclient.Client(mockClient), nil
+	}
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
