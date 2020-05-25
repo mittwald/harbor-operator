@@ -95,6 +95,11 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	originalRegistry := registry.DeepCopy()
 
+	if registry.ObjectMeta.DeletionTimestamp != nil {
+		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
+		return r.patchRegistry(ctx, originalRegistry, registry)
+	}
+
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, registry.Namespace, registry.Spec.ParentInstance.Name, r.client)
 	if err != nil {
@@ -118,20 +123,6 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	// Add finalizers to the CR object
-	if registry.DeletionTimestamp == nil {
-		var hasFinalizer bool
-		for i := range registry.Finalizers {
-			if registry.Finalizers[i] == FinalizerName {
-				hasFinalizer = true
-			}
-		}
-		if !hasFinalizer {
-			helper.PushFinalizer(registry, FinalizerName)
-			return r.patchRegistry(ctx, originalRegistry, registry)
-		}
-	}
-
 	switch registry.Status.Phase {
 	default:
 		return reconcile.Result{}, nil
@@ -139,6 +130,8 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseCreating}
 
 	case registriesv1alpha1.RegistryStatusPhaseCreating:
+		helper.PushFinalizer(registry, FinalizerName)
+
 		// Install the registry
 		err = r.assertExistingRegistry(harborClient, registry)
 		if err != nil {
@@ -147,13 +140,6 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseReady}
 	case registriesv1alpha1.RegistryStatusPhaseReady:
-		// Compare the state of spec to the state of what the API returns
-		// If the Registry object is deleted, assume that the repository needs deletion, too
-		if registry.ObjectMeta.DeletionTimestamp != nil {
-			registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
-			return r.patchRegistry(ctx, originalRegistry, registry)
-		}
-
 		err := r.assertExistingRegistry(harborClient, registry)
 		if err != nil {
 			return reconcile.Result{}, err

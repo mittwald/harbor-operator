@@ -11,6 +11,7 @@ func PushFinalizer(o metav1.Object, finalizer string) {
 	for _, f := range finalizers {
 		if f == finalizer {
 			hasFinalizer = true
+			break
 		}
 	}
 

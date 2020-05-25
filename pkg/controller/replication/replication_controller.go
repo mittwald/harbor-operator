@@ -3,9 +3,10 @@ package replication
 import (
 	"context"
 	"fmt"
-	v1 "k8s.io/api/core/v1"
 	"reflect"
 	"time"
+
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/go-logr/logr"
 	h "github.com/mittwald/goharbor-client"
@@ -96,6 +97,11 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 
 	originalReplication := replication.DeepCopy()
 
+	if replication.ObjectMeta.DeletionTimestamp != nil {
+		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseTerminating}
+		return r.patchReplication(ctx, originalReplication, replication)
+	}
+
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, replication.Namespace, replication.Spec.ParentInstance.Name, r.client)
 	if err != nil {
@@ -120,20 +126,6 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	// Add finalizers to the CR object
-	if replication.DeletionTimestamp == nil {
-		var hasFinalizer bool
-		for i := range replication.Finalizers {
-			if replication.Finalizers[i] == FinalizerName {
-				hasFinalizer = true
-			}
-		}
-		if !hasFinalizer {
-			helper.PushFinalizer(replication, FinalizerName)
-			return r.patchReplication(ctx, originalReplication, replication)
-		}
-	}
-
 	switch replication.Status.Phase {
 	default:
 		return reconcile.Result{}, nil
@@ -141,6 +133,8 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseCreating}
 
 	case registriesv1alpha1.ReplicationStatusPhaseCreating:
+		helper.PushFinalizer(replication, FinalizerName)
+
 		// Install the replication
 		err = r.assertExistingReplication(harborClient, replication)
 		if err != nil {
@@ -149,13 +143,6 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseReady}
 
 	case registriesv1alpha1.ReplicationStatusPhaseReady:
-		// Compare the state of spec to the state of what the API returns
-		// If the Replication object is deleted, assume that the repository needs deletion, too
-		if replication.ObjectMeta.DeletionTimestamp != nil {
-			replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseTerminating}
-			return r.patchReplication(ctx, originalReplication, replication)
-		}
-
 		err := r.assertExistingReplication(harborClient, replication)
 		if err != nil {
 			return reconcile.Result{}, err
