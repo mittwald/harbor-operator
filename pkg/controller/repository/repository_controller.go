@@ -109,6 +109,11 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 
 	originalRepository := repository.DeepCopy()
 
+	if repository.ObjectMeta.DeletionTimestamp != nil {
+		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseTerminating}
+		return r.patchRepository(ctx, originalRepository, repository)
+	}
+
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, repository.Namespace, repository.Spec.ParentInstance.Name, r.client)
 	if err != nil {
@@ -141,6 +146,8 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseCreating}
 
 	case registriesv1alpha1.RepositoryStatusPhaseCreating:
+		helper.PushFinalizer(repository, FinalizerName)
+
 		// Install the repository
 		err = r.assertExistingRepository(harborClient, repository)
 		if err != nil {
@@ -149,15 +156,6 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseReady}
 
 	case registriesv1alpha1.RepositoryStatusPhaseReady:
-		// Compare the state of spec to the state of what the API returns
-		// If the Repository object is deleted, assume that the repository needs deletion, too
-		if repository.ObjectMeta.DeletionTimestamp != nil {
-			repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseTerminating}
-			return r.patchRepository(ctx, originalRepository, repository)
-		}
-
-		helper.PushFinalizer(repository, FinalizerName)
-
 		err := r.assertExistingRepository(harborClient, repository)
 		if err != nil {
 			return reconcile.Result{}, err

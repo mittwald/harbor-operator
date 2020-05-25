@@ -113,6 +113,11 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 
 	originalUser := user.DeepCopy()
 
+	if user.ObjectMeta.DeletionTimestamp != nil {
+		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseTerminating}
+		return r.patchUser(ctx, originalUser, user)
+	}
+
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, user.Namespace, user.Spec.ParentInstance.Name, r.client)
 	if err != nil {
@@ -146,6 +151,8 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseCreating}
 
 	case registriesv1alpha1.UserStatusPhaseCreating:
+		helper.PushFinalizer(user, FinalizerName)
+
 		err = r.assertExistingUser(ctx, harborClient, user)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -153,13 +160,6 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseReady}
 
 	case registriesv1alpha1.UserStatusPhaseReady:
-		if user.ObjectMeta.DeletionTimestamp != nil {
-			user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseTerminating}
-			return r.patchUser(ctx, originalUser, user)
-		}
-
-		helper.PushFinalizer(user, FinalizerName)
-
 		err := r.assertExistingUser(ctx, harborClient, user)
 		if err != nil {
 			return reconcile.Result{}, err

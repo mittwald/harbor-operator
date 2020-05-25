@@ -6,6 +6,8 @@ import (
 	"errors"
 	"reflect"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/mittwald/harbor-operator/pkg/config"
 	"github.com/mittwald/harbor-operator/pkg/controller/internal"
 
@@ -14,7 +16,6 @@ import (
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -115,6 +116,15 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	originalInstance := harbor.DeepCopy()
 
+	if harbor.DeletionTimestamp != nil {
+		now := metav1.Now()
+		harbor.Status.Phase = registriesv1alpha1.InstanceStatusPhase{
+			Name:           registriesv1alpha1.InstanceStatusPhaseTerminating,
+			Message:        "Deleted",
+			LastTransition: &now}
+		return r.patchInstance(ctx, originalInstance, harbor)
+	}
+
 	switch harbor.Status.Phase.Name {
 	default:
 		return reconcile.Result{}, nil
@@ -135,6 +145,8 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 			return reconcile.Result{}, err
 		}
 
+		helper.PushFinalizer(harbor, FinalizerName)
+
 		err = r.installOrUpgradeHelmChart(chartSpec)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -144,15 +156,6 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		harbor.Status.Version = harbor.Spec.Version
 
 	case registriesv1alpha1.InstanceStatusPhaseReady:
-		if harbor.DeletionTimestamp != nil {
-			now := metav1.Now()
-			harbor.Status.Phase = registriesv1alpha1.InstanceStatusPhase{
-				Name:           registriesv1alpha1.InstanceStatusPhaseTerminating,
-				Message:        "Deleted",
-				LastTransition: &now}
-			return r.patchInstance(ctx, originalInstance, harbor)
-		}
-
 		if harbor.Spec.GarbageCollection != nil {
 			if err := r.reconcileGarbageCollection(ctx, harbor); err != nil {
 				return reconcile.Result{}, err
@@ -172,7 +175,6 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		if harbor.Status.SpecHash != specHash {
 			harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
 			harbor.Status.SpecHash = specHash
-			helper.PushFinalizer(harbor, FinalizerName)
 			return r.patchInstance(ctx, originalInstance, harbor)
 		}
 

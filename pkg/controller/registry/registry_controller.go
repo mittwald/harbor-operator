@@ -95,6 +95,11 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	originalRegistry := registry.DeepCopy()
 
+	if registry.ObjectMeta.DeletionTimestamp != nil {
+		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
+		return r.patchRegistry(ctx, originalRegistry, registry)
+	}
+
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, registry.Namespace, registry.Spec.ParentInstance.Name, r.client)
 	if err != nil {
@@ -125,6 +130,8 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseCreating}
 
 	case registriesv1alpha1.RegistryStatusPhaseCreating:
+		helper.PushFinalizer(registry, FinalizerName)
+
 		// Install the registry
 		err = r.assertExistingRegistry(harborClient, registry)
 		if err != nil {
@@ -133,15 +140,6 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseReady}
 	case registriesv1alpha1.RegistryStatusPhaseReady:
-		// Compare the state of spec to the state of what the API returns
-		// If the Registry object is deleted, assume that the repository needs deletion, too
-		if registry.ObjectMeta.DeletionTimestamp != nil {
-			registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
-			return r.patchRegistry(ctx, originalRegistry, registry)
-		}
-
-		helper.PushFinalizer(registry, FinalizerName)
-
 		err := r.assertExistingRegistry(harborClient, registry)
 		if err != nil {
 			return reconcile.Result{}, err
