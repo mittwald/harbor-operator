@@ -115,20 +115,6 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	originalInstance := harbor.DeepCopy()
 
-	// Add finalizers to the CR object
-	if harbor.DeletionTimestamp == nil {
-		var hasFinalizer bool
-		for i := range harbor.Finalizers {
-			if harbor.Finalizers[i] == FinalizerName {
-				hasFinalizer = true
-			}
-		}
-		if !hasFinalizer {
-			helper.PushFinalizer(harbor, FinalizerName)
-			return r.patchInstance(ctx, originalInstance, harbor)
-		}
-	}
-
 	switch harbor.Status.Phase.Name {
 	default:
 		return reconcile.Result{}, nil
@@ -182,9 +168,11 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+
 		if harbor.Status.SpecHash != specHash {
 			harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
 			harbor.Status.SpecHash = specHash
+			helper.PushFinalizer(harbor, FinalizerName)
 			return r.patchInstance(ctx, originalInstance, harbor)
 		}
 

@@ -133,20 +133,6 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	// Add finalizers to the CR object
-	if repository.DeletionTimestamp == nil {
-		var hasFinalizer bool
-		for i := range repository.Finalizers {
-			if repository.Finalizers[i] == FinalizerName {
-				hasFinalizer = true
-			}
-		}
-		if !hasFinalizer {
-			helper.PushFinalizer(repository, FinalizerName)
-			return r.patchRepository(ctx, originalRepository, repository)
-		}
-	}
-
 	switch repository.Status.Phase {
 	default:
 		return reconcile.Result{}, nil
@@ -169,6 +155,9 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 			repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseTerminating}
 			return r.patchRepository(ctx, originalRepository, repository)
 		}
+
+		helper.PushFinalizer(repository, FinalizerName)
+
 		err := r.assertExistingRepository(harborClient, repository)
 		if err != nil {
 			return reconcile.Result{}, err

@@ -137,20 +137,6 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	// Add finalizers to the CR object
-	if user.DeletionTimestamp == nil {
-		var hasFinalizer bool
-		for i := range user.Finalizers {
-			if user.Finalizers[i] == FinalizerName {
-				hasFinalizer = true
-			}
-		}
-		if !hasFinalizer {
-			helper.PushFinalizer(user, FinalizerName)
-			return r.patchUser(ctx, originalUser, user)
-		}
-	}
-
 	// Handle user reconciliation
 	switch user.Status.Phase {
 	default:
@@ -171,6 +157,9 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 			user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseTerminating}
 			return r.patchUser(ctx, originalUser, user)
 		}
+
+		helper.PushFinalizer(user, FinalizerName)
+
 		err := r.assertExistingUser(ctx, harborClient, user)
 		if err != nil {
 			return reconcile.Result{}, err

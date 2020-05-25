@@ -3,9 +3,10 @@ package replication
 import (
 	"context"
 	"fmt"
-	v1 "k8s.io/api/core/v1"
 	"reflect"
 	"time"
+
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/go-logr/logr"
 	h "github.com/mittwald/goharbor-client"
@@ -120,20 +121,6 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	// Add finalizers to the CR object
-	if replication.DeletionTimestamp == nil {
-		var hasFinalizer bool
-		for i := range replication.Finalizers {
-			if replication.Finalizers[i] == FinalizerName {
-				hasFinalizer = true
-			}
-		}
-		if !hasFinalizer {
-			helper.PushFinalizer(replication, FinalizerName)
-			return r.patchReplication(ctx, originalReplication, replication)
-		}
-	}
-
 	switch replication.Status.Phase {
 	default:
 		return reconcile.Result{}, nil
@@ -155,6 +142,8 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 			replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseTerminating}
 			return r.patchReplication(ctx, originalReplication, replication)
 		}
+
+		helper.PushFinalizer(replication, FinalizerName)
 
 		err := r.assertExistingReplication(harborClient, replication)
 		if err != nil {

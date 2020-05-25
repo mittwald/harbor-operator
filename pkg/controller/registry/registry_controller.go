@@ -118,20 +118,6 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	// Add finalizers to the CR object
-	if registry.DeletionTimestamp == nil {
-		var hasFinalizer bool
-		for i := range registry.Finalizers {
-			if registry.Finalizers[i] == FinalizerName {
-				hasFinalizer = true
-			}
-		}
-		if !hasFinalizer {
-			helper.PushFinalizer(registry, FinalizerName)
-			return r.patchRegistry(ctx, originalRegistry, registry)
-		}
-	}
-
 	switch registry.Status.Phase {
 	default:
 		return reconcile.Result{}, nil
@@ -153,6 +139,8 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 			registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
 			return r.patchRegistry(ctx, originalRegistry, registry)
 		}
+
+		helper.PushFinalizer(registry, FinalizerName)
 
 		err := r.assertExistingRegistry(harborClient, registry)
 		if err != nil {
