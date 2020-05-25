@@ -22,7 +22,7 @@ uninstall: ## Uninstall all installations performed in the $ make install
 	kubectl delete -f deploy/operator.yaml -n ${NAMESPACE}
 
 .PHONY: test
-test: kind
+test:
 	@echo go test
 	go test ./... -v
 
@@ -30,11 +30,6 @@ test: kind
 fmt:
 	@echo go fmt
 	go fmt $$(go list ./...)
-
-.PHONY: kind
-kind: ## Create a kind cluster to test against
-	kind create cluster --name kind-harbor-operator
-	kind get kubeconfig --internal --name kind-harbor-operator | tee ${KUBECONFIG}
 
 .PHONY: build
 build:

@@ -73,9 +73,6 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
 
-      - name: Create kind cluster
-        run: make kind
-
       - name: Hack Code Climate and Go Modules
         if: github.event_name != 'pull_request'
         run: mkdir -p github.com/mittwald && ln -sf $(pwd) github.com/mittwald/harbor-operator
