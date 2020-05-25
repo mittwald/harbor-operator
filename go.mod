@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/go-logr/logr v0.1.0
+	github.com/golang/mock v1.4.3
 	github.com/imdario/mergo v0.3.8
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/json-iterator/go v1.1.8 // indirect

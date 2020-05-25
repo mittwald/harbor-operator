@@ -8,10 +8,13 @@ import (
 // CreateInstanceChartRepo returns an instancechartrepo object with sample values
 func CreateInstanceChartRepo(name, namespace string) registriesv1alpha1.InstanceChartRepo {
 	icr := registriesv1alpha1.InstanceChartRepo{
-		TypeMeta:   metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{},
-		Spec:       registriesv1alpha1.InstanceChartRepoSpec{},
-		Status:     registriesv1alpha1.InstanceChartRepoStatus{},
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec:   registriesv1alpha1.InstanceChartRepoSpec{},
+		Status: registriesv1alpha1.InstanceChartRepoStatus{},
 	}
 
 	return icr
