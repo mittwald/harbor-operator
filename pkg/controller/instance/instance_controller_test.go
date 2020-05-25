@@ -2,8 +2,10 @@ package instance
 
 import (
 	"context"
-	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	"testing"
+	"time"
+
+	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 
 	"github.com/golang/mock/gomock"
 	helmclient "github.com/mittwald/go-helm-client"
