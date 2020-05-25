@@ -586,6 +586,8 @@ github.com/mitchellh/reflectwalk v1.0.0 h1:9D+8oIskB4VJBN5SFlmc27fSlIBZaov1Wpk/I
 github.com/mitchellh/reflectwalk v1.0.0/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
 github.com/mittwald/go-helm-client v0.1.1 h1:A1Jvo81y90dF6B+daRAe0gNJPHnUcr9lPKmYkSjj6OM=
 github.com/mittwald/go-helm-client v0.1.1/go.mod h1:I7ckTZWf4GSsaz399Hku6iG6wA9TdTvQM40T8TnlN28=
+github.com/mittwald/go-helm-client v0.2.0 h1:SncUYLC+g2aTho6IPPMT0ICSXsi1sSUC4rzUFa90vlk=
+github.com/mittwald/go-helm-client v0.2.0/go.mod h1:I7ckTZWf4GSsaz399Hku6iG6wA9TdTvQM40T8TnlN28=
 github.com/mittwald/goharbor-client v0.1.1 h1:wTJwC+cC2EEKjV08nHHFQZAnzfa+5Nxjb6qCJmfEaJI=
 github.com/mittwald/goharbor-client v0.1.1/go.mod h1:OZd5dfBZmqIeGJU2b8Y977zBfjnyq/ZDDQE/FRAlnQg=
 github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309 h1:cvy4lBOYN3gKfKj8Lzz5Q9TfviP+L7koMHY7SvkyTKs=

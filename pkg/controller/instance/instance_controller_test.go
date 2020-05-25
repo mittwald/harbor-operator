@@ -2,6 +2,7 @@ package instance
 
 import (
 	"context"
+	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	"testing"
 	"time"
 
@@ -176,9 +177,9 @@ func TestInstanceController_Transition_Installing(t *testing.T) {
 	}
 }
 
-// TestInstanceController_Istance_Installation
+// TestInstanceController_Instance_Installation
 // Test if an instance object triggers the installation of an helm chart.
-func TestInstanceController_Istance_Installation(t *testing.T) {
+func TestInstanceController_Instance_Installation(t *testing.T) {
 	i := testingregistriesv1alpha1.CreateInstance("harbor", "foobar")
 	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
 	i.DeletionTimestamp = &metav1.Time{Time: time.Now()}
@@ -217,6 +218,10 @@ func TestInstanceController_Istance_Installation(t *testing.T) {
 	err = r.client.Get(context.TODO(), req.NamespacedName, fetched)
 	if err != nil {
 		t.Fatalf("could not get instance: %v", err)
+	}
+
+	if fetched.Status.SpecHash == "" {
+		t.Errorf("spec hash has not been set on the instance")
 	}
 
 	if fetched.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseReady {
@@ -274,6 +279,97 @@ func TestInstanceController_Instance_Deletion(t *testing.T) {
 
 	if len(fetched.GetFinalizers()) != 0 {
 		t.Errorf("Unexpected length of finalizers, expected: %d, got: %d", 0, len(fetched.GetFinalizers()))
+	}
+}
+
+// TestInstanceController_Instance_Ready_Deletion
+func TestInstanceController_Instance_Ready_Deletion(t *testing.T) {
+	i := testingregistriesv1alpha1.CreateInstance("harbor", "foobar")
+	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+	chartSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", "foobar")
+
+	i.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: i.Namespace,
+			Name:      i.Name,
+		},
+	}
+
+	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &chartSecret})
+
+	res, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile returned error: (%v)", err)
+	}
+	if !res.Requeue {
+		t.Error("reconciliation was not requeued")
+	}
+
+	fetched := &registriesv1alpha1.Instance{}
+	err = r.client.Get(context.TODO(), req.NamespacedName, fetched)
+	if err != nil {
+		t.Fatalf("could not get instance %s", err)
+	}
+	if fetched.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseTerminating {
+		t.Errorf("instance status unexpected: %s, expected: %s", fetched.Status.Phase.Name, registriesv1alpha1.InstanceStatusPhaseTerminating)
+	}
+
+}
+
+// TestInstanceController_Instance_Ready_Ensure_Chart_Spec tests the integrity of the helm chart spec
+// by comparing a manually generated specHash to the specHash created by reconciliation
+func TestInstanceController_Instance_Ready_Ensure_Chart_Spec(t *testing.T) {
+	i := testingregistriesv1alpha1.CreateInstance("harbor", "foobar")
+	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+	i.Spec.GarbageCollection = nil
+	chartSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", "foobar")
+
+	// Generate and add the spec hash of the helm chart to the instance object before reconciliation
+	// (this let's us skip the reconciliation loop of "InstanceStatusPhaseInstalling")
+	specHash, _ := helper.CreateSpecHash(&i.Spec.HelmChart.ChartSpec)
+	i.Status.SpecHash = specHash
+
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: i.Namespace,
+			Name:      i.Name,
+		},
+	}
+
+	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &chartSecret})
+
+	res, err := r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile returned error: (%v)", err)
+	}
+	if !res.Requeue {
+		t.Error("reconciliation was not requeued")
+	}
+
+	fetched := &registriesv1alpha1.Instance{}
+	err = r.client.Get(context.TODO(), req.NamespacedName, fetched)
+	if err != nil {
+		t.Fatalf("could not get instance %s", err)
+	}
+
+	res, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile returned error: (%v)", err)
+	}
+	if !res.Requeue {
+		t.Error("reconciliation was not requeued")
+	}
+
+	fetched = &registriesv1alpha1.Instance{}
+	err = r.client.Get(context.TODO(), req.NamespacedName, fetched)
+	if err != nil {
+		t.Fatalf("could not get instance %s", err)
+	}
+
+	if fetched.Status.SpecHash != specHash {
+		t.Errorf("unexpected value of specHash: %s, expected: %s", fetched.Status.SpecHash, specHash)
 	}
 }
 
