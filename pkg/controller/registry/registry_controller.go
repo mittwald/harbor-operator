@@ -261,8 +261,7 @@ func (r *ReconcileRegistry) buildRegistryFromSpec(originalRegistry *registriesv1
 		tokenServiceURL = parsedTokenServiceURL
 	}
 
-	return h.Registry{
-		ID:              originalRegistry.Spec.ID,
+	registry := h.Registry{
 		Name:            originalRegistry.Spec.Name,
 		Description:     originalRegistry.Spec.Description,
 		Type:            originalRegistry.Spec.Type,
@@ -270,7 +269,12 @@ func (r *ReconcileRegistry) buildRegistryFromSpec(originalRegistry *registriesv1
 		TokenServiceURL: tokenServiceURL,
 		Credential:      originalRegistry.Spec.Credential,
 		Insecure:        originalRegistry.Spec.Insecure,
-	}, nil
+	}
+
+	if originalRegistry.Spec.ID != 0 {
+		registry.ID = originalRegistry.Spec.ID
+	}
+	return registry, nil
 }
 
 // assertDeletedRegistry deletes a registry, first ensuring its existence
