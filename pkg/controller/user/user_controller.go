@@ -113,9 +113,12 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 
 	originalUser := user.DeepCopy()
 
-	if user.ObjectMeta.DeletionTimestamp != nil {
+	if user.ObjectMeta.DeletionTimestamp != nil && user.Status.Phase != registriesv1alpha1.UserStatusPhaseTerminating {
+		patch := client.MergeFrom(originalUser)
 		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseTerminating}
-		return r.patchUser(ctx, originalUser, user)
+		if err := r.client.Patch(ctx, user, patch); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Fetch the Instance
