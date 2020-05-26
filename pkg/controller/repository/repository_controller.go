@@ -110,11 +110,8 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 	originalRepository := repository.DeepCopy()
 
 	if repository.ObjectMeta.DeletionTimestamp != nil && repository.Status.Phase != registriesv1alpha1.RepositoryStatusPhaseTerminating {
-		patch := client.MergeFrom(originalRepository)
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseTerminating}
-		if err := r.client.Patch(ctx, repository, patch); err != nil {
-			return reconcile.Result{}, err
-		}
+		return r.patchRepository(ctx, originalRepository, repository)
 	}
 
 	// Fetch the Instance

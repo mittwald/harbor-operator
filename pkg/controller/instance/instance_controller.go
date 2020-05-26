@@ -116,15 +116,12 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 	originalInstance := harbor.DeepCopy()
 
 	if harbor.DeletionTimestamp != nil && harbor.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseTerminating {
-		patch := client.MergeFrom(originalInstance)
 		now := metav1.Now()
 		harbor.Status.Phase = registriesv1alpha1.InstanceStatusPhase{
 			Name:           registriesv1alpha1.InstanceStatusPhaseTerminating,
 			Message:        "Deleted",
 			LastTransition: &now}
-		if err := r.client.Patch(ctx, harbor, patch); err != nil {
-			return reconcile.Result{}, err
-		}
+		return r.patchInstance(ctx, originalInstance, harbor)
 	}
 
 	switch harbor.Status.Phase.Name {
