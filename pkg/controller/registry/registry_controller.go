@@ -95,9 +95,12 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	originalRegistry := registry.DeepCopy()
 
-	if registry.ObjectMeta.DeletionTimestamp != nil {
+	if registry.ObjectMeta.DeletionTimestamp != nil && registry.Status.Phase != registriesv1alpha1.RegistryStatusPhaseTerminating {
+		patch := client.MergeFrom(originalRegistry)
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
-		return r.patchRegistry(ctx, originalRegistry, registry)
+		if err := r.client.Patch(ctx, registry, patch); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Fetch the Instance

@@ -97,9 +97,12 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 
 	originalReplication := replication.DeepCopy()
 
-	if replication.ObjectMeta.DeletionTimestamp != nil {
+	if replication.ObjectMeta.DeletionTimestamp != nil && replication.Status.Phase != registriesv1alpha1.ReplicationStatusPhaseTerminating {
+		patch := client.MergeFrom(originalReplication)
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseTerminating}
-		return r.patchReplication(ctx, originalReplication, replication)
+		if err := r.client.Patch(ctx, replication, patch); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Fetch the Instance
