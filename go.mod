@@ -11,13 +11,13 @@ require (
 	github.com/json-iterator/go v1.1.8 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mittwald/go-helm-client v0.2.0
-	github.com/mittwald/goharbor-client v0.1.1
+	github.com/mittwald/goharbor-client v0.1.3
 	github.com/operator-framework/operator-sdk v0.16.0
 	github.com/parnurzeal/gorequest v0.2.16 // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.4.0
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975 // indirect
-	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
+	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2 // indirect
 	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	helm.sh/helm/v3 v3.1.2
