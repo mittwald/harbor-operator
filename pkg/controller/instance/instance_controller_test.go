@@ -282,6 +282,20 @@ func TestInstanceController_Instance_Ready_Deletion(t *testing.T) {
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &chartSecret})
 
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockClient := helmclientmock.NewMockClient(ctrl)
+	mockClient.EXPECT().UninstallRelease(&helmclient.ChartSpec{
+		ReleaseName: i.Spec.HelmChart.ReleaseName,
+		ChartName:   i.Spec.HelmChart.ChartName,
+		Namespace:   i.Spec.HelmChart.Namespace,
+		ValuesYaml:  i.Spec.HelmChart.ValuesYaml,
+		Version:     i.Spec.HelmChart.Version,
+	})
+	r.helmClientReceiver = func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
+		return helmclient.Client(mockClient), nil
+	}
+
 	res, err := r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile returned error: (%v)", err)
