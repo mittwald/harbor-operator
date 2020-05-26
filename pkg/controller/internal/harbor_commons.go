@@ -61,19 +61,39 @@ func GetUser(user *registriesv1alpha1.User, harborClient *h.Client) (h.User, err
 
 // GetRegistry gets and returns a registry object
 func GetRegistry(harborClient *h.Client, registry *registriesv1alpha1.Registry) (h.Registry, error) {
-	reg, err := harborClient.Registries().GetRegistryByID(registry.Spec.ID)
+	if registry.Spec.ID != 0 {
+		reg, err := harborClient.Registries().GetRegistryByID(registry.Spec.ID)
+		if err != nil {
+			return h.Registry{}, ErrRegistryNotFound
+		}
+
+		return reg, nil
+	}
+
+	reg, err := harborClient.Registries().GetRegistryByName(registry.Spec.Name)
 	if err != nil {
 		return h.Registry{}, ErrRegistryNotFound
 	}
+
 	return reg, nil
 }
 
 // GetReplication gets and returns a replication object
 func GetReplication(harborClient *h.Client, replication *registriesv1alpha1.Replication) (h.ReplicationPolicy, error) {
-	rep, err := harborClient.Replications().GetReplicationPolicyByID(replication.Spec.ID)
+	if replication.Spec.ID != 0 {
+		rep, err := harborClient.Replications().GetReplicationPolicyByID(replication.Spec.ID)
+		if err != nil {
+			return h.ReplicationPolicy{}, ErrReplicationNotFound
+		}
+
+		return rep, nil
+	}
+
+	rep, err := harborClient.Replications().GetReplicationPolicyByName(replication.Spec.Name)
 	if err != nil {
 		return h.ReplicationPolicy{}, ErrReplicationNotFound
 	}
+
 	return rep, nil
 }
 

@@ -219,6 +219,11 @@ func (r *ReconcileRegistry) ensureRegistry(harborClient *h.Client, originalRegis
 		return err
 	}
 
+	// use id from harbor instance
+	if newReg.ID == 0 {
+		newReg.ID = heldRegistry.ID
+	}
+
 	if newReg.Credential == nil {
 		newReg.Credential = &h.Credential{}
 	}
