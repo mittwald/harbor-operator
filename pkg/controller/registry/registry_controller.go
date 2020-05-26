@@ -133,14 +133,14 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		helper.PushFinalizer(registry, FinalizerName)
 
 		// Install the registry
-		err = r.assertExistingRegistry(harborClient, registry)
+		err = r.assertExistingRegistry(ctx, harborClient, registry)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseReady}
 	case registriesv1alpha1.RegistryStatusPhaseReady:
-		err := r.assertExistingRegistry(harborClient, registry)
+		err := r.assertExistingRegistry(ctx, harborClient, registry)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -179,7 +179,7 @@ func (r *ReconcileRegistry) patchRegistry(ctx context.Context, originalRegistry,
 }
 
 // assertExistingRegistry checks a harbor registry for existence and creates it accordingly
-func (r *ReconcileRegistry) assertExistingRegistry(harborClient *h.Client, originalRegistry *registriesv1alpha1.Registry) error {
+func (r *ReconcileRegistry) assertExistingRegistry(ctx context.Context, harborClient *h.Client, originalRegistry *registriesv1alpha1.Registry) error {
 	_, err := internal.GetRegistry(harborClient, originalRegistry)
 	if err == internal.ErrRegistryNotFound {
 		rReq, err := r.buildRegistryFromSpec(originalRegistry)
@@ -193,7 +193,7 @@ func (r *ReconcileRegistry) assertExistingRegistry(harborClient *h.Client, origi
 	} else if err != nil {
 		return err
 	}
-	return r.ensureRegistry(harborClient, originalRegistry)
+	return r.ensureRegistry(ctx, harborClient, originalRegistry)
 }
 
 func parseURL(raw string) (string, error) {
@@ -206,7 +206,7 @@ func parseURL(raw string) (string, error) {
 }
 
 // ensureRegistry gets and compares the spec of the registry held by the harbor API with the spec of the existing CR
-func (r *ReconcileRegistry) ensureRegistry(harborClient *h.Client, originalRegistry *registriesv1alpha1.Registry) error {
+func (r *ReconcileRegistry) ensureRegistry(ctx context.Context, harborClient *h.Client, originalRegistry *registriesv1alpha1.Registry) error {
 	// Get the registry held by harbor
 	heldRegistry, err := internal.GetRegistry(harborClient, originalRegistry)
 	if err != nil {
@@ -220,8 +220,12 @@ func (r *ReconcileRegistry) ensureRegistry(harborClient *h.Client, originalRegis
 	}
 
 	// use id from harbor instance
-	if newReg.ID == 0 {
-		newReg.ID = heldRegistry.ID
+	if originalRegistry.Spec.ID != heldRegistry.ID {
+		patch := client.MergeFrom(originalRegistry.DeepCopy())
+		originalRegistry.Spec.ID = heldRegistry.ID
+		if err := r.client.Patch(ctx, originalRegistry, patch); err != nil {
+			return err
+		}
 	}
 
 	if newReg.Credential == nil {

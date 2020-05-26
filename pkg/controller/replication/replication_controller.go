@@ -136,14 +136,14 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		helper.PushFinalizer(replication, FinalizerName)
 
 		// Install the replication
-		err = r.assertExistingReplication(harborClient, replication)
+		err = r.assertExistingReplication(ctx, harborClient, replication)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseReady}
 
 	case registriesv1alpha1.ReplicationStatusPhaseReady:
-		err := r.assertExistingReplication(harborClient, replication)
+		err := r.assertExistingReplication(ctx, harborClient, replication)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -181,7 +181,7 @@ func (r *ReconcileReplication) patchReplication(ctx context.Context, originalRep
 }
 
 // assertExistingReplication checks a harbor replication for existence and creates it accordingly
-func (r *ReconcileReplication) assertExistingReplication(harborClient *h.Client, originalReplication *registriesv1alpha1.Replication) error {
+func (r *ReconcileReplication) assertExistingReplication(ctx context.Context, harborClient *h.Client, originalReplication *registriesv1alpha1.Replication) error {
 	_, err := internal.GetReplication(harborClient, originalReplication)
 	if err == internal.ErrReplicationNotFound {
 		rReq, err := r.buildReplicationFromSpec(originalReplication)
@@ -195,11 +195,11 @@ func (r *ReconcileReplication) assertExistingReplication(harborClient *h.Client,
 	} else if err != nil {
 		return err
 	}
-	return r.ensureReplication(harborClient, originalReplication)
+	return r.ensureReplication(ctx, harborClient, originalReplication)
 }
 
 // ensureReplication gets and compares the spec of the replication held by the harbor API with the spec of the existing CR
-func (r *ReconcileReplication) ensureReplication(harborClient *h.Client, originalReplication *registriesv1alpha1.Replication) error {
+func (r *ReconcileReplication) ensureReplication(ctx context.Context, harborClient *h.Client, originalReplication *registriesv1alpha1.Replication) error {
 	// Get the registry held by harbor
 	heldReplication, err := internal.GetReplication(harborClient, originalReplication)
 	if err != nil {
@@ -213,8 +213,12 @@ func (r *ReconcileReplication) ensureReplication(harborClient *h.Client, origina
 	}
 
 	// use id from harbor instance
-	if newRep.ID == 0 {
-		newRep.ID = heldReplication.ID
+	if originalReplication.Spec.ID != heldReplication.ID {
+		patch := client.MergeFrom(originalReplication.DeepCopy())
+		originalReplication.Spec.ID = heldReplication.ID
+		if err := r.client.Patch(ctx, originalReplication, patch); err != nil {
+			return err
+		}
 	}
 
 	// Compare the replications and update accordingly
