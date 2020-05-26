@@ -212,6 +212,11 @@ func (r *ReconcileReplication) ensureReplication(harborClient *h.Client, origina
 		return err
 	}
 
+	// use id from harbor instance
+	if newRep.ID == 0 {
+		newRep.ID = heldReplication.ID
+	}
+
 	// Compare the replications and update accordingly
 	if !reflect.DeepEqual(heldReplication, newRep) {
 		return r.updateReplication(harborClient, newRep)
