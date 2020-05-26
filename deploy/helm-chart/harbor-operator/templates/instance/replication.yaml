@@ -27,11 +27,11 @@ spec:
   {{- end }}
 
   {{- if $repl.srcRegistry }}
-  srcRegistry: {{ $repl.srcRegistryName }}
+  srcRegistry: {{ $instance.name }}-{{ $repl.srcRegistryName }}
   {{- end }}
 
   {{- if $repl.destRegistry }}
-  destRegistry: {{ $repl.destRegistryName }}
+  destRegistry: {{ $instance.name }}-{{ $repl.destRegistryName }}
   {{- end }}
 
   {{- if $repl.enabled }}
