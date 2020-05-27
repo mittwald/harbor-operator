@@ -3,6 +3,11 @@ kind: CustomResourceDefinition
 metadata:
   name: users.registries.mittwald.de
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.phase
+    description: phase
+    name: Status
+    type: string
   group: registries.mittwald.de
   names:
     kind: User

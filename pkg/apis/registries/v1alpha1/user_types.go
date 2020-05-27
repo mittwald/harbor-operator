@@ -30,12 +30,12 @@ type UserSpec struct {
 // User is the Schema for the users API
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=users,scope=Namespaced,shortName=users;harborusers
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="phase"
 type User struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              UserSpec `json:"spec,omitempty"`
 
-	//+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="phase"
 	Status UserStatus `json:"status,omitempty"`
 }
 
