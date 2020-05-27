@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ $instance.name }}-{{ $user.name }}
+  name: {{ $instance.name }}-user-{{ $user.name }}
   labels:
     {{- include "chart.labels" $ | nindent 4 }}
 data:
@@ -19,7 +19,7 @@ spec:
   parentInstance:
     name: {{ $instance.name }}
   userSecretRef:
-    name: {{ $instance.name }}-{{ $user.name }}
+    name: {{ $instance.name }}-user-{{ $user.name }}
   name: {{ $user.name }}
   realname: {{ $user.realname }}
   email: {{ $user.email }}
