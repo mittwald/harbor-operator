@@ -246,6 +246,7 @@ func (r *ReconcileReplication) updateReplication(harborClient *h.Client, rep h.R
 // buildReplicationFromSpec returns an API conformed ReplicationPolicy object
 func (r *ReconcileReplication) buildReplicationFromSpec(originalReplication *registriesv1alpha1.Replication) (h.ReplicationPolicy, error) {
 	newRep := h.ReplicationPolicy{
+		ID:            originalReplication.Spec.ID,
 		Name:          originalReplication.Spec.Name,
 		Description:   originalReplication.Spec.Description,
 		Creator:       originalReplication.Spec.Creator,
@@ -253,10 +254,6 @@ func (r *ReconcileReplication) buildReplicationFromSpec(originalReplication *reg
 		Override:      originalReplication.Spec.Override,
 		Enabled:       originalReplication.Spec.Enabled,
 		Deletion:      originalReplication.Spec.Deletion,
-	}
-
-	if originalReplication.Spec.ID != 0 {
-		newRep.ID = originalReplication.Spec.ID
 	}
 
 	if originalReplication.Spec.Filters != nil {
