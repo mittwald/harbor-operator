@@ -313,6 +313,13 @@ func TestInstanceController_Instance_Ready_Deletion(t *testing.T) {
 		t.Errorf("instance status unexpected: %s, expected: %s", fetched.Status.Phase.Name, registriesv1alpha1.InstanceStatusPhaseTerminating)
 	}
 
+	res, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile returned error: (%v)", err)
+	}
+	if !res.Requeue {
+		t.Error("reconciliation was not requeued")
+	}
 }
 
 // TestInstanceController_Instance_Ready_Ensure_Chart_Spec tests the integrity of the helm chart spec
