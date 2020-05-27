@@ -272,7 +272,7 @@ spec:
 #### User Secrets
 A user CR must contain the name of a kubernetes secret (*LocalObjectReference*) specfied via `.spec.userSecretRef.name`.
 
-**Note**: If a pre-existing (or manually created) secret is specified, it is not included for deletion through reconciliation.
+**Note**: If a pre-existing (or manually created) secret is specified, **it is included for deletion** through reconciliation if the user is deleted.
 
 In case the secret with the specified name cannot be found, a new secret with the specified name `.spec.userSecretRef.name` will be created instead.
 The users password will then be randomly generated.

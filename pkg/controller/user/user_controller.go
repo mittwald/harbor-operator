@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -114,11 +115,8 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 	originalUser := user.DeepCopy()
 
 	if user.ObjectMeta.DeletionTimestamp != nil && user.Status.Phase != registriesv1alpha1.UserStatusPhaseTerminating {
-		patch := client.MergeFrom(originalUser)
 		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseTerminating}
-		if err := r.client.Patch(ctx, user, patch); err != nil {
-			return reconcile.Result{}, err
-		}
+		return r.patchUser(ctx, originalUser, user)
 	}
 
 	// Fetch the Instance
@@ -205,7 +203,12 @@ func (r *ReconcileUser) assertExistingUser(ctx context.Context, harborClient *h.
 	if err != nil {
 		return err
 	}
+
 	pw, err := helper.GetValueFromSecret(sec, "password")
+	if err != nil {
+		return err
+	}
+	pwHash, err := helper.GenerateHashFromInterfaces([]interface{}{pw})
 	if err != nil {
 		return err
 	}
@@ -214,8 +217,27 @@ func (r *ReconcileUser) assertExistingUser(ctx context.Context, harborClient *h.
 	if err != nil && err != internal.ErrUserNotFound {
 		return err
 	}
+
+	patch := client.MergeFrom(user.DeepCopy())
 	if err == internal.ErrUserNotFound {
-		return r.createUser(harborClient, user, pw)
+		user.Status.PasswordHash = pwHash.Short()
+		fmt.Println("Password:", pw)
+		if err = r.createUser(harborClient, user, pw); err != nil {
+			return err
+		}
+
+		return r.client.Status().Patch(context.Background(), user, patch)
+	}
+
+	if user.Status.PasswordHash != pwHash.Short() {
+		user.Status.PasswordHash = pwHash.Short()
+		if err = harborClient.Users().UpdateUserPasswordAsAdmin(int64(heldUser.UserID), pw); err != nil {
+			return err
+		}
+
+		if err = r.client.Status().Patch(context.Background(), user, patch); err != nil {
+			return err
+		}
 	}
 
 	return r.ensureUser(harborClient, heldUser, user, pw)
@@ -261,15 +283,12 @@ func (r *ReconcileUser) ensureUser(harborClient *h.Client, heldUser h.User, desi
 	newUsr.RealName = desiredUser.Spec.RealName
 	newUsr.HasAdminRole = desiredUser.Spec.AdminRole
 
-	if !isUserRequestEqual(heldUser, newUsr) {
-		// Update the user if spec has changed
-		err := harborClient.Users().UpdateUserProfile(newUsr)
-		if err != nil {
-			return err
-		}
+	if isUserRequestEqual(heldUser, newUsr) {
+		return nil
 	}
 
-	return harborClient.Users().UpdateUserPasswordAsAdmin(newUsr.UserID, password)
+	// Update the user if spec has changed
+	return harborClient.Users().UpdateUserProfile(newUsr)
 }
 
 // isUserRequestEqual compares the individual values of an existing user with a user request

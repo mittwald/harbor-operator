@@ -49,9 +49,11 @@ type UserList struct {
 
 // UserStatus defines the state of a single user
 type UserStatus struct {
-	Name    string              `json:"name"`
-	Phase   UserStatusPhaseName `json:"phase"`
-	Message string              `json:"message"`
+	Name         string              `json:"name"`
+	Phase        UserStatusPhaseName `json:"phase"`
+	Message      string              `json:"message"`
+	PasswordHash string              `json:"passwordHash"`
+
 	// Time of last observed transition into this state
 	// +optional
 	LastTransition *metav1.Time `json:"lastTransition,omitempty"`
