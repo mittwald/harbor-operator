@@ -15,6 +15,7 @@ spec:
   deletion: false
   override: true
   enabled: true
+  triggerAfterCreation: true
   srcRegistry: # you have to create the srcRegistry via a registry custom resource first
     name: test-registry
 #  filters:

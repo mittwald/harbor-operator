@@ -2,6 +2,9 @@ package user
 
 import (
 	"context"
+	"reflect"
+
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
@@ -68,7 +71,7 @@ func (r *ReconcileUser) getOrCreateSecretForUser(ctx context.Context, user *regi
 	if errors.IsNotFound(err) {
 		sec, eerr := r.newSecretForUser(ctx, user)
 		if eerr != nil {
-			return &corev1.Secret{}, eerr
+			return nil, eerr
 		}
 
 		err := r.client.Create(ctx, sec)
@@ -76,7 +79,20 @@ func (r *ReconcileUser) getOrCreateSecretForUser(ctx context.Context, user *regi
 			return &corev1.Secret{}, err
 		}
 	} else if err != nil {
-		return &corev1.Secret{}, err
+		return nil, err
+	}
+
+	originalSec := sec.DeepCopy()
+	err = controllerutil.SetControllerReference(user, sec, r.scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	if !reflect.DeepEqual(originalSec, sec) {
+		err = r.client.Update(ctx, sec)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return sec, nil

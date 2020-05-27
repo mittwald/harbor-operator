@@ -98,11 +98,8 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 	originalReplication := replication.DeepCopy()
 
 	if replication.ObjectMeta.DeletionTimestamp != nil && replication.Status.Phase != registriesv1alpha1.ReplicationStatusPhaseTerminating {
-		patch := client.MergeFrom(originalReplication)
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseTerminating}
-		if err := r.client.Patch(ctx, replication, patch); err != nil {
-			return reconcile.Result{}, err
-		}
+		return r.patchReplication(ctx, originalReplication, replication)
 	}
 
 	// Fetch the Instance
@@ -142,6 +139,16 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		err = r.assertExistingReplication(ctx, harborClient, replication)
 		if err != nil {
 			return reconcile.Result{}, err
+		}
+
+		if replication.Spec.TriggerAfterCreation {
+			replExec := h.ReplicationExecution{
+				PolicyID: replication.Spec.ID,
+				Trigger:  "manual",
+			}
+			if err = harborClient.Replications().TriggerReplicationExecution(replExec); err != nil {
+				return reconcile.Result{}, err
+			}
 		}
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseReady}
 
@@ -238,9 +245,19 @@ func (r *ReconcileReplication) updateReplication(harborClient *h.Client, rep h.R
 
 // buildReplicationFromSpec returns an API conformed ReplicationPolicy object
 func (r *ReconcileReplication) buildReplicationFromSpec(originalReplication *registriesv1alpha1.Replication) (h.ReplicationPolicy, error) {
-	var hf []*h.Filter
-	hf = append(hf, &h.Filter{})
+	newRep := h.ReplicationPolicy{
+		ID:            originalReplication.Spec.ID,
+		Name:          originalReplication.Spec.Name,
+		Description:   originalReplication.Spec.Description,
+		Creator:       originalReplication.Spec.Creator,
+		DestNamespace: originalReplication.Spec.DestNamespace,
+		Override:      originalReplication.Spec.Override,
+		Enabled:       originalReplication.Spec.Enabled,
+		Deletion:      originalReplication.Spec.Deletion,
+	}
+
 	if originalReplication.Spec.Filters != nil {
+		hf := []*h.Filter{}
 		for _, v := range originalReplication.Spec.Filters {
 			err := internal.CheckFilterType(v.Type)
 			if err != nil {
@@ -251,29 +268,21 @@ func (r *ReconcileReplication) buildReplicationFromSpec(originalReplication *reg
 				Value: v.Value,
 			})
 		}
+		newRep.Filters = hf
 	}
 
-	var ht = &h.Trigger{}
 	if originalReplication.Spec.Trigger != nil {
+		ht := &h.Trigger{}
 		validatedType, err := internal.CheckAndGetReplicationTriggerType(originalReplication.Spec.Trigger.Type)
 		if err != nil {
 			return h.ReplicationPolicy{}, err
 		}
-		ht.Type = validatedType
-		ht.Settings = &h.TriggerSettings{Cron: originalReplication.Spec.Trigger.Settings.Cron}
-	}
 
-	newRep := h.ReplicationPolicy{
-		ID:            originalReplication.Spec.ID,
-		Name:          originalReplication.Spec.Name,
-		Description:   originalReplication.Spec.Description,
-		Creator:       originalReplication.Spec.Creator,
-		DestNamespace: originalReplication.Spec.DestNamespace,
-		Override:      originalReplication.Spec.Override,
-		Enabled:       originalReplication.Spec.Enabled,
-		Trigger:       ht,
-		Filters:       hf,
-		Deletion:      originalReplication.Spec.Deletion,
+		ht.Type = validatedType
+		if originalReplication.Spec.Trigger.Settings != nil {
+			ht.Settings = &h.TriggerSettings{Cron: originalReplication.Spec.Trigger.Settings.Cron}
+		}
+		newRep.Trigger = ht
 	}
 
 	if originalReplication.Spec.SrcRegistry != nil && originalReplication.Spec.DestRegistry != nil {

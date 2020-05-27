@@ -13,6 +13,7 @@ spec:
   id: {{ $repl.id }}
   deletion: {{ $repl.deletion }}
   override: {{ $repl.override }}
+  triggerAfterCreation: {{ $repl.triggerAfterCreation }}
 
   {{- if $repl.description }}
   description: {{ $repl.description }}
@@ -27,11 +28,13 @@ spec:
   {{- end }}
 
   {{- if $repl.srcRegistry }}
-  srcRegistry: {{ $repl.srcRegistryName }}
+  srcRegistry:
+    name: {{ $instance.name }}-{{ $repl.srcRegistryName }}
   {{- end }}
 
   {{- if $repl.destRegistry }}
-  destRegistry: {{ $repl.destRegistryName }}
+  destRegistry:
+    name: {{ $instance.name }}-{{ $repl.destRegistryName }}
   {{- end }}
 
   {{- if $repl.enabled }}

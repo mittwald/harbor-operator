@@ -67,6 +67,9 @@ type ReplicationSpec struct {
 	// +optional
 	Trigger *Trigger `json:"trigger,omitempty"`
 
+	// +optional
+	TriggerAfterCreation bool `json:"triggerAfterCreation"`
+
 	// The replication policy filter array
 	// +optional
 	Filters []Filter `json:"filters,omitempty"`
@@ -100,8 +103,10 @@ type Filter struct {
 // Have to use our custom type here, because we cannot DeepCopy the pointer of *h.Trigger
 // Trigger holds info for a trigger
 type Trigger struct {
-	Type     TriggerType      `json:"type"`
-	Settings *TriggerSettings `json:"triggerSettings"`
+	Type TriggerType `json:"type"`
+
+	// +optional
+	Settings *TriggerSettings `json:"triggerSettings,omitempty"`
 }
 
 // TriggerSettings holds the settings of a trigger

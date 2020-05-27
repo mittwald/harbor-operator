@@ -96,11 +96,8 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 	originalRegistry := registry.DeepCopy()
 
 	if registry.ObjectMeta.DeletionTimestamp != nil && registry.Status.Phase != registriesv1alpha1.RegistryStatusPhaseTerminating {
-		patch := client.MergeFrom(originalRegistry)
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
-		if err := r.client.Patch(ctx, registry, patch); err != nil {
-			return reconcile.Result{}, err
-		}
+		return r.patchRegistry(ctx, originalRegistry, registry)
 	}
 
 	// Fetch the Instance
@@ -274,7 +271,6 @@ func (r *ReconcileRegistry) buildRegistryFromSpec(originalRegistry *registriesv1
 		Credential:      originalRegistry.Spec.Credential,
 		Insecure:        originalRegistry.Spec.Insecure,
 	}, nil
-
 }
 
 // assertDeletedRegistry deletes a registry, first ensuring its existence

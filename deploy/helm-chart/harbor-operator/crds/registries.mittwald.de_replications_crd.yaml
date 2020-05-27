@@ -117,9 +117,10 @@ spec:
                   description: TriggerType represents the type of trigger.
                   type: string
               required:
-              - triggerSettings
               - type
               type: object
+            triggerAfterCreation:
+              type: boolean
           required:
           - deletion
           - id

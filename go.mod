@@ -11,7 +11,7 @@ require (
 	github.com/json-iterator/go v1.1.8 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mittwald/go-helm-client v0.2.0
-	github.com/mittwald/goharbor-client v0.1.3
+	github.com/mittwald/goharbor-client v0.1.4
 	github.com/operator-framework/operator-sdk v0.16.0
 	github.com/parnurzeal/gorequest v0.2.16 // indirect
 	github.com/spf13/pflag v1.0.5
