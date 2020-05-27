@@ -97,7 +97,7 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	if registry.ObjectMeta.DeletionTimestamp != nil && registry.Status.Phase != registriesv1alpha1.RegistryStatusPhaseTerminating {
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
-		r.patchRegistry(ctx, originalRegistry, registry)
+		return r.patchRegistry(ctx, originalRegistry, registry)
 	}
 
 	// Fetch the Instance
