@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"time"
 
@@ -221,7 +220,6 @@ func (r *ReconcileUser) assertExistingUser(ctx context.Context, harborClient *h.
 	patch := client.MergeFrom(user.DeepCopy())
 	if err == internal.ErrUserNotFound {
 		user.Status.PasswordHash = pwHash.Short()
-		fmt.Println("Password:", pw)
 		if err = r.createUser(harborClient, user, pw); err != nil {
 			return err
 		}
