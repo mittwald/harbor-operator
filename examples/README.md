@@ -195,6 +195,7 @@ spec:
   deletion: false
   override: true
   enabled: true
+  triggerAfterCreation: true
   srcRegistry:
     name: test-registry
 #  filters:
@@ -231,6 +232,7 @@ spec:
   deletion: false
   override: true
   enabled: true
+  triggerAfterCreation: true
   destRegistry:
     name: test-registry
 #  filters:

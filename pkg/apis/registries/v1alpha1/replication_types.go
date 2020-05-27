@@ -67,6 +67,9 @@ type ReplicationSpec struct {
 	// +optional
 	Trigger *Trigger `json:"trigger,omitempty"`
 
+	// +optional
+	TriggerAfterCreation bool `json:"triggerAfterCreation"`
+
 	// The replication policy filter array
 	// +optional
 	Filters []Filter `json:"filters,omitempty"`

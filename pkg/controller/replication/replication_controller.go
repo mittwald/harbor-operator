@@ -140,6 +140,16 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+
+		if replication.Spec.TriggerAfterCreation {
+			replExec := h.ReplicationExecution{
+				PolicyID: replication.Spec.ID,
+				Trigger:  "manual",
+			}
+			if err = harborClient.Replications().TriggerReplicationExecution(replExec); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseReady}
 
 	case registriesv1alpha1.ReplicationStatusPhaseReady:
