@@ -27,12 +27,12 @@ spec:
   destNamespace: {{ $repl.destNamespace }}
   {{- end }}
 
-  {{- if $repl.srcRegistry }}
+  {{- if $repl.srcRegistryName }}
   srcRegistry:
     name: {{ $instance.name }}-{{ $repl.srcRegistryName }}
   {{- end }}
 
-  {{- if $repl.destRegistry }}
+  {{- if $repl.srcRegistryName }}
   destRegistry:
     name: {{ $instance.name }}-{{ $repl.destRegistryName }}
   {{- end }}
