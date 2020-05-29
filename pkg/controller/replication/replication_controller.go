@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"time"
 
+	controllerruntime "sigs.k8s.io/controller-runtime"
+
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/go-logr/logr"
@@ -99,25 +101,20 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 
 	if replication.ObjectMeta.DeletionTimestamp != nil && replication.Status.Phase != registriesv1alpha1.ReplicationStatusPhaseTerminating {
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseTerminating}
-		return r.patchReplication(ctx, originalReplication, replication)
+		return r.updateReplicationCR(ctx, nil, originalReplication, replication)
 	}
 
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, replication.Namespace, replication.Spec.ParentInstance.Name, r.client)
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
-			replication.Status = registriesv1alpha1.ReplicationStatus{Name: string(registriesv1alpha1.ReplicationStatusPhaseCreating)}
-			// Requeue, the instance might not have been created yet
-			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
+			helper.PullFinalizer(replication, FinalizerName)
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
 			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
 		} else {
 			replication.Status = registriesv1alpha1.ReplicationStatus{LastTransition: &now}
 		}
-		res, err := r.patchReplication(ctx, originalReplication, replication)
-		if err != nil {
-			return res, err
-		}
+		return r.updateReplicationCR(ctx, nil, originalReplication, replication)
 	}
 
 	// Build a client to connet to the harbor API
@@ -165,11 +162,11 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 			return reconcile.Result{}, err
 		}
 	}
-	return r.patchReplication(ctx, originalReplication, replication)
+	return r.updateReplicationCR(ctx, harbor, originalReplication, replication)
 }
 
-// patchReplication compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileReplication) patchReplication(ctx context.Context, originalReplication, replication *registriesv1alpha1.Replication) (reconcile.Result, error) {
+// updateReplicationCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
+func (r *ReconcileReplication) updateReplicationCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalReplication, replication *registriesv1alpha1.Replication) (reconcile.Result, error) {
 	// Update Status
 	if !reflect.DeepEqual(originalReplication.Status, replication.Status) {
 		originalReplication.Status = replication.Status
@@ -178,16 +175,24 @@ func (r *ReconcileReplication) patchReplication(ctx context.Context, originalRep
 		}
 	}
 
-	// Update Finalizers
+	// set owner
+	if (originalReplication.OwnerReferences == nil || len(originalReplication.OwnerReferences) == 0) && parentInstance != nil {
+		err := controllerruntime.SetControllerReference(parentInstance, originalReplication, r.scheme)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	// Update Finalizer
 	if !reflect.DeepEqual(originalReplication.Finalizers, replication.Finalizers) {
-		originalReplication.Finalizers = replication.Finalizers
+		originalReplication.SetFinalizers(replication.Finalizers)
 	}
 
 	if err := r.client.Update(ctx, originalReplication); err != nil {
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	return reconcile.Result{Requeue: true}, nil
+	return reconcile.Result{}, nil
 }
 
 // assertExistingReplication checks a harbor replication for existence and creates it accordingly

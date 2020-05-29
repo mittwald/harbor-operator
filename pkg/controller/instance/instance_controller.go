@@ -121,7 +121,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 			Name:           registriesv1alpha1.InstanceStatusPhaseTerminating,
 			Message:        "Deleted",
 			LastTransition: &now}
-		return r.patchInstance(ctx, originalInstance, harbor)
+		return r.updateInstanceCR(ctx, originalInstance, harbor)
 	}
 
 	switch harbor.Status.Phase.Name {
@@ -163,7 +163,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 		if harbor.Status.SpecHash == "" {
 			harbor.Status.SpecHash = specHash
-			return r.patchInstance(ctx, originalInstance, harbor)
+			return r.updateInstanceCR(ctx, originalInstance, harbor)
 		}
 
 	case registriesv1alpha1.InstanceStatusPhaseReady:
@@ -186,7 +186,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		if harbor.Status.SpecHash != specHash {
 			harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
 			harbor.Status.SpecHash = specHash
-			return r.patchInstance(ctx, originalInstance, harbor)
+			return r.updateInstanceCR(ctx, originalInstance, harbor)
 		}
 
 	case registriesv1alpha1.InstanceStatusPhaseTerminating:
@@ -196,7 +196,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 	}
 
-	return r.patchInstance(ctx, originalInstance, harbor)
+	return r.updateInstanceCR(ctx, originalInstance, harbor)
 }
 
 // reconcileTerminatingInstance triggers a helm uninstall for the created release
@@ -223,8 +223,8 @@ func (r *ReconcileInstance) reconcileTerminatingInstance(ctx context.Context, lo
 	return nil
 }
 
-// patchInstance compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileInstance) patchInstance(ctx context.Context, originalInstance, instance *registriesv1alpha1.Instance) (reconcile.Result, error) {
+// updateInstanceCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
+func (r *ReconcileInstance) updateInstanceCR(ctx context.Context, originalInstance, instance *registriesv1alpha1.Instance) (reconcile.Result, error) {
 	// Update Status
 	if !reflect.DeepEqual(originalInstance.Status, instance.Status) {
 		originalInstance.Status = instance.Status

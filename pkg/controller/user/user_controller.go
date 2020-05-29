@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"time"
 
+	controllerruntime "sigs.k8s.io/controller-runtime"
+
 	"github.com/go-logr/logr"
 	h "github.com/mittwald/goharbor-client"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
@@ -115,25 +117,20 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 
 	if user.ObjectMeta.DeletionTimestamp != nil && user.Status.Phase != registriesv1alpha1.UserStatusPhaseTerminating {
 		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseTerminating}
-		return r.patchUser(ctx, originalUser, user)
+		return r.updateUserCR(ctx, nil, originalUser, user)
 	}
 
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, user.Namespace, user.Spec.ParentInstance.Name, r.client)
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
-			user.Status = registriesv1alpha1.UserStatus{Name: string(registriesv1alpha1.UserStatusPhaseCreating)}
-			// Requeue, the instance might not have been created yet
-			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
+			helper.PullFinalizer(user, FinalizerName)
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
 			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
 		} else {
 			user.Status = registriesv1alpha1.UserStatus{LastTransition: &now}
 		}
-		res, err := r.patchUser(ctx, originalUser, user)
-		if err != nil {
-			return res, err
-		}
+		return r.updateUserCR(ctx, nil, originalUser, user)
 	}
 
 	// Build a client to connect to the harbor API
@@ -148,7 +145,7 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 		return reconcile.Result{}, nil
 
 	case registriesv1alpha1.UserStatusPhaseUnknown:
-		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseCreating}
+		user.Status.Phase = registriesv1alpha1.UserStatusPhaseCreating
 
 	case registriesv1alpha1.UserStatusPhaseCreating:
 		helper.PushFinalizer(user, FinalizerName)
@@ -157,7 +154,7 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseReady}
+		user.Status.Phase = registriesv1alpha1.UserStatusPhaseReady
 
 	case registriesv1alpha1.UserStatusPhaseReady:
 		err := r.assertExistingUser(ctx, harborClient, user)
@@ -172,11 +169,11 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 		}
 	}
 
-	return r.patchUser(ctx, originalUser, user)
+	return r.updateUserCR(ctx, harbor, originalUser, user)
 }
 
-// patchUser compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileUser) patchUser(ctx context.Context, originalUser, user *registriesv1alpha1.User) (reconcile.Result, error) {
+// updateUserCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
+func (r *ReconcileUser) updateUserCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalUser, user *registriesv1alpha1.User) (reconcile.Result, error) {
 	// Update Status
 	if !reflect.DeepEqual(originalUser.Status, user.Status) {
 		originalUser.Status = user.Status
@@ -185,15 +182,24 @@ func (r *ReconcileUser) patchUser(ctx context.Context, originalUser, user *regis
 		}
 	}
 
-	// Update Finalizers
-	if !reflect.DeepEqual(originalUser.Finalizers, user.Finalizers) {
-		originalUser.Finalizers = user.Finalizers
-		if err := r.client.Update(ctx, originalUser); err != nil {
-			return reconcile.Result{Requeue: true}, err
+	// set owner
+	if (originalUser.OwnerReferences == nil || len(originalUser.OwnerReferences) == 0) && parentInstance != nil {
+		err := controllerruntime.SetControllerReference(parentInstance, originalUser, r.scheme)
+		if err != nil {
+			return reconcile.Result{}, err
 		}
 	}
 
-	return reconcile.Result{Requeue: true}, nil
+	// Update Finalizer
+	if !reflect.DeepEqual(originalUser.Finalizers, user.Finalizers) {
+		originalUser.SetFinalizers(user.Finalizers)
+	}
+
+	if err := r.client.Update(ctx, originalUser); err != nil {
+		return reconcile.Result{Requeue: true}, err
+	}
+
+	return reconcile.Result{}, nil
 }
 
 // assertExistingUser ensures the specified user's existence

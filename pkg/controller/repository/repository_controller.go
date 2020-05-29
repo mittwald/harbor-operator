@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"time"
 
+	controllerruntime "sigs.k8s.io/controller-runtime"
+
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/go-logr/logr"
@@ -111,25 +113,20 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 
 	if repository.ObjectMeta.DeletionTimestamp != nil && repository.Status.Phase != registriesv1alpha1.RepositoryStatusPhaseTerminating {
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseTerminating}
-		return r.patchRepository(ctx, originalRepository, repository)
+		return r.updateRepositoryCR(ctx, nil, originalRepository, repository)
 	}
 
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, repository.Namespace, repository.Spec.ParentInstance.Name, r.client)
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
-			repository.Status = registriesv1alpha1.RepositoryStatus{Name: string(registriesv1alpha1.RepositoryStatusPhaseCreating)}
-			// Requeue, the instance might not have been created yet
-			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
+			helper.PullFinalizer(repository, FinalizerName)
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
 			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
 		} else {
 			repository.Status = registriesv1alpha1.RepositoryStatus{LastTransition: &now}
 		}
-		res, err := r.patchRepository(ctx, originalRepository, repository)
-		if err != nil {
-			return res, err
-		}
+		return r.updateRepositoryCR(ctx, nil, originalRepository, repository)
 	}
 
 	// Build a client to connect to the harbor API
@@ -169,11 +166,11 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 		}
 	}
 
-	return r.patchRepository(ctx, originalRepository, repository)
+	return r.updateRepositoryCR(ctx, harbor, originalRepository, repository)
 }
 
-// patchRepository compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileRepository) patchRepository(ctx context.Context, originalRepository, repository *registriesv1alpha1.Repository) (reconcile.Result, error) {
+// updateRepositoryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
+func (r *ReconcileRepository) updateRepositoryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalRepository, repository *registriesv1alpha1.Repository) (reconcile.Result, error) {
 	// Update Status
 	if !reflect.DeepEqual(originalRepository.Status, repository.Status) {
 		originalRepository.Status = repository.Status
@@ -182,16 +179,24 @@ func (r *ReconcileRepository) patchRepository(ctx context.Context, originalRepos
 		}
 	}
 
-	// Update Finalizers
+	// set owner
+	if (originalRepository.OwnerReferences == nil || len(originalRepository.OwnerReferences) == 0) && parentInstance != nil {
+		err := controllerruntime.SetControllerReference(parentInstance, originalRepository, r.scheme)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	// Update Finalizer
 	if !reflect.DeepEqual(originalRepository.Finalizers, repository.Finalizers) {
-		originalRepository.Finalizers = repository.Finalizers
+		originalRepository.SetFinalizers(repository.Finalizers)
 	}
 
 	if err := r.client.Update(ctx, originalRepository); err != nil {
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	return reconcile.Result{Requeue: true}, nil
+	return reconcile.Result{}, nil
 }
 
 // assertDeletedRepository deletes a Harbor project, first ensuring its existence

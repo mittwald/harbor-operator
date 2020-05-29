@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"time"
 
+	controllerruntime "sigs.k8s.io/controller-runtime"
+
 	"github.com/go-logr/logr"
 	h "github.com/mittwald/goharbor-client"
 	"github.com/mittwald/harbor-operator/pkg/controller/internal"
@@ -97,24 +99,20 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	if registry.ObjectMeta.DeletionTimestamp != nil && registry.Status.Phase != registriesv1alpha1.RegistryStatusPhaseTerminating {
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
-		return r.patchRegistry(ctx, originalRegistry, registry)
+		return r.updateRegistryCR(ctx, nil, originalRegistry, registry)
 	}
 
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, registry.Namespace, registry.Spec.ParentInstance.Name, r.client)
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
-			registry.Status = registriesv1alpha1.RegistryStatus{Name: string(registriesv1alpha1.RegistryStatusPhaseCreating)}
-			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
+			helper.PullFinalizer(registry, FinalizerName)
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
 			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
 		} else {
 			registry.Status = registriesv1alpha1.RegistryStatus{LastTransition: &now}
 		}
-		res, err := r.patchRegistry(ctx, originalRegistry, registry)
-		if err != nil {
-			return res, err
-		}
+		return r.updateRegistryCR(ctx, nil, originalRegistry, registry)
 	}
 
 	// Build a client to connect to the harbor API
@@ -153,11 +151,11 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 
 	}
-	return r.patchRegistry(ctx, originalRegistry, registry)
+	return r.updateRegistryCR(ctx, harbor, originalRegistry, registry)
 }
 
-// patchRegistry compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileRegistry) patchRegistry(ctx context.Context, originalRegistry, registry *registriesv1alpha1.Registry) (reconcile.Result, error) {
+// updateRegistryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
+func (r *ReconcileRegistry) updateRegistryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalRegistry, registry *registriesv1alpha1.Registry) (reconcile.Result, error) {
 	// Update Status
 	if !reflect.DeepEqual(originalRegistry.Status, registry.Status) {
 		originalRegistry.Status = registry.Status
@@ -166,16 +164,24 @@ func (r *ReconcileRegistry) patchRegistry(ctx context.Context, originalRegistry,
 		}
 	}
 
-	// Update Finalizers
+	// set owner
+	if (originalRegistry.OwnerReferences == nil || len(originalRegistry.OwnerReferences) == 0) && parentInstance != nil {
+		err := controllerruntime.SetControllerReference(parentInstance, originalRegistry, r.scheme)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	// Update Finalizer
 	if !reflect.DeepEqual(originalRegistry.Finalizers, registry.Finalizers) {
-		originalRegistry.Finalizers = registry.Finalizers
+		originalRegistry.SetFinalizers(registry.Finalizers)
 	}
 
 	if err := r.client.Update(ctx, originalRegistry); err != nil {
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	return reconcile.Result{Requeue: true}, nil
+	return reconcile.Result{}, nil
 }
 
 // assertExistingRegistry checks a harbor registry for existence and creates it accordingly
