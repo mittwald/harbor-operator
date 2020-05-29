@@ -223,23 +223,14 @@ func (r *ReconcileUser) assertExistingUser(ctx context.Context, harborClient *h.
 		return err
 	}
 
-	patch := client.MergeFrom(user.DeepCopy())
 	if err == internal.ErrUserNotFound {
 		user.Status.PasswordHash = pwHash.Short()
-		if err = r.createUser(harborClient, user, pw); err != nil {
-			return err
-		}
-
-		return r.client.Status().Patch(context.Background(), user, patch)
+		return r.createUser(harborClient, user, pw)
 	}
 
 	if user.Status.PasswordHash != pwHash.Short() {
 		user.Status.PasswordHash = pwHash.Short()
 		if err = harborClient.Users().UpdateUserPasswordAsAdmin(int64(heldUser.UserID), pw); err != nil {
-			return err
-		}
-
-		if err = r.client.Status().Patch(context.Background(), user, patch); err != nil {
 			return err
 		}
 	}
