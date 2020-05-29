@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/controller/internal"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -101,7 +102,7 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 
 	err := r.client.Get(ctx, request.NamespacedName, repository)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -180,6 +181,10 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 
 // updateRepositoryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
 func (r *ReconcileRepository) updateRepositoryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalRepository, repository *registriesv1alpha1.Repository, result reconcile.Result) (reconcile.Result, error) {
+	if originalRepository == nil || repository == nil {
+		return reconcile.Result{}, errors.New("cannot update registry cr because (original)repository is nil")
+	}
+
 	// Update Status
 	if !reflect.DeepEqual(originalRepository.Status, repository.Status) {
 		originalRepository.Status = repository.Status

@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/mittwald/harbor-operator/pkg/controller/internal"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -105,7 +106,7 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 
 	err := r.client.Get(ctx, request.NamespacedName, user)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -183,6 +184,10 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 
 // updateUserCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
 func (r *ReconcileUser) updateUserCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalUser, user *registriesv1alpha1.User, result reconcile.Result) (reconcile.Result, error) {
+	if originalUser == nil || user == nil {
+		return reconcile.Result{}, errors.New("cannot update registry cr because (original)user is nil")
+	}
+
 	// Update Status
 	if !reflect.DeepEqual(originalUser.Status, user.Status) {
 		originalUser.Status = user.Status

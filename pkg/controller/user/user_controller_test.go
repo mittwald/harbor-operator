@@ -62,7 +62,7 @@ func TestUserController_Empty_User_Spec(t *testing.T) {
 
 	res, err := r.Reconcile(req)
 	if err != nil {
-		t.Fatalf("reconcile returned no error: %s", err)
+		t.Fatalf("reconcile returned error: %v", err)
 	}
 
 	if !res.Requeue {

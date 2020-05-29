@@ -232,6 +232,10 @@ func (r *ReconcileInstance) reconcileTerminatingInstance(ctx context.Context, lo
 
 // updateInstanceCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
 func (r *ReconcileInstance) updateInstanceCR(ctx context.Context, originalInstance, instance *registriesv1alpha1.Instance, result reconcile.Result) (reconcile.Result, error) {
+	if originalInstance == nil || instance == nil {
+		return reconcile.Result{}, errors.New("cannot update instance cr because (original)instance is nil")
+	}
+
 	// Update Status
 	if !reflect.DeepEqual(originalInstance.Status, instance.Status) {
 		originalInstance.Status = instance.Status
