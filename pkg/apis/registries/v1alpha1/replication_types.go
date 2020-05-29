@@ -29,11 +29,12 @@ const (
 
 // ReplicationSpec defines the desired state of Replication
 type ReplicationSpec struct {
-	ID int64 `json:"id"`
-
 	Name string `json:"name"`
 
 	Deletion bool `json:"deletion"`
+
+	// +optional
+	ID int64 `json:"id"`
 
 	// +optional
 	Description string `json:"description,omitempty"`

@@ -8,7 +8,6 @@ metadata:
   name: test-replication-src
   namespace: harbor-operator
 spec:
-  id: 1
   name: test-replication-src
   parentInstance:
     name: test-harbor
