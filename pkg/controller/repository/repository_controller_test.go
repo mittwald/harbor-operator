@@ -77,7 +77,7 @@ func TestRepositoryController_Unready_Instance(t *testing.T) {
 	if err == nil {
 		t.Error("reconciliation did not return error as expected")
 	}
-	if !(res.RequeueAfter == 30*time.Second) {
+	if !(res.RequeueAfter == 30 * time.Second) {
 		t.Error("reconciliation did not requeue as expected")
 	}
 }
