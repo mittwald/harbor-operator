@@ -19,6 +19,7 @@ spec:
     chart: harbor/harbor
     version: {{ .version }}
     namespace: {{ $.Release.Namespace }}
+    wait: {{ .wait }}
     valuesYaml: |
       {{- with .values }}
       {{- toYaml . | nindent 6 }}
