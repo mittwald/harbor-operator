@@ -318,6 +318,10 @@ func (r *ReconcileReplication) getHarborRegistryFromRef(ctx context.Context, reg
 		return nil, err
 	}
 
+	if registry.Status.Phase != registriesv1alpha1.RegistryStatusPhaseReady {
+		return nil, internal.ErrRegistryNotReady(registry.Name)
+	}
+
 	return registry.Spec.ToHarborRegistry(), nil
 }
 
