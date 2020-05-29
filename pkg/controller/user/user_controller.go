@@ -98,6 +98,8 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 	now := metav1.Now()
 	ctx := context.Background()
 
+	var result reconcile.Result
+
 	// Fetch the User instance
 	user := &registriesv1alpha1.User{}
 
@@ -117,7 +119,8 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 
 	if user.ObjectMeta.DeletionTimestamp != nil && user.Status.Phase != registriesv1alpha1.UserStatusPhaseTerminating {
 		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseTerminating}
-		return r.updateUserCR(ctx, nil, originalUser, user)
+		result = reconcile.Result{Requeue: true}
+		return r.updateUserCR(ctx, nil, originalUser, user, result)
 	}
 
 	// Fetch the Instance
@@ -125,12 +128,14 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
 			helper.PullFinalizer(user, FinalizerName)
+			result = reconcile.Result{}
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
-			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
+			return reconcile.Result{RequeueAfter: 30 * time.Second}, err
 		} else {
 			user.Status = registriesv1alpha1.UserStatus{LastTransition: &now}
+			result = reconcile.Result{RequeueAfter: 120 * time.Second}
 		}
-		return r.updateUserCR(ctx, nil, originalUser, user)
+		return r.updateUserCR(ctx, nil, originalUser, user, result)
 	}
 
 	// Build a client to connect to the harbor API
@@ -146,6 +151,7 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 
 	case registriesv1alpha1.UserStatusPhaseUnknown:
 		user.Status.Phase = registriesv1alpha1.UserStatusPhaseCreating
+		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.UserStatusPhaseCreating:
 		helper.PushFinalizer(user, FinalizerName)
@@ -155,25 +161,28 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 			return reconcile.Result{}, err
 		}
 		user.Status.Phase = registriesv1alpha1.UserStatusPhaseReady
+		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.UserStatusPhaseReady:
 		err := r.assertExistingUser(ctx, harborClient, user)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{}
 
 	case registriesv1alpha1.UserStatusPhaseTerminating:
 		err := r.assertDeletedUser(reqLogger, harborClient, user)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{}
 	}
 
-	return r.updateUserCR(ctx, harbor, originalUser, user)
+	return r.updateUserCR(ctx, harbor, originalUser, user, result)
 }
 
 // updateUserCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileUser) updateUserCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalUser, user *registriesv1alpha1.User) (reconcile.Result, error) {
+func (r *ReconcileUser) updateUserCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalUser, user *registriesv1alpha1.User, result reconcile.Result) (reconcile.Result, error) {
 	// Update Status
 	if !reflect.DeepEqual(originalUser.Status, user.Status) {
 		originalUser.Status = user.Status
@@ -196,10 +205,10 @@ func (r *ReconcileUser) updateUserCR(ctx context.Context, parentInstance *regist
 	}
 
 	if err := r.client.Update(ctx, originalUser); err != nil {
-		return reconcile.Result{Requeue: true}, err
+		return reconcile.Result{}, err
 	}
 
-	return reconcile.Result{}, nil
+	return result, nil
 }
 
 // assertExistingUser ensures the specified user's existence

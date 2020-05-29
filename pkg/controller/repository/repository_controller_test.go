@@ -35,7 +35,7 @@ func buildReconcileWithFakeClientWithMocks(objs []runtime.Object) *ReconcileRepo
 }
 
 // TestRepositoryController_NonExistent_Instance
-// Test reconciliation with a non existent instance object which is expected to be requeued
+// Test reconciliation with a non existent instance object
 func TestRepositoryController_NonExistent_Instance(t *testing.T) {
 	repo := registriesv1alpha1.Repository{}
 
@@ -53,8 +53,8 @@ func TestRepositoryController_NonExistent_Instance(t *testing.T) {
 		t.Fatalf("reconcile returned error: (%v)", err)
 	}
 
-	if res.RequeueAfter != 30*time.Second {
-		t.Error("reconciliation did not requeue as expected")
+	if res.Requeue {
+		t.Error("reconciliation should not be re queued")
 	}
 }
 
@@ -77,7 +77,7 @@ func TestRepositoryController_Unready_Instance(t *testing.T) {
 	if err == nil {
 		t.Error("reconciliation did not return error as expected")
 	}
-	if !(res.RequeueAfter == 120*time.Second) {
+	if !(res.RequeueAfter == 30*time.Second) {
 		t.Error("reconciliation did not requeue as expected")
 	}
 }

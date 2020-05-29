@@ -83,6 +83,8 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 	now := metav1.Now()
 	ctx := context.Background()
 
+	var result reconcile.Result
+
 	// Fetch the Replication instance
 	replication := &registriesv1alpha1.Replication{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, replication)
@@ -101,7 +103,8 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 
 	if replication.ObjectMeta.DeletionTimestamp != nil && replication.Status.Phase != registriesv1alpha1.ReplicationStatusPhaseTerminating {
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseTerminating}
-		return r.updateReplicationCR(ctx, nil, originalReplication, replication)
+		result = reconcile.Result{Requeue: true}
+		return r.updateReplicationCR(ctx, nil, originalReplication, replication, result)
 	}
 
 	// Fetch the Instance
@@ -109,12 +112,14 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
 			helper.PullFinalizer(replication, FinalizerName)
+			result = reconcile.Result{}
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
-			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
+			return reconcile.Result{RequeueAfter: 30 * time.Second}, err
 		} else {
 			replication.Status = registriesv1alpha1.ReplicationStatus{LastTransition: &now}
+			result = reconcile.Result{RequeueAfter: 120 * time.Second}
 		}
-		return r.updateReplicationCR(ctx, nil, originalReplication, replication)
+		return r.updateReplicationCR(ctx, nil, originalReplication, replication, result)
 	}
 
 	// Build a client to connet to the harbor API
@@ -128,6 +133,7 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, nil
 	case registriesv1alpha1.ReplicationStatusPhaseUnknown:
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseCreating}
+		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.ReplicationStatusPhaseCreating:
 		helper.PushFinalizer(replication, FinalizerName)
@@ -148,12 +154,14 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 			}
 		}
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseReady}
+		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.ReplicationStatusPhaseReady:
 		err := r.assertExistingReplication(ctx, harborClient, replication)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{}
 
 	case registriesv1alpha1.ReplicationStatusPhaseTerminating:
 		// Delete the replication via harbor API
@@ -161,12 +169,13 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{}
 	}
-	return r.updateReplicationCR(ctx, harbor, originalReplication, replication)
+	return r.updateReplicationCR(ctx, harbor, originalReplication, replication, result)
 }
 
 // updateReplicationCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileReplication) updateReplicationCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalReplication, replication *registriesv1alpha1.Replication) (reconcile.Result, error) {
+func (r *ReconcileReplication) updateReplicationCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalReplication, replication *registriesv1alpha1.Replication, result reconcile.Result) (reconcile.Result, error) {
 	// Update Status
 	if !reflect.DeepEqual(originalReplication.Status, replication.Status) {
 		originalReplication.Status = replication.Status

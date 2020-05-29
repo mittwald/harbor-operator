@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	testingregistriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/testing/registriesv1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,7 +44,12 @@ func TestUserController_Empty_User_Spec(t *testing.T) {
 
 	instanceSecret := testingregistriesv1alpha1.CreateSecret(instance.Name+"-harbor-core", ns)
 
-	u := registriesv1alpha1.User{}
+	u := registriesv1alpha1.User{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-user",
+			Namespace: ns,
+		},
+	}
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&u, &instance, &instanceSecret})
 
@@ -55,7 +62,7 @@ func TestUserController_Empty_User_Spec(t *testing.T) {
 
 	res, err := r.Reconcile(req)
 	if err != nil {
-		t.Fatalf("reconcile returned error: (%v)", err)
+		t.Fatalf("reconcile returned no error: %s", err)
 	}
 
 	if !res.Requeue {
@@ -108,7 +115,7 @@ func TestUserController_Instance_Phase(t *testing.T) {
 		if err == nil {
 			t.Error("reconciliation did not return error as expected")
 		}
-		if res.RequeueAfter != 120*time.Second {
+		if res.RequeueAfter != 30*time.Second {
 			t.Error("reconciliation did not requeue as expected")
 		}
 	})

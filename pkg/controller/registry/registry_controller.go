@@ -81,6 +81,8 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 	now := metav1.Now()
 	ctx := context.Background()
 
+	var result reconcile.Result
+
 	// Fetch the Registry instance
 	registry := &registriesv1alpha1.Registry{}
 	err := r.client.Get(ctx, request.NamespacedName, registry)
@@ -99,7 +101,8 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	if registry.ObjectMeta.DeletionTimestamp != nil && registry.Status.Phase != registriesv1alpha1.RegistryStatusPhaseTerminating {
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
-		return r.updateRegistryCR(ctx, nil, originalRegistry, registry)
+		result = reconcile.Result{Requeue: true}
+		return r.updateRegistryCR(ctx, nil, originalRegistry, registry, result)
 	}
 
 	// Fetch the Instance
@@ -107,12 +110,14 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
 			helper.PullFinalizer(registry, FinalizerName)
+			result = reconcile.Result{}
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
-			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
+			return reconcile.Result{RequeueAfter: 30 * time.Second}, err
 		} else {
 			registry.Status = registriesv1alpha1.RegistryStatus{LastTransition: &now}
+			result = reconcile.Result{RequeueAfter: 120 * time.Second}
 		}
-		return r.updateRegistryCR(ctx, nil, originalRegistry, registry)
+		return r.updateRegistryCR(ctx, nil, originalRegistry, registry, result)
 	}
 
 	// Build a client to connect to the harbor API
@@ -124,8 +129,10 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 	switch registry.Status.Phase {
 	default:
 		return reconcile.Result{}, nil
+
 	case registriesv1alpha1.RegistryStatusPhaseUnknown:
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseCreating}
+		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.RegistryStatusPhaseCreating:
 		helper.PushFinalizer(registry, FinalizerName)
@@ -137,11 +144,13 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseReady}
+		result = reconcile.Result{Requeue: true}
 	case registriesv1alpha1.RegistryStatusPhaseReady:
 		err := r.assertExistingRegistry(ctx, harborClient, registry)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{}
 
 	case registriesv1alpha1.RegistryStatusPhaseTerminating:
 		// Delete the registry via harbor API
@@ -149,13 +158,14 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{}
 
 	}
-	return r.updateRegistryCR(ctx, harbor, originalRegistry, registry)
+	return r.updateRegistryCR(ctx, harbor, originalRegistry, registry, result)
 }
 
 // updateRegistryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileRegistry) updateRegistryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalRegistry, registry *registriesv1alpha1.Registry) (reconcile.Result, error) {
+func (r *ReconcileRegistry) updateRegistryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalRegistry, registry *registriesv1alpha1.Registry, result reconcile.Result) (reconcile.Result, error) {
 	// Update Status
 	if !reflect.DeepEqual(originalRegistry.Status, registry.Status) {
 		originalRegistry.Status = registry.Status
