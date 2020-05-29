@@ -328,12 +328,12 @@ func (r *ReconcileReplication) getHarborRegistryFromRef(ctx context.Context, reg
 // assertDeletedReplication deletes a replication, first ensuring its existence
 func (r *ReconcileReplication) assertDeletedReplication(log logr.Logger, harborClient *h.Client, replication *registriesv1alpha1.Replication) error {
 	rep, err := internal.GetReplication(harborClient, replication)
-	if err != nil {
-		return err
-	}
-
-	err = harborClient.Replications().DeleteReplicationPolicyByID(rep.ID)
-	if err != nil {
+	if err == nil {
+		err = harborClient.Replications().DeleteReplicationPolicyByID(rep.ID)
+		if err != nil {
+			return err
+		}
+	} else if err != internal.ErrReplicationNotFound {
 		return err
 	}
 

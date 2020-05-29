@@ -282,12 +282,12 @@ func (r *ReconcileRegistry) buildRegistryFromSpec(originalRegistry *registriesv1
 // assertDeletedRegistry deletes a registry, first ensuring its existence
 func (r *ReconcileRegistry) assertDeletedRegistry(log logr.Logger, harborClient *h.Client, registry *registriesv1alpha1.Registry) error {
 	reg, err := internal.GetRegistry(harborClient, registry)
-	if err != nil {
-		return err
-	}
-
-	err = harborClient.Registries().DeleteRegistryByID(reg.ID)
-	if err != nil {
+	if err == nil {
+		err = harborClient.Registries().DeleteRegistryByID(reg.ID)
+		if err != nil {
+			return err
+		}
+	} else if err != internal.ErrRegistryNotFound {
 		return err
 	}
 
