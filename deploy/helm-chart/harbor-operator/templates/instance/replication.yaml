@@ -35,7 +35,7 @@ spec:
     name: {{ $instance.name }}-{{ $repl.srcRegistryName }}
   {{- end }}
 
-  {{- if $repl.srcRegistryName }}
+  {{- if $repl.destRegistryName }}
   destRegistry:
     name: {{ $instance.name }}-{{ $repl.destRegistryName }}
   {{- end }}
