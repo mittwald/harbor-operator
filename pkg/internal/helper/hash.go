@@ -4,10 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+
 	helmclient "github.com/mittwald/go-helm-client"
 )
-
-type InterfaceHash []byte
 
 // String returns the string value of an interface hash
 func (hash *InterfaceHash) String() string {

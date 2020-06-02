@@ -18,12 +18,19 @@ type ErrInstanceNotFound string
 // ErrInstanceNotFound is called when the corresponding Harbor instance is not ready
 type ErrInstanceNotReady string
 
+// ErrRegistryNotReady is called when the corresponding RegistryCR (registriesv1alpha1.Registry) is not ready
+type ErrRegistryNotReady string
+
 func (e ErrInstanceNotFound) Error() string {
 	return fmt.Sprintf("instance '%s' not found", string(e))
 }
 
 func (e ErrInstanceNotReady) Error() string {
 	return fmt.Sprintf("instance '%s' not ready", string(e))
+}
+
+func (e ErrRegistryNotReady) Error() string {
+	return fmt.Sprintf("registry '%s' not ready", string(e))
 }
 
 // ErrUserNotFound is a custom error type describing the absence of a user

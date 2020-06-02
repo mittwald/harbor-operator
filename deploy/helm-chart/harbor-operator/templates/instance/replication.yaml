@@ -10,10 +10,13 @@ spec:
   parentInstance:
     name: {{ $instance.name }}
   name: {{ $repl.name }}
-  id: {{ $repl.id }}
   deletion: {{ $repl.deletion }}
   override: {{ $repl.override }}
   triggerAfterCreation: {{ $repl.triggerAfterCreation }}
+
+  {{- if $repl.id }}
+  id: {{ $repl.id }}
+  {{- end }}
 
   {{- if $repl.description }}
   description: {{ $repl.description }}
@@ -32,7 +35,7 @@ spec:
     name: {{ $instance.name }}-{{ $repl.srcRegistryName }}
   {{- end }}
 
-  {{- if $repl.srcRegistryName }}
+  {{- if $repl.destRegistryName }}
   destRegistry:
     name: {{ $instance.name }}-{{ $repl.destRegistryName }}
   {{- end }}

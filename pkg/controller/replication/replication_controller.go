@@ -2,9 +2,12 @@ package replication
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
+
+	controllerruntime "sigs.k8s.io/controller-runtime"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -14,7 +17,7 @@ import (
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -81,11 +84,13 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 	now := metav1.Now()
 	ctx := context.Background()
 
+	var result reconcile.Result
+
 	// Fetch the Replication instance
 	replication := &registriesv1alpha1.Replication{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, replication)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -99,25 +104,23 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 
 	if replication.ObjectMeta.DeletionTimestamp != nil && replication.Status.Phase != registriesv1alpha1.ReplicationStatusPhaseTerminating {
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseTerminating}
-		return r.patchReplication(ctx, originalReplication, replication)
+		result = reconcile.Result{Requeue: true}
+		return r.updateReplicationCR(ctx, nil, originalReplication, replication, result)
 	}
 
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, replication.Namespace, replication.Spec.ParentInstance.Name, r.client)
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
-			replication.Status = registriesv1alpha1.ReplicationStatus{Name: string(registriesv1alpha1.ReplicationStatusPhaseCreating)}
-			// Requeue, the instance might not have been created yet
-			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
+			helper.PullFinalizer(replication, FinalizerName)
+			result = reconcile.Result{}
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
-			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
+			return reconcile.Result{RequeueAfter: 30 * time.Second}, err
 		} else {
 			replication.Status = registriesv1alpha1.ReplicationStatus{LastTransition: &now}
+			result = reconcile.Result{RequeueAfter: 120 * time.Second}
 		}
-		res, err := r.patchReplication(ctx, originalReplication, replication)
-		if err != nil {
-			return res, err
-		}
+		return r.updateReplicationCR(ctx, nil, originalReplication, replication, result)
 	}
 
 	// Build a client to connet to the harbor API
@@ -131,6 +134,7 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, nil
 	case registriesv1alpha1.ReplicationStatusPhaseUnknown:
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseCreating}
+		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.ReplicationStatusPhaseCreating:
 		helper.PushFinalizer(replication, FinalizerName)
@@ -151,12 +155,14 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 			}
 		}
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseReady}
+		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.ReplicationStatusPhaseReady:
 		err := r.assertExistingReplication(ctx, harborClient, replication)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{}
 
 	case registriesv1alpha1.ReplicationStatusPhaseTerminating:
 		// Delete the replication via harbor API
@@ -164,12 +170,17 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{}
 	}
-	return r.patchReplication(ctx, originalReplication, replication)
+	return r.updateReplicationCR(ctx, harbor, originalReplication, replication, result)
 }
 
-// patchReplication compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileReplication) patchReplication(ctx context.Context, originalReplication, replication *registriesv1alpha1.Replication) (reconcile.Result, error) {
+// updateReplicationCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
+func (r *ReconcileReplication) updateReplicationCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalReplication, replication *registriesv1alpha1.Replication, result reconcile.Result) (reconcile.Result, error) {
+	if originalReplication == nil || replication == nil {
+		return reconcile.Result{}, errors.New("cannot update registry cr because (original)replication is nil")
+	}
+
 	// Update Status
 	if !reflect.DeepEqual(originalReplication.Status, replication.Status) {
 		originalReplication.Status = replication.Status
@@ -178,16 +189,24 @@ func (r *ReconcileReplication) patchReplication(ctx context.Context, originalRep
 		}
 	}
 
-	// Update Finalizers
+	// set owner
+	if (originalReplication.OwnerReferences == nil || len(originalReplication.OwnerReferences) == 0) && parentInstance != nil {
+		err := controllerruntime.SetControllerReference(parentInstance, originalReplication, r.scheme)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	// Update Finalizer
 	if !reflect.DeepEqual(originalReplication.Finalizers, replication.Finalizers) {
-		originalReplication.Finalizers = replication.Finalizers
+		originalReplication.SetFinalizers(replication.Finalizers)
 	}
 
 	if err := r.client.Update(ctx, originalReplication); err != nil {
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	return reconcile.Result{Requeue: true}, nil
+	return reconcile.Result{}, nil
 }
 
 // assertExistingReplication checks a harbor replication for existence and creates it accordingly
@@ -313,18 +332,22 @@ func (r *ReconcileReplication) getHarborRegistryFromRef(ctx context.Context, reg
 		return nil, err
 	}
 
+	if registry.Status.Phase != registriesv1alpha1.RegistryStatusPhaseReady {
+		return nil, internal.ErrRegistryNotReady(registry.Name)
+	}
+
 	return registry.Spec.ToHarborRegistry(), nil
 }
 
 // assertDeletedReplication deletes a replication, first ensuring its existence
 func (r *ReconcileReplication) assertDeletedReplication(log logr.Logger, harborClient *h.Client, replication *registriesv1alpha1.Replication) error {
 	rep, err := internal.GetReplication(harborClient, replication)
-	if err != nil {
-		return err
-	}
-
-	err = harborClient.Replications().DeleteReplicationPolicyByID(rep.ID)
-	if err != nil {
+	if err == nil {
+		err = harborClient.Replications().DeleteReplicationPolicyByID(rep.ID)
+		if err != nil {
+			return err
+		}
+	} else if err != internal.ErrReplicationNotFound {
 		return err
 	}
 

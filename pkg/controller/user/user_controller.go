@@ -2,8 +2,11 @@ package user
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"time"
+
+	controllerruntime "sigs.k8s.io/controller-runtime"
 
 	"github.com/go-logr/logr"
 	h "github.com/mittwald/goharbor-client"
@@ -11,7 +14,7 @@ import (
 	"github.com/mittwald/harbor-operator/pkg/controller/internal"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -96,12 +99,14 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 	now := metav1.Now()
 	ctx := context.Background()
 
+	var result reconcile.Result
+
 	// Fetch the User instance
 	user := &registriesv1alpha1.User{}
 
 	err := r.client.Get(ctx, request.NamespacedName, user)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -115,25 +120,23 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 
 	if user.ObjectMeta.DeletionTimestamp != nil && user.Status.Phase != registriesv1alpha1.UserStatusPhaseTerminating {
 		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseTerminating}
-		return r.patchUser(ctx, originalUser, user)
+		result = reconcile.Result{Requeue: true}
+		return r.updateUserCR(ctx, nil, originalUser, user, result)
 	}
 
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, user.Namespace, user.Spec.ParentInstance.Name, r.client)
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
-			user.Status = registriesv1alpha1.UserStatus{Name: string(registriesv1alpha1.UserStatusPhaseCreating)}
-			// Requeue, the instance might not have been created yet
-			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
+			helper.PullFinalizer(user, FinalizerName)
+			result = reconcile.Result{}
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
-			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
+			return reconcile.Result{RequeueAfter: 30 * time.Second}, err
 		} else {
 			user.Status = registriesv1alpha1.UserStatus{LastTransition: &now}
+			result = reconcile.Result{RequeueAfter: 120 * time.Second}
 		}
-		res, err := r.patchUser(ctx, originalUser, user)
-		if err != nil {
-			return res, err
-		}
+		return r.updateUserCR(ctx, nil, originalUser, user, result)
 	}
 
 	// Build a client to connect to the harbor API
@@ -148,7 +151,8 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 		return reconcile.Result{}, nil
 
 	case registriesv1alpha1.UserStatusPhaseUnknown:
-		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseCreating}
+		user.Status.Phase = registriesv1alpha1.UserStatusPhaseCreating
+		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.UserStatusPhaseCreating:
 		helper.PushFinalizer(user, FinalizerName)
@@ -157,26 +161,33 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseReady}
+		user.Status.Phase = registriesv1alpha1.UserStatusPhaseReady
+		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.UserStatusPhaseReady:
 		err := r.assertExistingUser(ctx, harborClient, user)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{}
 
 	case registriesv1alpha1.UserStatusPhaseTerminating:
 		err := r.assertDeletedUser(reqLogger, harborClient, user)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{}
 	}
 
-	return r.patchUser(ctx, originalUser, user)
+	return r.updateUserCR(ctx, harbor, originalUser, user, result)
 }
 
-// patchUser compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileUser) patchUser(ctx context.Context, originalUser, user *registriesv1alpha1.User) (reconcile.Result, error) {
+// updateUserCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
+func (r *ReconcileUser) updateUserCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalUser, user *registriesv1alpha1.User, result reconcile.Result) (reconcile.Result, error) {
+	if originalUser == nil || user == nil {
+		return reconcile.Result{}, errors.New("cannot update registry cr because (original)user is nil")
+	}
+
 	// Update Status
 	if !reflect.DeepEqual(originalUser.Status, user.Status) {
 		originalUser.Status = user.Status
@@ -185,15 +196,24 @@ func (r *ReconcileUser) patchUser(ctx context.Context, originalUser, user *regis
 		}
 	}
 
-	// Update Finalizers
-	if !reflect.DeepEqual(originalUser.Finalizers, user.Finalizers) {
-		originalUser.Finalizers = user.Finalizers
-		if err := r.client.Update(ctx, originalUser); err != nil {
-			return reconcile.Result{Requeue: true}, err
+	// set owner
+	if (originalUser.OwnerReferences == nil || len(originalUser.OwnerReferences) == 0) && parentInstance != nil {
+		err := controllerruntime.SetControllerReference(parentInstance, originalUser, r.scheme)
+		if err != nil {
+			return reconcile.Result{}, err
 		}
 	}
 
-	return reconcile.Result{Requeue: true}, nil
+	// Update Finalizer
+	if !reflect.DeepEqual(originalUser.Finalizers, user.Finalizers) {
+		originalUser.SetFinalizers(user.Finalizers)
+	}
+
+	if err := r.client.Update(ctx, originalUser); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	return result, nil
 }
 
 // assertExistingUser ensures the specified user's existence
@@ -217,23 +237,14 @@ func (r *ReconcileUser) assertExistingUser(ctx context.Context, harborClient *h.
 		return err
 	}
 
-	patch := client.MergeFrom(user.DeepCopy())
 	if err == internal.ErrUserNotFound {
 		user.Status.PasswordHash = pwHash.Short()
-		if err = r.createUser(harborClient, user, pw); err != nil {
-			return err
-		}
-
-		return r.client.Status().Patch(context.Background(), user, patch)
+		return r.createUser(harborClient, user, pw)
 	}
 
 	if user.Status.PasswordHash != pwHash.Short() {
 		user.Status.PasswordHash = pwHash.Short()
 		if err = harborClient.Users().UpdateUserPasswordAsAdmin(int64(heldUser.UserID), pw); err != nil {
-			return err
-		}
-
-		if err = r.client.Status().Patch(context.Background(), user, patch); err != nil {
 			return err
 		}
 	}

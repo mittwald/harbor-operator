@@ -8,7 +8,6 @@ metadata:
   name: test-replication-dst
   namespace: harbor-operator
 spec:
-  id: 2
   name: test-replication-dst
   parentInstance:
     name: test-harbor

@@ -25,6 +25,7 @@ require (
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a // indirect
+	k8s.io/kubectl v0.17.2
 	moul.io/http2curl v1.0.0 // indirect
 	sigs.k8s.io/controller-runtime v0.5.2
 )

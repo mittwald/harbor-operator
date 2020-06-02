@@ -2,8 +2,11 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"time"
+
+	controllerruntime "sigs.k8s.io/controller-runtime"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -13,7 +16,7 @@ import (
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/controller/internal"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -92,12 +95,14 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 	now := metav1.Now()
 	ctx := context.Background()
 
+	var result reconcile.Result
+
 	// Fetch the Repository instance
 	repository := &registriesv1alpha1.Repository{}
 
 	err := r.client.Get(ctx, request.NamespacedName, repository)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -111,25 +116,23 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 
 	if repository.ObjectMeta.DeletionTimestamp != nil && repository.Status.Phase != registriesv1alpha1.RepositoryStatusPhaseTerminating {
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseTerminating}
-		return r.patchRepository(ctx, originalRepository, repository)
+		result = reconcile.Result{Requeue: true}
+		return r.updateRepositoryCR(ctx, nil, originalRepository, repository, result)
 	}
 
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, repository.Namespace, repository.Spec.ParentInstance.Name, r.client)
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
-			repository.Status = registriesv1alpha1.RepositoryStatus{Name: string(registriesv1alpha1.RepositoryStatusPhaseCreating)}
-			// Requeue, the instance might not have been created yet
-			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
+			helper.PullFinalizer(repository, FinalizerName)
+			result = reconcile.Result{}
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
-			return reconcile.Result{RequeueAfter: 120 * time.Second}, err
+			return reconcile.Result{RequeueAfter: 30 * time.Second}, err
 		} else {
 			repository.Status = registriesv1alpha1.RepositoryStatus{LastTransition: &now}
+			result = reconcile.Result{RequeueAfter: 120 * time.Second}
 		}
-		res, err := r.patchRepository(ctx, originalRepository, repository)
-		if err != nil {
-			return res, err
-		}
+		return r.updateRepositoryCR(ctx, nil, originalRepository, repository, result)
 	}
 
 	// Build a client to connect to the harbor API
@@ -144,6 +147,7 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 
 	case registriesv1alpha1.RepositoryStatusPhaseUnknown:
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseCreating}
+		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.RepositoryStatusPhaseCreating:
 		helper.PushFinalizer(repository, FinalizerName)
@@ -154,12 +158,14 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 			return reconcile.Result{}, err
 		}
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseReady}
+		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.RepositoryStatusPhaseReady:
 		err := r.assertExistingRepository(harborClient, repository)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{}
 
 	case registriesv1alpha1.RepositoryStatusPhaseTerminating:
 		// Delete the repository via harbor API
@@ -167,13 +173,18 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{}
 	}
 
-	return r.patchRepository(ctx, originalRepository, repository)
+	return r.updateRepositoryCR(ctx, harbor, originalRepository, repository, result)
 }
 
-// patchRepository compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileRepository) patchRepository(ctx context.Context, originalRepository, repository *registriesv1alpha1.Repository) (reconcile.Result, error) {
+// updateRepositoryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
+func (r *ReconcileRepository) updateRepositoryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalRepository, repository *registriesv1alpha1.Repository, result reconcile.Result) (reconcile.Result, error) {
+	if originalRepository == nil || repository == nil {
+		return reconcile.Result{}, errors.New("cannot update registry cr because (original)repository is nil")
+	}
+
 	// Update Status
 	if !reflect.DeepEqual(originalRepository.Status, repository.Status) {
 		originalRepository.Status = repository.Status
@@ -182,16 +193,24 @@ func (r *ReconcileRepository) patchRepository(ctx context.Context, originalRepos
 		}
 	}
 
-	// Update Finalizers
+	// set owner
+	if (originalRepository.OwnerReferences == nil || len(originalRepository.OwnerReferences) == 0) && parentInstance != nil {
+		err := controllerruntime.SetControllerReference(parentInstance, originalRepository, r.scheme)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	// Update Finalizer
 	if !reflect.DeepEqual(originalRepository.Finalizers, repository.Finalizers) {
-		originalRepository.Finalizers = repository.Finalizers
+		originalRepository.SetFinalizers(repository.Finalizers)
 	}
 
 	if err := r.client.Update(ctx, originalRepository); err != nil {
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	return reconcile.Result{Requeue: true}, nil
+	return reconcile.Result{}, nil
 }
 
 // assertDeletedRepository deletes a Harbor project, first ensuring its existence

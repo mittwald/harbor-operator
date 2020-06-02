@@ -99,6 +99,8 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	ctx := context.Background()
 
+	var result reconcile.Result
+
 	// Fetch the Instance
 	harbor := &registriesv1alpha1.Instance{}
 	if err := r.client.Get(ctx, request.NamespacedName, harbor); err != nil {
@@ -121,7 +123,8 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 			Name:           registriesv1alpha1.InstanceStatusPhaseTerminating,
 			Message:        "Deleted",
 			LastTransition: &now}
-		return r.patchInstance(ctx, originalInstance, harbor)
+		result = reconcile.Result{Requeue: true}
+		return r.updateInstanceCR(ctx, originalInstance, harbor, result)
 	}
 
 	switch harbor.Status.Phase.Name {
@@ -130,6 +133,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	case "":
 		harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
+		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.InstanceStatusPhaseInstalling:
 		reqLogger.Info("installing helm-chart")
@@ -161,9 +165,10 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{Requeue: true}
 		if harbor.Status.SpecHash == "" {
 			harbor.Status.SpecHash = specHash
-			return r.patchInstance(ctx, originalInstance, harbor)
+			return r.updateInstanceCR(ctx, originalInstance, harbor, result)
 		}
 
 	case registriesv1alpha1.InstanceStatusPhaseReady:
@@ -183,10 +188,11 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 			return reconcile.Result{}, err
 		}
 
+		result = reconcile.Result{}
 		if harbor.Status.SpecHash != specHash {
 			harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
 			harbor.Status.SpecHash = specHash
-			return r.patchInstance(ctx, originalInstance, harbor)
+			return r.updateInstanceCR(ctx, originalInstance, harbor, result)
 		}
 
 	case registriesv1alpha1.InstanceStatusPhaseTerminating:
@@ -194,9 +200,10 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		result = reconcile.Result{}
 	}
 
-	return r.patchInstance(ctx, originalInstance, harbor)
+	return r.updateInstanceCR(ctx, originalInstance, harbor, result)
 }
 
 // reconcileTerminatingInstance triggers a helm uninstall for the created release
@@ -223,8 +230,12 @@ func (r *ReconcileInstance) reconcileTerminatingInstance(ctx context.Context, lo
 	return nil
 }
 
-// patchInstance compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileInstance) patchInstance(ctx context.Context, originalInstance, instance *registriesv1alpha1.Instance) (reconcile.Result, error) {
+// updateInstanceCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
+func (r *ReconcileInstance) updateInstanceCR(ctx context.Context, originalInstance, instance *registriesv1alpha1.Instance, result reconcile.Result) (reconcile.Result, error) {
+	if originalInstance == nil || instance == nil {
+		return reconcile.Result{}, errors.New("cannot update instance cr because (original)instance is nil")
+	}
+
 	// Update Status
 	if !reflect.DeepEqual(originalInstance.Status, instance.Status) {
 		originalInstance.Status = instance.Status

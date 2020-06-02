@@ -7,16 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-type jsonPatchOp struct {
-	Operation string      `json:"op"`
-	Path      string      `json:"path"`
-	Value     interface{} `json:"value,omitempty"`
-}
-
-type JSONPatch struct {
-	ops []jsonPatchOp
-}
-
 func (p *JSONPatch) Type() types.PatchType {
 	return types.JSONPatchType
 }
