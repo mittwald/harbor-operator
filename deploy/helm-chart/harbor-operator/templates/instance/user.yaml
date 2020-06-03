@@ -1,5 +1,6 @@
 {{- range $instance := .Values.instances }}
   {{- range $user := .users }}
+  {{- if $user.password }}
 apiVersion: v1
 kind: Secret
 metadata:
@@ -8,6 +9,7 @@ metadata:
     {{- include "chart.labels" $ | nindent 4 }}
 data:
   password: {{ $user.password | b64enc }}
+  {{- end }}
 ---
 apiVersion: registries.mittwald.de/v1alpha1
 kind: User
