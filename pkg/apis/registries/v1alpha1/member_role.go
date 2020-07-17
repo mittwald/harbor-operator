@@ -1,7 +1,7 @@
 package v1alpha1
 
 // ID returns a role ID integer by enumerating the given role
-func (role MemberRole) ID() int {
+func (role MemberRole) ID() int64 {
 	switch role {
 	case MemberRoleProjectAdmin:
 		return 1

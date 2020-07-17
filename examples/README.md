@@ -1,22 +1,25 @@
 ## Example Resources
-This page shows example usage of the following custom resources:
+This page covers example usage of the following custom resources:
 
-- [Instances](#Instances)
+[Instances](#Instances) (Harbor Helm installations)
 
-- [InstanceChartRepos](#InstanceChartRepos)
-    - [Secrets](#InstanceChartRepo-Secrets)
+[InstanceChartRepos](#InstanceChartRepos) (Helm chart reference used for instance installations)
+    
+   - [Secrets](#InstanceChartRepo-Secrets) (_Optional_ secret values for the above)
 
-- [Repositories](#Repositories)
+[Repositories](#Repositories) (Harbor Projects)
 
-- [Registries](#Registries)
+[Registries](#Registries)
 
-- [Users](#Users)
-    - [Secrets](#User-Secrets)
+[Users](#Users)
+   
+   - [User Secrets](#User-Secrets)
 
-- [Replications](#Replications)
-    - [Source Registries](#Source-Registries)
-    - [Destination Registries](#Destination-Registries)
+[Replications](#Replications)
+    
+   - [Source Registries](#Source-Registries)
 
+   - [Destination Registries](#Destination-Registries)
 
 ### Instances
 The`Instance`-resource utilizes the `InstanceChartRepo`-resource for helm deployments
@@ -36,9 +39,8 @@ spec:
   type: manual
   instanceURL: https://core.harbor.domain/
   garbageCollection:
-    schedule:
-      type: Hourly
-      cron: "0 0 * * *"
+    cron: "0 * * * *"
+    scheduleType: "Hourly"
   helmChart:
       release: test-harbor
       chart: harbor/harbor
@@ -62,14 +64,14 @@ Note: Specyfing an empty string for the `harborAdminPassword`-key in `spec.helmC
 The admin password will then be saved under the key `HARBOR_ADMIN_PASSWORD` in a secret named `HELM_RELEASE_NAME`-`harbor-core`.
 
 [Harbor Garbage Collection](https://goharbor.io/docs/1.10/administration/garbage-collection/) can be configured via `spec.garbageCollection`.
-Valid values for `.schedule.type` are `Hourly`, `Daily`, `Weekly`, `Custom`, `Manual`, and `None` (each starting with a capital letter).
-The `.schedule.cron` parameter is a cron expression:
+Valid values for `.scheduleType` are `Hourly`, `Daily`, `Weekly`, `Custom`, `Manual`, and `None` (each starting with
+ a capital letter).
+The `.cron` parameter is a cron expression:
 
 ```yaml
-spec:
-    schedule:
-      type: Hourly
-      cron: "0 0 * * *"
+  garbageCollection:
+    cron: "0 * * * *"
+    scheduleType: "Hourly"
 ```
 
 The `None`-value of the schedule type effectively deactivates the garbage collection.
@@ -147,7 +149,10 @@ Registries (or *registry endpoints*) are user-defined registry endpoints, for ex
 
 This example shows a registry endpoint targeted at [Docker Hub](https://hub.docker.com/):
 
-The available registry types specified via `.spec.type` are pre-defined by the [goharbor-client library](https://github.com/mittwald/goharbor-client/blob/master/registry_types.go#L10).
+The available registry types (configureable via `.spec.type`) are:
+
+`harbor`, `docker-hub`, `docker-registry`, `huawei-SWR`, `google-gcr`, `aws-ecr`,
+`azure-acr`, `ali-acr`, `jfrog-artifactory`, `quay-io`, `gitlab`, `helm-hub`.
 
 [./registry.yaml](./registry.yaml)
 ```yaml
@@ -178,7 +183,7 @@ Specifying a source registry will trigger harbor to pull the specified resource 
 
 Filters and triggers are *optional* fields.
 
-The commented filters would make harbor filter for `alpine:latest`.
+The commented filters in this example will make harbor filter the provided registry for `alpine:latest`:
 
 [./replication_src.yaml](./replication_src.yaml)
 ```yaml
@@ -249,7 +254,10 @@ spec:
 ### Users
 
 Users can access individual harbor projects through project memberships (defined in the desired repository spec). 
-The admin role grants full admin access over a harbor instance, toggleable via `.spec.adminRole`
+The admin role grants full admin access over a harbor instance, toggleable via `.spec.adminRole`.
+
+If no user password is provided through an existing `.spec.userSecretRef`, the strength for a generated password can
+ be defined via `.spec.passwordStrength`.
 
 [./user.yaml](./user.yaml)
 ```yaml
@@ -267,6 +275,7 @@ spec:
   userSecretRef:
     name: harbor-user
   adminRole: true
+  passwordStrength: 16
 ```
 
 #### User Secrets

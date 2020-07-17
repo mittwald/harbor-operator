@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/imdario/mergo"
-	"github.com/mittwald/go-helm-client"
+	helmclient "github.com/mittwald/go-helm-client"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	"gopkg.in/yaml.v2"
 
@@ -44,6 +44,7 @@ func (i *Instance) enrichChartWithSecretValues(ctx context.Context, c client.Cli
 	}
 
 	var secretValuesMap map[string]interface{}
+
 	err = yaml.Unmarshal(secretValuesYaml, &secretValuesMap)
 	if err != nil {
 		return err
@@ -73,6 +74,7 @@ func (i *Instance) getValuesSecret(ctx context.Context, c client.Client) (*v1.Se
 	secName := i.Spec.HelmChart.SecretValues.SecretRef.Name
 
 	var secret v1.Secret
+
 	existing, err := helper.ObjExists(ctx, c,
 		secName,
 		i.Namespace,
@@ -80,6 +82,7 @@ func (i *Instance) getValuesSecret(ctx context.Context, c client.Client) (*v1.Se
 	if err != nil {
 		return nil, err
 	}
+
 	if !existing {
 		return nil, fmt.Errorf("secret %q does not exist", secName)
 	}

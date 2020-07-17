@@ -1,8 +1,7 @@
 package v1alpha1
 
 import (
-	"github.com/mittwald/go-helm-client"
-	h "github.com/mittwald/goharbor-client"
+	helmclient "github.com/mittwald/go-helm-client"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -15,6 +14,15 @@ const (
 	InstanceStatusPhaseReady       InstanceStatusPhaseName = "Ready"
 	InstanceStatusPhaseTerminating InstanceStatusPhaseName = "Terminating"
 	InstanceStatusPhaseError       InstanceStatusPhaseName = "Error"
+)
+
+const (
+	ScheduleTypeHourly   string = "Hourly"
+	ScheduleTypeDaily    string = "Daily"
+	ScheduleTypeWeekly   string = "Weekly"
+	ScheduleTypeCustom   string = "Custom"
+	ScheduleTypeManually string = "Manually"
+	ScheduleTypeNone     string = "None"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -59,21 +67,16 @@ type InstanceSpec struct {
 	HelmChart *InstanceHelmChartSpec `json:"helmChart"`
 
 	// +optional
-	GarbageCollection *GarbageCollectionReq `json:"garbageCollection,omitempty"`
+	GarbageCollection *GarbageCollection `json:"garbageCollection,omitempty"`
 }
 
 // GarbageCollectionReq holds request information for a garbage collection schedule
-type GarbageCollectionReq struct {
-	Schedule *h.ScheduleParam `json:"schedule"`
+type GarbageCollection struct {
+	// +optional
+	Cron string `json:"cron,omitempty"`
 
 	// +optional
-	Name string `json:"name,omitempty"`
-	// +optional
-	Status string `json:"status,omitempty"`
-	// +optional
-	ID int64 `json:"id,omitempty"`
-	// +optional
-	Parameters map[string]string `json:"parameters,omitempty"`
+	ScheduleType string `json:"scheduleType,omitempty"`
 }
 
 type InstanceDeployOptions struct {

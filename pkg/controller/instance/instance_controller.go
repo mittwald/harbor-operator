@@ -3,6 +3,7 @@ package instance
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -99,8 +100,6 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	ctx := context.Background()
 
-	var result reconcile.Result
-
 	// Fetch the Instance
 	harbor := &registriesv1alpha1.Instance{}
 	if err := r.client.Get(ctx, request.NamespacedName, harbor); err != nil {
@@ -113,18 +112,20 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
-	reqLogger = reqLogger.WithValues("instanceName", harbor.Spec.Name)
 
+	reqLogger = reqLogger.WithValues("instanceName", harbor.Spec.Name)
 	originalInstance := harbor.DeepCopy()
 
-	if harbor.DeletionTimestamp != nil && harbor.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseTerminating {
+	if harbor.DeletionTimestamp != nil &&
+		harbor.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseTerminating {
 		now := metav1.Now()
 		harbor.Status.Phase = registriesv1alpha1.InstanceStatusPhase{
 			Name:           registriesv1alpha1.InstanceStatusPhaseTerminating,
 			Message:        "Deleted",
-			LastTransition: &now}
-		result = reconcile.Result{Requeue: true}
-		return r.updateInstanceCR(ctx, originalInstance, harbor, result)
+			LastTransition: &now,
+		}
+
+		return r.updateInstanceCR(ctx, originalInstance, harbor)
 	}
 
 	switch harbor.Status.Phase.Name {
@@ -133,7 +134,6 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	case "":
 		harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
-		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.InstanceStatusPhaseInstalling:
 		reqLogger.Info("installing helm-chart")
@@ -165,10 +165,10 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-		result = reconcile.Result{Requeue: true}
+
 		if harbor.Status.SpecHash == "" {
 			harbor.Status.SpecHash = specHash
-			return r.updateInstanceCR(ctx, originalInstance, harbor, result)
+			return r.updateInstanceCR(ctx, originalInstance, harbor)
 		}
 
 	case registriesv1alpha1.InstanceStatusPhaseReady:
@@ -188,11 +188,11 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 			return reconcile.Result{}, err
 		}
 
-		result = reconcile.Result{}
 		if harbor.Status.SpecHash != specHash {
 			harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
 			harbor.Status.SpecHash = specHash
-			return r.updateInstanceCR(ctx, originalInstance, harbor, result)
+
+			return r.updateInstanceCR(ctx, originalInstance, harbor)
 		}
 
 	case registriesv1alpha1.InstanceStatusPhaseTerminating:
@@ -200,14 +200,14 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-		result = reconcile.Result{}
 	}
 
-	return r.updateInstanceCR(ctx, originalInstance, harbor, result)
+	return r.updateInstanceCR(ctx, originalInstance, harbor)
 }
 
 // reconcileTerminatingInstance triggers a helm uninstall for the created release
-func (r *ReconcileInstance) reconcileTerminatingInstance(ctx context.Context, log logr.Logger, harbor *registriesv1alpha1.Instance) error {
+func (r *ReconcileInstance) reconcileTerminatingInstance(ctx context.Context, log logr.Logger,
+	harbor *registriesv1alpha1.Instance) error {
 	if harbor == nil {
 		return errors.New("no harbor instance provided")
 	}
@@ -231,9 +231,11 @@ func (r *ReconcileInstance) reconcileTerminatingInstance(ctx context.Context, lo
 }
 
 // updateInstanceCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileInstance) updateInstanceCR(ctx context.Context, originalInstance, instance *registriesv1alpha1.Instance, result reconcile.Result) (reconcile.Result, error) {
+func (r *ReconcileInstance) updateInstanceCR(ctx context.Context, originalInstance,
+	instance *registriesv1alpha1.Instance) (reconcile.Result, error) {
 	if originalInstance == nil || instance == nil {
-		return reconcile.Result{}, errors.New("cannot update instance cr because (original)instance is nil")
+		return reconcile.Result{}, fmt.Errorf("cannot update instance '%s' because the original instance is nil",
+			instance.Spec.Name)
 	}
 
 	// Update Status
@@ -260,7 +262,6 @@ func (r *ReconcileInstance) updateInstanceCR(ctx context.Context, originalInstan
 func (r *ReconcileInstance) updateHelmRepos() error {
 	helmClient, err := r.helmClientReceiver(config.Config.HelmClientRepositoryCachePath,
 		config.Config.HelmClientRepositoryConfigPath, "")
-
 	if err != nil {
 		return err
 	}
@@ -272,7 +273,6 @@ func (r *ReconcileInstance) updateHelmRepos() error {
 func (r *ReconcileInstance) installOrUpgradeHelmChart(helmChart *helmclient.ChartSpec) error {
 	helmClient, err := r.helmClientReceiver(config.Config.HelmClientRepositoryCachePath,
 		config.Config.HelmClientRepositoryConfigPath, helmChart.Namespace)
-
 	if err != nil {
 		return err
 	}
@@ -284,7 +284,6 @@ func (r *ReconcileInstance) installOrUpgradeHelmChart(helmChart *helmclient.Char
 func (r *ReconcileInstance) uninstallHelmRelease(helmChart *helmclient.ChartSpec) error {
 	helmClient, err := r.helmClientReceiver(config.Config.HelmClientRepositoryCachePath,
 		config.Config.HelmClientRepositoryConfigPath, helmChart.Namespace)
-
 	if err != nil {
 		return err
 	}

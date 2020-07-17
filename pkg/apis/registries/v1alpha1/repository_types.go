@@ -5,8 +5,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type RepositoryStatusPhaseName string
-type MemberRole string
+type (
+	RepositoryStatusPhaseName string
+	MemberRole                string
+)
 
 const (
 	RepositoryStatusPhaseUnknown     RepositoryStatusPhaseName = ""
@@ -27,6 +29,12 @@ type RepositorySpec struct {
 	// name of the harbor instance the repository is created for
 	ParentInstance corev1.LocalObjectReference `json:"parentInstance"`
 
+	// +optional
+	CountLimit int `json:"countLimit"`
+
+	// +optional
+	StorageLimit int `json:"storageLimit"`
+
 	Metadata RepositoryMetadata `json:"metadata"`
 
 	// Ref to the name of a 'User' resource
@@ -40,9 +48,12 @@ type RepositoryMetadata struct {
 	EnableContentTrust bool `json:"enableContentTrust"`
 	// Whether to scan images automatically when pushing or not
 	AutoScan bool `json:"autoScan"`
-	// If a vulnerability's severity is higher than the severity defined here, images can't be pulled. Valid values are "none", "low", "medium", "high", "critical".
+	// If a vulnerability's severity is higher than the severity defined here,
+	// images can't be pulled. Valid values are "none", "low", "medium", "high", "critical".
 	Severity string `json:"severity"`
-	// Whether this repository reuses the system level CVE whitelist as the whitelist of its own. The valid values are "true", "false". If it is set to "true" the actual whitelist associate with this repository, if any, will be ignored.
+	// Whether this repository reuses the system level CVE whitelist as the whitelist of its own.
+	// The valid values are "true", "false".
+	// If set to "true", the actual whitelist associated with this repository, if any, will be ignored.
 	ReuseSysSVEWhitelist bool `json:"reuseSysSVEWhitelist"`
 	// Whether to prevent the vulnerable images from running or not. The valid values are "true", "false".
 	PreventVul bool `json:"preventVul"`

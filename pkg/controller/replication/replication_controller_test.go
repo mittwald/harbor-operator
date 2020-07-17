@@ -76,7 +76,7 @@ func TestReplicationController_Instance_Phase(t *testing.T) {
 		if err == nil {
 			t.Error("reconciliation did not return error as expected")
 		}
-		if res.RequeueAfter != 30 * time.Second {
+		if res.RequeueAfter != 30*time.Second {
 			t.Error("reconciliation did not requeue as expected")
 		}
 	})
@@ -98,6 +98,7 @@ func TestReplicationController_Replication_Deletion(t *testing.T) {
 	if err != nil {
 		t.Error("could not delete replication")
 	}
+
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      repo.Name,
@@ -109,6 +110,7 @@ func TestReplicationController_Replication_Deletion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reconcile returned error: (%v)", err)
 	}
+
 	if res.Requeue {
 		t.Error("reconciliation was erroneously requeued")
 	}

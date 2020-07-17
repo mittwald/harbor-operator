@@ -25,8 +25,8 @@ import (
 
 var log = logf.Log.WithName("controller_instancechartrepo")
 
-// Add creates a new InstanceChartRepo Controller and adds it to the Manager. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
+// Add creates a new InstanceChartRepo Controller and adds it to the Manager.
+// The Manager will set fields on the Controller and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	// This function is used to dynamically generate a helmclient
 	// and is passed as a field value to the ReconcileInstance struct.
@@ -101,6 +101,7 @@ func (r *ReconcileInstanceChartRepo) Reconcile(request reconcile.Request) (recon
 
 	// Fetch the InstanceChartRepo instance
 	instance := &registriesv1alpha1.InstanceChartRepo{}
+
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -131,25 +132,30 @@ func (r *ReconcileInstanceChartRepo) Reconcile(request reconcile.Request) (recon
 
 	instance.Status.State = registriesv1alpha1.RepoStateReady
 	err = r.client.Status().Update(context.TODO(), instance)
+
 	return reconcile.Result{}, err
 }
 
 // setErrStatus sets the error status of an instancechartrepo objec
-func (r *ReconcileInstanceChartRepo) setErrStatus(ctx context.Context, cr *registriesv1alpha1.InstanceChartRepo, err error) (reconcile.Result, error) {
+func (r *ReconcileInstanceChartRepo) setErrStatus(ctx context.Context,
+	cr *registriesv1alpha1.InstanceChartRepo, err error) (reconcile.Result, error) {
 	if cr == nil {
 		return reconcile.Result{}, errors.New("no instance chart repo provided")
 	}
 
 	cr.Status.State = registriesv1alpha1.RepoStateError
+
 	updateErr := r.client.Status().Update(ctx, cr)
 	if updateErr != nil {
 		return reconcile.Result{}, updateErr
 	}
+
 	return reconcile.Result{}, err
 }
 
 // specToRepoEntry constructs and returns a repository entry from an instancechartrepo CR object
-func (r *ReconcileInstanceChartRepo) specToRepoEntry(ctx context.Context, cr *registriesv1alpha1.InstanceChartRepo) (*repo.Entry, error) {
+func (r *ReconcileInstanceChartRepo) specToRepoEntry(ctx context.Context,
+	cr *registriesv1alpha1.InstanceChartRepo) (*repo.Entry, error) {
 	if cr == nil {
 		return nil, errors.New("no instance chart repo provided")
 	}
@@ -181,12 +187,15 @@ func (r *ReconcileInstanceChartRepo) specToRepoEntry(ctx context.Context, cr *re
 	entry.CertFile = string(secret.Data["certFile"])
 	entry.KeyFile = string(secret.Data["keyFile"])
 	entry.CAFile = string(secret.Data["caFile"])
+
 	return &entry, nil
 }
 
 // getSecret gets and returns a kubernetes secret
-func (r *ReconcileInstanceChartRepo) getSecret(ctx context.Context, cr *registriesv1alpha1.InstanceChartRepo) (*corev1.Secret, error) {
+func (r *ReconcileInstanceChartRepo) getSecret(ctx context.Context,
+	cr *registriesv1alpha1.InstanceChartRepo) (*corev1.Secret, error) {
 	var secret corev1.Secret
+
 	existing, err := helper.ObjExists(ctx, r.client, cr.Spec.SecretRef.Name, cr.Namespace, &secret)
 	if err != nil {
 		return nil, err

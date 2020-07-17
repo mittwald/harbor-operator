@@ -16,6 +16,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const (
+	ns           string = "test-namespace"
+	instanceName string = "test-instance"
+)
+
 // buildReconcileWithFakeClientWithMocks
 // returns a reconcile with fake client, schemes and mock objects
 // reference: https://github.com/aerogear/mobile-security-service-operator/blob/e74272a6c7addebdc77b18eeffb5e888b35f4dfd/pkg/controller/mobilesecurityservice/fakeclient_test.go#L14
@@ -37,9 +42,7 @@ func buildReconcileWithFakeClientWithMocks(objs []runtime.Object) *ReconcileUser
 }
 
 func TestUserController_Empty_User_Spec(t *testing.T) {
-	ns := "test-namespace"
-
-	instance := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
+	instance := testingregistriesv1alpha1.CreateInstance(instanceName, ns)
 	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
 
 	instanceSecret := testingregistriesv1alpha1.CreateSecret(instance.Name+"-harbor-core", ns)
@@ -72,8 +75,6 @@ func TestUserController_Empty_User_Spec(t *testing.T) {
 
 func TestUserController_Instance_Phase(t *testing.T) {
 	u := registriesv1alpha1.User{}
-	ns := "test-namespace"
-
 	// Test reconciliation with a non existent instance object which is expected to be requeued
 	// Expect: Result without requeue + no error.
 	t.Run("NonExistentInstance", func(t *testing.T) {
@@ -115,14 +116,13 @@ func TestUserController_Instance_Phase(t *testing.T) {
 		if err == nil {
 			t.Error("reconciliation did not return error as expected")
 		}
-		if res.RequeueAfter != 30 * time.Second {
+		if res.RequeueAfter != 30*time.Second {
 			t.Error("reconciliation did not requeue as expected")
 		}
 	})
 
 	t.Run("ExistingInstance", func(t *testing.T) {
-
-		instance := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
+		instance := testingregistriesv1alpha1.CreateInstance(instanceName, ns)
 		instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
 
 		u := registriesv1alpha1.User{}
@@ -144,15 +144,12 @@ func TestUserController_Instance_Phase(t *testing.T) {
 		if !res.Requeue {
 			t.Error("reconciliation did not requeue")
 		}
-
 	})
 }
 
 // TestUserController_User_Deletion
 func TestUserController_User_Deletion(t *testing.T) {
-	ns := "test-namespace"
-
-	instance := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
+	instance := testingregistriesv1alpha1.CreateInstance(instanceName, ns)
 	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
 
 	u := testingregistriesv1alpha1.CreateUser("test-user", ns)

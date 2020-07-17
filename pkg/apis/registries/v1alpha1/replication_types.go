@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	h "github.com/mittwald/goharbor-client"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -17,14 +16,14 @@ const (
 
 // const definition
 const (
-	FilterTypeResource h.FilterType = "resource"
-	FilterTypeName     h.FilterType = "name"
-	FilterTypeTag      h.FilterType = "tag"
-	FilterTypeLabel    h.FilterType = "label"
+	ReplicationTriggerTypeManual     string = "manual"
+	ReplicationTriggerTypeScheduled  string = "scheduled"
+	ReplicationTriggerTypeEventBased string = "event_based"
 
-	TriggerTypeManual     h.TriggerType = "manual"
-	TriggerTypeScheduled  h.TriggerType = "scheduled"
-	TriggerTypeEventBased h.TriggerType = "event_based"
+	ReplicationFilterTypeResource string = "resource"
+	ReplicationFilterTypeName     string = "name"
+	ReplicationFilterTypeTag      string = "tag"
+	ReplicationFilterTypeLabel    string = "label"
 )
 
 // ReplicationSpec defines the desired state of Replication
@@ -66,14 +65,14 @@ type ReplicationSpec struct {
 
 	// The replication policy trigger type
 	// +optional
-	Trigger *Trigger `json:"trigger,omitempty"`
+	Trigger *ReplicationTrigger `json:"trigger,omitempty"`
 
 	// +optional
 	TriggerAfterCreation bool `json:"triggerAfterCreation"`
 
 	// The replication policy filter array
 	// +optional
-	Filters []Filter `json:"filters,omitempty"`
+	Filters []ReplicationFilter `json:"filters,omitempty"`
 
 	// Whether to replicate the deletion operation
 	// +optional
@@ -94,29 +93,31 @@ type ReplicationStatus struct {
 	LastTransition *metav1.Time `json:"lastTransition,omitempty"`
 }
 
-// Filter holds the info of a filter
-// Use string instead of interface{}, or else CRD generation will fail
-type Filter struct {
-	Type  h.FilterType `json:"type"`
-	Value string       `json:"value"`
-}
-
 // Have to use our custom type here, because we cannot DeepCopy the pointer of *h.Trigger
 // Trigger holds info for a trigger
-type Trigger struct {
-	Type TriggerType `json:"type"`
+type ReplicationTrigger struct {
+	// +optional
+	Type string `json:"type,omitempty"`
 
 	// +optional
 	Settings *TriggerSettings `json:"triggerSettings,omitempty"`
+}
+
+// ReplicationFilter holds the specifications of a replication filter
+type ReplicationFilter struct {
+	// The replication policy filter type.
+	// +optional
+	Type string `json:"type,omitempty"`
+
+	// The value of replication policy filter.
+	// +optional
+	Value string `json:"value,omitempty"`
 }
 
 // TriggerSettings holds the settings of a trigger
 type TriggerSettings struct {
 	Cron string `json:"cron"`
 }
-
-// TriggerType represents the type of trigger.
-type TriggerType string
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

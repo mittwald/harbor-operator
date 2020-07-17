@@ -24,6 +24,10 @@ type UserSpec struct {
 	Email          string                      `json:"email"`
 	UserSecretRef  corev1.LocalObjectReference `json:"userSecretRef"`
 	AdminRole      bool                        `json:"adminRole"`
+	// +optional
+	Comments string `json:"comments,omitempty"`
+	// The effective length of the generated user password
+	PasswordStrength int32 `json:"passwordStrength"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

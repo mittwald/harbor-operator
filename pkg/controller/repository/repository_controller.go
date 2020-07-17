@@ -2,9 +2,12 @@ package repository
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"reflect"
 	"time"
+
+	modelv1 "github.com/mittwald/goharbor-client/model/v1_10_0"
+	"github.com/mittwald/goharbor-client/project"
 
 	controllerruntime "sigs.k8s.io/controller-runtime"
 
@@ -114,17 +117,21 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 
 	originalRepository := repository.DeepCopy()
 
-	if repository.ObjectMeta.DeletionTimestamp != nil && repository.Status.Phase != registriesv1alpha1.RepositoryStatusPhaseTerminating {
+	if repository.ObjectMeta.DeletionTimestamp != nil &&
+		repository.Status.Phase != registriesv1alpha1.RepositoryStatusPhaseTerminating {
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseTerminating}
 		result = reconcile.Result{Requeue: true}
+
 		return r.updateRepositoryCR(ctx, nil, originalRepository, repository, result)
 	}
 
 	// Fetch the Instance
-	harbor, err := internal.FetchReadyHarborInstance(ctx, repository.Namespace, repository.Spec.ParentInstance.Name, r.client)
+	harbor, err := internal.FetchReadyHarborInstance(ctx, repository.Namespace,
+		repository.Spec.ParentInstance.Name, r.client)
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
 			helper.PullFinalizer(repository, FinalizerName)
+
 			result = reconcile.Result{}
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
 			return reconcile.Result{RequeueAfter: 30 * time.Second}, err
@@ -132,6 +139,7 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 			repository.Status = registriesv1alpha1.RepositoryStatus{LastTransition: &now}
 			result = reconcile.Result{RequeueAfter: 120 * time.Second}
 		}
+
 		return r.updateRepositoryCR(ctx, nil, originalRepository, repository, result)
 	}
 
@@ -153,26 +161,29 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 		helper.PushFinalizer(repository, FinalizerName)
 
 		// Install the repository
-		err = r.assertExistingRepository(harborClient, repository)
+		err = r.assertExistingRepository(ctx, harborClient, repository)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseReady}
 		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.RepositoryStatusPhaseReady:
-		err := r.assertExistingRepository(harborClient, repository)
+		err := r.assertExistingRepository(ctx, harborClient, repository)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+
 		result = reconcile.Result{}
 
 	case registriesv1alpha1.RepositoryStatusPhaseTerminating:
 		// Delete the repository via harbor API
-		err := r.assertDeletedRepository(reqLogger, harborClient, repository)
+		err := r.assertDeletedRepository(ctx, reqLogger, harborClient, repository)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+
 		result = reconcile.Result{}
 	}
 
@@ -180,9 +191,11 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 }
 
 // updateRepositoryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileRepository) updateRepositoryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalRepository, repository *registriesv1alpha1.Repository, result reconcile.Result) (reconcile.Result, error) {
+func (r *ReconcileRepository) updateRepositoryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance,
+	originalRepository, repository *registriesv1alpha1.Repository, result reconcile.Result) (reconcile.Result, error) {
 	if originalRepository == nil || repository == nil {
-		return reconcile.Result{}, errors.New("cannot update registry cr because (original)repository is nil")
+		return reconcile.Result{},
+			fmt.Errorf("cannot update repository '%s' because the original repository is nil", repository.Spec.Name)
 	}
 
 	// Update Status
@@ -193,8 +206,10 @@ func (r *ReconcileRepository) updateRepositoryCR(ctx context.Context, parentInst
 		}
 	}
 
-	// set owner
-	if (originalRepository.OwnerReferences == nil || len(originalRepository.OwnerReferences) == 0) && parentInstance != nil {
+	// Set owner reference
+	if (originalRepository.OwnerReferences == nil ||
+		len(originalRepository.OwnerReferences) == 0) &&
+		parentInstance != nil {
 		err := controllerruntime.SetControllerReference(parentInstance, originalRepository, r.scheme)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -214,18 +229,11 @@ func (r *ReconcileRepository) updateRepositoryCR(ctx context.Context, parentInst
 }
 
 // assertDeletedRepository deletes a Harbor project, first ensuring its existence
-func (r *ReconcileRepository) assertDeletedRepository(log logr.Logger, harborClient *h.Client, repository *registriesv1alpha1.Repository) error {
-	opt := h.ListProjectsOptions{Name: repository.Spec.Name}
-	repos, err := harborClient.Projects().ListProjects(opt)
+func (r *ReconcileRepository) assertDeletedRepository(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
+	repository *registriesv1alpha1.Repository) error {
+	_, err := harborClient.GetProject(ctx, repository.Name)
 	if err != nil {
 		return err
-	}
-
-	if len(repos) > 0 {
-		err := harborClient.Projects().DeleteProject(repos[0].ProjectID)
-		if err != nil {
-			return err
-		}
 	}
 
 	log.Info("pulling finalizers", repository.Name, repository.Namespace)
@@ -237,140 +245,126 @@ func (r *ReconcileRepository) assertDeletedRepository(log logr.Logger, harborCli
 // assertExistingRepository
 // Check harbor projects and their components for their existence,
 // create and delete either of those to match the specification
-func (r *ReconcileRepository) assertExistingRepository(harborClient *h.Client, repository *registriesv1alpha1.Repository) error {
-	opt := h.ListProjectsOptions{Name: repository.Spec.Name}
-	heldRepos, err := harborClient.Projects().ListProjects(opt)
-	if err != nil {
+func (r *ReconcileRepository) assertExistingRepository(ctx context.Context, harborClient *h.RESTClient,
+	repository *registriesv1alpha1.Repository) error {
+	heldRepo, err := harborClient.GetProject(ctx, repository.Name)
+
+	if err.Error() == project.ErrProjectNotFoundMsg {
+		_, err := harborClient.NewProject(ctx, repository.Spec.Name, repository.Spec.CountLimit,
+			repository.Spec.StorageLimit)
+		return err
+	} else if err != nil {
 		return err
 	}
 
-	if len(heldRepos) == 0 {
-		specRepositoryMeta := repository.Spec.Metadata
-		// Generate new repository metadata from spec
-		newRepositoryMeta, err := r.generateRepositoryMetadata(&specRepositoryMeta)
-		if err != nil {
-			return err
-		}
-
-		pReq := h.ProjectRequest{
-			Name:     repository.Spec.Name,
-			Metadata: newRepositoryMeta,
-		}
-		return harborClient.Projects().CreateProject(pReq)
-	}
-	return r.ensureRepository(&heldRepos[0], harborClient, repository)
+	return r.ensureRepository(ctx, heldRepo, harborClient, repository)
 }
 
 // generateRepositoryMetadata constructs the repository metadata for a Harbor project
-func (r *ReconcileRepository) generateRepositoryMetadata(projectMeta *registriesv1alpha1.RepositoryMetadata) (map[string]string, error) {
-	pm := map[string]string{
-		"auto_scan":               helper.BoolToString(projectMeta.AutoScan),
-		"enable_content_trust":    helper.BoolToString(projectMeta.EnableContentTrust),
-		"prevent_vul":             helper.BoolToString(projectMeta.PreventVul),
-		"public":                  helper.BoolToString(projectMeta.Public),
-		"reuse_sys_sve_whitelist": helper.BoolToString(projectMeta.ReuseSysSVEWhitelist),
-		"severity":                projectMeta.Severity,
+func (r *ReconcileRepository) generateRepositoryMetadata(
+	projectMeta *registriesv1alpha1.RepositoryMetadata) *modelv1.ProjectMetadata {
+	pm := modelv1.ProjectMetadata{
+		AutoScan:             helper.BoolToString(projectMeta.AutoScan),
+		EnableContentTrust:   helper.BoolToString(projectMeta.EnableContentTrust),
+		PreventVul:           helper.BoolToString(projectMeta.PreventVul),
+		Public:               helper.BoolToString(projectMeta.Public),
+		ReuseSysCveWhitelist: helper.BoolToString(projectMeta.ReuseSysSVEWhitelist),
+		Severity:             projectMeta.Severity,
 	}
-	return pm, nil
+
+	return &pm
 }
 
-// reconcileProjectMembers reconciles the user-defined project members for a repository based on the actual Harbor user
-func (r *ReconcileRepository) reconcileProjectMembers(repository *registriesv1alpha1.Repository, harborClient *h.Client, heldRepository *h.Project) error {
-	members, err := harborClient.Projects().GetProjectMembers(heldRepository.ProjectID)
+// reconcileProjectMembers reconciles the user-defined project members for a repository based on an existing Harbor user
+func (r *ReconcileRepository) reconcileProjectMembers(ctx context.Context, repository *registriesv1alpha1.Repository,
+	harborClient *h.RESTClient, heldProject *modelv1.Project) error {
+	// List project members
+	members, err := harborClient.ListProjectMembers(ctx, heldProject)
 	if err != nil {
 		return err
 	}
 
+	// Range over the defined member users of a project
 	for _, memberRequestUser := range repository.Spec.MemberRequests {
+		// Fetch the user resource
 		user, err := r.getUserFromRef(memberRequestUser.User, repository.Namespace)
 		if err != nil {
 			return err
 		}
 
-		harborUser, err := internal.GetUser(user, harborClient)
+		// Check for an existing user
+		harborUser, err := harborClient.GetUser(ctx, user.Spec.Name)
 		if err != nil {
 			return err
 		}
 
 		roleID := memberRequestUser.Role.ID()
 
-		projectMember := h.MemberReq{
-			Role: roleID,
-			MemberUser: h.User{
-				Username: harborUser.Username,
-				UserID:   harborUser.UserID,
-			},
-		}
-
 		member := getMemberUserFromList(members, user)
 
 		if member == nil {
-			err = harborClient.Projects().AddProjectMember(heldRepository.ProjectID, projectMember)
+			err = harborClient.AddProjectMember(ctx, heldProject, harborUser, int(roleID))
 			if err != nil {
 				return err
 			}
+
 			break
-		}
-
-		// Update the project member
-		role, err := harborClient.Projects().GetProjectMember(heldRepository.ProjectID, int64(member.ID))
-		if err != nil {
-			return err
-		}
-
-		if roleID == role.RoleID {
-			break
-		}
-
-		err = harborClient.Projects().UpdateProjectMember(
-			heldRepository.ProjectID,
-			int64(member.ID),
-			h.RoleRequest{Role: roleID})
-		if err != nil {
-			return err
+		} else {
+			// Update the project member
+			if roleID == member.RoleID {
+				break
+			}
+			err = harborClient.UpdateProjectMemberRole(ctx, heldProject, harborUser, int(roleID))
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
 }
 
-func (r *ReconcileRepository) getUserFromRef(userRef v1.LocalObjectReference, namespace string) (*registriesv1alpha1.User, error) {
+func (r *ReconcileRepository) getUserFromRef(userRef v1.LocalObjectReference,
+	namespace string) (*registriesv1alpha1.User, error) {
 	var user registriesv1alpha1.User
 	err := r.client.Get(context.Background(), client.ObjectKey{Name: userRef.Name, Namespace: namespace}, &user)
+
 	return &user, err
 }
 
 // getMemberUserFromList returns a project member from a list of members, filtered by the username
-func getMemberUserFromList(members []h.Member, user *registriesv1alpha1.User) *h.Member {
+func getMemberUserFromList(members []*modelv1.ProjectMemberEntity,
+	user *registriesv1alpha1.User) *modelv1.ProjectMemberEntity {
 	for i := range members {
-		if members[i].Entityname == user.Spec.Name {
-			return &members[i]
+		if members[i].EntityName == user.Spec.Name {
+			return members[i]
 		}
 	}
+
 	return nil
 }
 
-// ensureRepository triggers reconciliation of project members and compares the state of the CR object with the project held by Harbor
-func (r *ReconcileRepository) ensureRepository(heldRepository *h.Project, harborClient *h.Client, repository *registriesv1alpha1.Repository) error {
-	updatedRepository := &h.Project{}
-	// Copy the held projects spec into a new object of the same type* harbor.Repository
-	err := copier.Copy(&updatedRepository, &heldRepository)
+// ensureRepository triggers reconciliation of project members
+// and compares the state of the CR object with the project held by Harbor
+func (r *ReconcileRepository) ensureRepository(ctx context.Context, heldProject *modelv1.Project,
+	harborClient *h.RESTClient, repository *registriesv1alpha1.Repository) error {
+	updatedRepository := &modelv1.Project{}
+	// Copy the held projects spec into a new object of the same type *harbor.Repository
+	err := copier.Copy(&updatedRepository, &heldProject)
 	if err != nil {
 		return err
 	}
 
-	err = r.reconcileProjectMembers(repository, harborClient, heldRepository)
+	err = r.reconcileProjectMembers(ctx, repository, harborClient, heldProject)
 	if err != nil {
 		return err
 	}
 
-	updatedRepository.Metadata, err = r.generateRepositoryMetadata(&repository.Spec.Metadata)
-	if err != nil {
-		return err
+	updatedRepository.Metadata = r.generateRepositoryMetadata(&repository.Spec.Metadata)
+
+	if updatedRepository != heldProject {
+		return harborClient.UpdateProject(ctx, heldProject, repository.Spec.StorageLimit, repository.Spec.CountLimit)
 	}
 
-	if updatedRepository != heldRepository {
-		return harborClient.Projects().UpdateProject(heldRepository.ProjectID, *updatedRepository)
-	}
 	return nil
 }

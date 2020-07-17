@@ -4,10 +4,11 @@ import (
 	"context"
 	"reflect"
 
+	"github.com/mittwald/harbor-operator/pkg/internal/helper"
+
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
-	"github.com/mittwald/harbor-operator/pkg/internal/helper"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,10 +19,12 @@ func (r *ReconcileUser) getSecretForUser(ctx context.Context, user *registriesv1
 	sec := &corev1.Secret{}
 	sec.Name = user.Spec.UserSecretRef.Name
 	sec.Namespace = user.Namespace
+
 	err := r.client.Get(ctx, types.NamespacedName{Name: sec.Name, Namespace: sec.Namespace}, sec)
 	if err != nil {
 		return &corev1.Secret{}, err
 	}
+
 	return sec, nil
 }
 
@@ -34,10 +37,11 @@ func (r *ReconcileUser) newSecretForUser(ctx context.Context, user *registriesv1
 
 	err := r.client.Get(ctx, types.NamespacedName{Name: sec.Name, Namespace: sec.Namespace}, sec)
 	if errors.IsNotFound(err) {
-		pw, err := helper.NewRandomPassword(16)
+		pw, err := helper.NewRandomPassword(user.Spec.PasswordStrength)
 		if err != nil {
 			return &corev1.Secret{}, err
 		}
+
 		sec = &corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -59,14 +63,17 @@ func (r *ReconcileUser) newSecretForUser(ctx context.Context, user *registriesv1
 				"password": []byte(pw),
 			},
 		}
+
 		return sec, nil
 	} else if err != nil {
 		return &corev1.Secret{}, err
 	}
+
 	return sec, nil
 }
 
-func (r *ReconcileUser) getOrCreateSecretForUser(ctx context.Context, user *registriesv1alpha1.User) (*corev1.Secret, error) {
+func (r *ReconcileUser) getOrCreateSecretForUser(ctx context.Context,
+	user *registriesv1alpha1.User) (*corev1.Secret, error) {
 	sec, err := r.getSecretForUser(ctx, user)
 	if errors.IsNotFound(err) {
 		sec, eerr := r.newSecretForUser(ctx, user)
@@ -83,6 +90,7 @@ func (r *ReconcileUser) getOrCreateSecretForUser(ctx context.Context, user *regi
 	}
 
 	originalSec := sec.DeepCopy()
+
 	err = controllerutil.SetControllerReference(user, sec, r.scheme)
 	if err != nil {
 		return nil, err

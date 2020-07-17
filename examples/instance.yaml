@@ -9,9 +9,8 @@ spec:
   type: manual
   instanceURL: https://core.harbor.domain/
   garbageCollection:
-    schedule:
-      type: Hourly
-      cron: "0 0 * * * "
+    cron: "0 * * * *"
+    scheduleType: "Hourly"
   helmChart:
       release: test-harbor
       chart: harbor/harbor
