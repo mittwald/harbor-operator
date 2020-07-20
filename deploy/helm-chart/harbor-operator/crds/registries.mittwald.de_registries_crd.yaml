@@ -34,7 +34,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: RegistrySpec defines the desired state of a Registry
+            description: RegistrySpec defines the desired state of a Registry.
             properties:
               credential:
                 description: "RegistryCredential registry credential \n swagger:model
@@ -86,7 +86,7 @@ spec:
             - url
             type: object
           status:
-            description: RegistryStatus defines the observed state of Registry
+            description: RegistryStatus defines the observed state of Registry.
             properties:
               lastTransition:
                 description: Time of last observed transition into this state

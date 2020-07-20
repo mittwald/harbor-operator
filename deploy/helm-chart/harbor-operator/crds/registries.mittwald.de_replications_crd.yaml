@@ -75,6 +75,7 @@ spec:
                 format: int64
                 type: integer
               name:
+                description: The name of the replication
                 type: string
               override:
                 description: Whether to override the resources on the destination

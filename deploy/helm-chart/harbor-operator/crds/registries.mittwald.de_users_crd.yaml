@@ -56,7 +56,6 @@ spec:
                     type: string
                 type: object
               passwordStrength:
-                description: The effective length of the generated user password
                 format: int32
                 type: integer
               realname:
