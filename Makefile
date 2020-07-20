@@ -40,6 +40,8 @@ build:
 mock:
 	@echo generating mocked k8s runtime client via
 	@echo sigs.k8s.io/controller-runtime@v0.5.2/pkg/client.Client
-	mockery --quiet --dir "${GOPATH}"/pkg/mod/sigs.k8s.io/controller-runtime@v0.5.2/pkg/client \
+	curl -sO https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.5.2/pkg/client/interfaces.go
+	mockery --quiet --dir $(PWD) \
 	--name Client --structname MockClient --filename=runtime_client_mock.go \
-	--output "./pkg/internal/mocks"
+	--output "$(PWD)/pkg/internal/mocks"
+	rm $(PWD)/interfaces.go
