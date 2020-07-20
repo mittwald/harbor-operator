@@ -41,12 +41,12 @@ func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
 
-// newReconciler returns a new reconcile.Reconciler
+// newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileReplication{client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
+// add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("replication-controller", mgr, controller.Options{Reconciler: r})
@@ -63,10 +63,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileReplication implements reconcile.Reconciler
+// blank assignment to verify that ReconcileReplication implements reconcile.Reconciler.
 var _ reconcile.Reconciler = &ReconcileReplication{}
 
-// ReconcileReplication reconciles a Replication object
+// ReconcileReplication reconciles a Replication object.
 type ReconcileReplication struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
@@ -161,17 +161,14 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		}
 
 		if replication.Spec.TriggerAfterCreation {
-			//replExec := modelv1.ReplicationExecution{
-			//	PolicyID: replication.Spec.ID,
-			//	Trigger:  "manual",
-			//}
-			// todo
-			//if err = harborClient.Replications().TriggerReplicationExecution(replExec); err != nil {
-			//	return reconcile.Result{}, err
-			//}
-			//if err = harborClient.Replications().TriggerReplicationExecution(replExec); err != nil {
-			//	return reconcile.Result{}, err
-			//}
+			replExec := &modelv1.ReplicationExecution{
+				PolicyID: replication.Spec.ID,
+				Trigger:  registriesv1alpha1.ReplicationTriggerTypeManual,
+			}
+
+			if err = harborClient.TriggerReplicationExecution(ctx, replExec); err != nil {
+				return reconcile.Result{}, err
+			}
 		}
 
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseReady}
@@ -237,17 +234,17 @@ func (r *ReconcileReplication) updateReplicationCR(ctx context.Context,
 	return reconcile.Result{}, nil
 }
 
-// assertExistingReplication checks a harbor replication for existence and creates it accordingly
+// assertExistingReplication checks a harbor replication for existence and creates it accordingly.
 func (r *ReconcileReplication) assertExistingReplication(ctx context.Context, harborClient *h.RESTClient,
 	originalReplication *registriesv1alpha1.Replication) error {
-	_, err := harborClient.GetReplication(ctx, originalReplication.Name)
+	_, err := harborClient.GetReplicationPolicy(ctx, originalReplication.Name)
 	if err == internal.ErrReplicationNotFound {
 		rReq, err := r.buildReplicationFromSpec(originalReplication)
 		if err != nil {
 			return err
 		}
 
-		_, err = harborClient.NewReplication(ctx,
+		_, err = harborClient.NewReplicationPolicy(ctx,
 			rReq.DestRegistry,
 			rReq.SrcRegistry,
 			rReq.Deletion,
@@ -298,11 +295,11 @@ func enumReplicationFilterType(filterType string) (string, error) {
 }
 
 // ensureReplication gets and compares the spec of the replication held
-// by the harbor API with the spec of the existing CR
+// by the harbor API with the spec of the existing CR.
 func (r *ReconcileReplication) ensureReplication(ctx context.Context, harborClient *h.RESTClient,
 	originalReplication *registriesv1alpha1.Replication) error {
 	// Get the replication held by harbor
-	heldReplication, err := harborClient.GetReplication(ctx, originalReplication.Name)
+	heldReplication, err := harborClient.GetReplicationPolicy(ctx, originalReplication.Name)
 	if err != nil {
 		return err
 	}
@@ -325,7 +322,7 @@ func (r *ReconcileReplication) ensureReplication(ctx context.Context, harborClie
 
 	// Compare the replications and update accordingly
 	if !reflect.DeepEqual(heldReplication, newRep) {
-		return harborClient.UpdateReplication(ctx, newRep)
+		return harborClient.UpdateReplicationPolicy(ctx, newRep)
 	}
 
 	return nil
@@ -431,9 +428,9 @@ func (r *ReconcileReplication) getHarborRegistryFromRef(ctx context.Context, reg
 func (r *ReconcileReplication) assertDeletedReplication(ctx context.Context, log logr.Logger,
 	harborClient *h.RESTClient,
 	replication *registriesv1alpha1.Replication) error {
-	rep, err := harborClient.GetReplication(ctx, replication.Name)
+	rep, err := harborClient.GetReplicationPolicy(ctx, replication.Name)
 	if err == nil {
-		err = harborClient.DeleteReplication(ctx, rep)
+		err = harborClient.DeleteReplicationPolicy(ctx, rep)
 		if err != nil {
 			return err
 		}

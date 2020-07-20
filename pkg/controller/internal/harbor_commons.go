@@ -11,13 +11,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ErrInstanceNotFound is called when the corresponding Harbor instance could not be found
+// ErrInstanceNotFound is called when the corresponding Harbor instance could not be found.
 type ErrInstanceNotFound string
 
-// ErrInstanceNotFound is called when the corresponding Harbor instance is not ready
+// ErrInstanceNotFound is called when the corresponding Harbor instance is not ready.
 type ErrInstanceNotReady string
 
-// ErrRegistryNotReady is called when the corresponding RegistryCR (registriesv1alpha1.Registry) is not ready
+// ErrRegistryNotReady is called when the corresponding RegistryCR (registriesv1alpha1.Registry) is not ready.
 type ErrRegistryNotReady string
 
 func (e ErrInstanceNotFound) Error() string {
@@ -32,17 +32,17 @@ func (e ErrRegistryNotReady) Error() string {
 	return fmt.Sprintf("registry '%s' not ready", string(e))
 }
 
-// ErrUserNotFound is a custom error type describing the absence of a user
+// ErrUserNotFound is a custom error type describing the absence of a user.
 var ErrUserNotFound = errors.New("user not found")
 
-// ErrRegistryNotFound is a custom error type describing the absence of a registry
+// ErrRegistryNotFound is a custom error type describing the absence of a registry.
 var ErrRegistryNotFound = errors.New("registry not found")
 
-// ErrReplicationNotFound is a custom error type describing the absence of a replication
+// ErrReplicationNotFound is a custom error type describing the absence of a replication.
 var ErrReplicationNotFound = errors.New("replication not found")
 
 // FetchReadyHarborInstance returns a harbor instance based on the provided instance name
-// Also needs a controller client to fetch the actual instance
+// Also needs a controller client to fetch the actual instance.
 func FetchReadyHarborInstance(ctx context.Context, namespace, parentInstanceName string,
 	r client.Client) (*registriesv1alpha1.Instance, error) {
 	harbor := &registriesv1alpha1.Instance{}

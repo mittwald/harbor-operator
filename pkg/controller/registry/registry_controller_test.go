@@ -84,7 +84,7 @@ func TestRegistryController_Instance_Phase(t *testing.T) {
 	})
 }
 
-// TestRegistryController_Registry_Deletion
+// TestRegistryController_Registry_Deletion tests reconciliation with a "to-be-deleted" registry.
 func TestRegistryController_Registry_Deletion(t *testing.T) {
 	ns := "test-namespace"
 

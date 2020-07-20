@@ -155,7 +155,7 @@ func main() {
 }
 
 // addMetrics will create the Services and Service Monitors to allow the operator export the metrics by using
-// the Prometheus operator
+// the Prometheus operator.
 func addMetrics(ctx context.Context, cfg *rest.Config, namespace string,
 	metricsHost string, metricsPort int32, operatorMetricsPort int32) {
 	if err := serveCRMetrics(cfg, metricsHost, operatorMetricsPort); err != nil {

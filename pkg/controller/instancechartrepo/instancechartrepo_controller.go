@@ -46,12 +46,12 @@ func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr, f))
 }
 
-// newReconciler returns a new reconcile.Reconciler
+// newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager, f internal.HelmClientFactory) reconcile.Reconciler {
 	return &ReconcileInstanceChartRepo{client: mgr.GetClient(), scheme: mgr.GetScheme(), helmClientReceiver: f}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
+// add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("instancechartrepo-controller", mgr, controller.Options{Reconciler: r})
@@ -77,10 +77,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileInstanceChartRepo implements reconcile.Reconciler
+// blank assignment to verify that ReconcileInstanceChartRepo implements reconcile.Reconciler.
 var _ reconcile.Reconciler = &ReconcileInstanceChartRepo{}
 
-// ReconcileInstanceChartRepo reconciles a InstanceChartRepo object
+// ReconcileInstanceChartRepo reconciles a InstanceChartRepo object.
 type ReconcileInstanceChartRepo struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver.
@@ -136,7 +136,7 @@ func (r *ReconcileInstanceChartRepo) Reconcile(request reconcile.Request) (recon
 	return reconcile.Result{}, err
 }
 
-// setErrStatus sets the error status of an instancechartrepo objec
+// setErrStatus sets the error status of an InstanceChartRepo object.
 func (r *ReconcileInstanceChartRepo) setErrStatus(ctx context.Context,
 	cr *registriesv1alpha1.InstanceChartRepo, err error) (reconcile.Result, error) {
 	if cr == nil {
@@ -153,7 +153,7 @@ func (r *ReconcileInstanceChartRepo) setErrStatus(ctx context.Context,
 	return reconcile.Result{}, err
 }
 
-// specToRepoEntry constructs and returns a repository entry from an instancechartrepo CR object
+// specToRepoEntry constructs and returns a repository entry from an instancechartrepo CR object.
 func (r *ReconcileInstanceChartRepo) specToRepoEntry(ctx context.Context,
 	cr *registriesv1alpha1.InstanceChartRepo) (*repo.Entry, error) {
 	if cr == nil {

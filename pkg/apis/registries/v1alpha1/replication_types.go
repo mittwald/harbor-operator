@@ -28,12 +28,25 @@ const (
 
 // ReplicationSpec defines the desired state of Replication
 type ReplicationSpec struct {
-	Name string `json:"name"`
-
 	Deletion bool `json:"deletion"`
+
+	// Whether to override the resources on the destination registry or not
+	Override bool `json:"override"`
+
+	// Whether the policy is enabled or not
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+	// +optional
+	TriggerAfterCreation bool `json:"triggerAfterCreation"`
+	// Whether to replicate the deletion operation
+	// +optional
+	ReplicateDeletion bool `json:"replicateDeletion,omitempty"`
 
 	// +optional
 	ID int64 `json:"id"`
+
+	// The name of the replication
+	Name string `json:"name"`
 
 	// +optional
 	Description string `json:"description,omitempty"`
@@ -56,27 +69,13 @@ type ReplicationSpec struct {
 	// +optional
 	DestRegistry *corev1.LocalObjectReference `json:"destRegistry,omitempty"`
 
-	// Whether to override the resources on the destination registry or not
-	Override bool `json:"override"`
-
-	// Whether the policy is enabled or not
-	// +optional
-	Enabled bool `json:"enabled,omitempty"`
-
 	// The replication policy trigger type
 	// +optional
 	Trigger *ReplicationTrigger `json:"trigger,omitempty"`
 
-	// +optional
-	TriggerAfterCreation bool `json:"triggerAfterCreation"`
-
 	// The replication policy filter array
 	// +optional
 	Filters []ReplicationFilter `json:"filters,omitempty"`
-
-	// Whether to replicate the deletion operation
-	// +optional
-	ReplicateDeletion bool `json:"replicateDeletion,omitempty"`
 
 	// ParentInstance is a LocalObjectReference to the
 	// name of the harbor instance the replication policy gets created for

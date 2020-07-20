@@ -35,3 +35,11 @@ fmt:
 build:
 	operator-sdk build --go-build-args "-ldflags -X=version.Version=${SECRET_OPERATOR_VERSION}" ${DOCKER_IMAGE}
 	@exit $(.SHELLSTATUS)
+
+.PHONY: mock
+mock:
+	@echo generating mocked k8s runtime client via
+	@echo sigs.k8s.io/controller-runtime@v0.5.2/pkg/client.Client
+	mockery --quiet --dir "${GOPATH}"/pkg/mod/sigs.k8s.io/controller-runtime@v0.5.2/pkg/client \
+	--name Client --structname MockClient --filename=runtime_client_mock.go \
+	--output "./pkg/internal/mocks"

@@ -12,7 +12,7 @@ import (
 )
 
 // BuildClient builds a harbor client to interact with the API
-// using the default (admin) credentials of an existing harbor instance
+// using the default (admin) credentials of an existing harbor instance.
 func BuildClient(ctx context.Context, client client.Client,
 	harbor *registriesv1alpha1.Instance) (*h.RESTClient, error) {
 	sec := &corev1.Secret{}

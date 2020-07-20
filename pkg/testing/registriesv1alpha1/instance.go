@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CreateInstance returns an instance object with sample values
+// CreateInstance returns an instance object with sample values.
 func CreateInstance(name, namespace string) registriesv1alpha1.Instance {
 	i := registriesv1alpha1.Instance{
 		ObjectMeta: metav1.ObjectMeta{
@@ -40,7 +40,7 @@ func CreateInstance(name, namespace string) registriesv1alpha1.Instance {
 	return i
 }
 
-// CreateSecret returns an instance secret with sample values
+// CreateSecret returns an instance secret with sample values.
 func CreateSecret(name, namespace string) corev1.Secret {
 	sec := corev1.Secret{
 		TypeMeta: metav1.TypeMeta{},

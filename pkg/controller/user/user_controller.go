@@ -45,12 +45,12 @@ func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
 
-// newReconciler returns a new reconcile.Reconciler
+// newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileUser{client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
+// add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("user-controller", mgr, controller.Options{Reconciler: r})
@@ -79,10 +79,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileUser implements reconcile.Reconciler
+// blank assignment to verify that ReconcileUser implements reconcile.Reconciler.
 var _ reconcile.Reconciler = &ReconcileUser{}
 
-// ReconcileUser reconciles a User object
+// ReconcileUser reconciles a User object.
 type ReconcileUser struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
@@ -191,7 +191,7 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, 
 	return r.updateUserCR(ctx, harbor, originalUser, user, result)
 }
 
-// updateUserCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
+// updateUserCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
 func (r *ReconcileUser) updateUserCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalUser,
 	user *registriesv1alpha1.User, result reconcile.Result) (reconcile.Result, error) {
 	if originalUser == nil || user == nil {
@@ -227,7 +227,7 @@ func (r *ReconcileUser) updateUserCR(ctx context.Context, parentInstance *regist
 	return result, nil
 }
 
-// assertExistingUser ensures the specified user's existence
+// assertExistingUser ensures the specified user's existence.
 func (r *ReconcileUser) assertExistingUser(ctx context.Context, harborClient *h.RESTClient,
 	user *registriesv1alpha1.User) error {
 	sec, err := r.getOrCreateSecretForUser(ctx, user)
@@ -255,20 +255,21 @@ func (r *ReconcileUser) assertExistingUser(ctx context.Context, harborClient *h.
 		return r.createUser(ctx, harborClient, user, pw)
 	}
 
-	// todo
 	if user.Status.PasswordHash != pwHash.Short() {
 		user.Status.PasswordHash = pwHash.Short()
-		// if err = harborClient.UpdateUser()
 
-		//if err = harborClient.Users().UpdateUserPasswordAsAdmin(heldUser.UserID, pw); err != nil {
-		//	return err
-		//}
+		if err = harborClient.UpdateUserPassword(ctx, heldUser.UserID,
+			&modelv1.Password{
+				NewPassword: pw,
+			}); err != nil {
+			return err
+		}
 	}
 
 	return r.ensureUser(ctx, harborClient, heldUser, user)
 }
 
-// createUser constructs a user request and triggers the Harbor API to create that user
+// createUser constructs a user request and triggers the Harbor API to create that user.
 func (r *ReconcileUser) createUser(ctx context.Context, harborClient *h.RESTClient, user *registriesv1alpha1.User,
 	newPassword string) error {
 	_, err := harborClient.NewUser(ctx,
@@ -284,7 +285,7 @@ func (r *ReconcileUser) createUser(ctx context.Context, harborClient *h.RESTClie
 	return nil
 }
 
-// labelsForUserSecret returns a list of labels for a user's secret
+// labelsForUserSecret returns a list of labels for a user's secret.
 func (r *ReconcileUser) labelsForUserSecret(user *registriesv1alpha1.User, instanceName string) map[string]string {
 	return map[string]string{
 		labelUserRegistry:  instanceName,
@@ -293,7 +294,7 @@ func (r *ReconcileUser) labelsForUserSecret(user *registriesv1alpha1.User, insta
 	}
 }
 
-// ensureUser updates a users profile, if changed - Afterwards, it updates the password if changed
+// ensureUser updates a users profile, if changed - Afterwards, it updates the password if changed.
 func (r *ReconcileUser) ensureUser(ctx context.Context, harborClient *h.RESTClient,
 	heldUser *modelv1.User, desiredUser *registriesv1alpha1.User) error {
 	newUsr := &modelv1.User{

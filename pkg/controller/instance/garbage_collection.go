@@ -7,22 +7,21 @@ import (
 	"reflect"
 
 	system "github.com/mittwald/goharbor-client/system"
+	"github.com/mittwald/harbor-operator/pkg/controller/internal"
 
 	modelv1 "github.com/mittwald/goharbor-client/model/v1_10_0"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
-	"github.com/mittwald/harbor-operator/pkg/controller/internal"
 )
 
 // reconcileGarbageCollection reads the state of a configured garbage collection schedule and compares it to the user
 // defined garbage collection schedule.
 func (r *ReconcileInstance) reconcileGarbageCollection(ctx context.Context, harbor *registriesv1alpha1.Instance) error {
-	// Build a client to connect to the harbor API
-	harborClient, err := internal.BuildClient(ctx, r.client, harbor)
+	scheduleType, err := enumGCType(harbor.Spec.GarbageCollection.ScheduleType)
 	if err != nil {
 		return err
 	}
 
-	scheduleType, err := enumGCType(harbor.Spec.GarbageCollection.ScheduleType)
+	harborClient, err := internal.BuildClient(ctx, r.client, harbor)
 	if err != nil {
 		return err
 	}

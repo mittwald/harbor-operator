@@ -41,12 +41,12 @@ func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
 
-// newReconciler returns a new reconcile.Reconciler
+// newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileRepository{client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
+// add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("repository-controller", mgr, controller.Options{Reconciler: r})
@@ -75,7 +75,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileRepository implements reconcile.Reconciler
+// blank assignment to verify that ReconcileRepository implements reconcile.Reconciler.
 var _ reconcile.Reconciler = &ReconcileRepository{}
 
 // ReconcileRepository reconciles a Repository object
@@ -190,7 +190,7 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 	return r.updateRepositoryCR(ctx, harbor, originalRepository, repository, result)
 }
 
-// updateRepositoryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
+// updateRepositoryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
 func (r *ReconcileRepository) updateRepositoryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance,
 	originalRepository, repository *registriesv1alpha1.Repository, result reconcile.Result) (reconcile.Result, error) {
 	if originalRepository == nil || repository == nil {
@@ -311,7 +311,7 @@ func (r *ReconcileRepository) reconcileProjectMembers(ctx context.Context, repos
 			break
 		} else {
 			// Update the project member
-			if roleID == member.RoleID {
+			if roleID == registriesv1alpha1.MemberRoleID(member.RoleID) {
 				break
 			}
 			err = harborClient.UpdateProjectMemberRole(ctx, heldProject, harborUser, int(roleID))

@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CreateRegistry returns a registry object with sample values
+// CreateRegistry returns a registry object with sample values.
 func CreateRegistry(name, namespace, instanceRef string) registriesv1alpha1.Registry {
 	r := registriesv1alpha1.Registry{
 		ObjectMeta: metav1.ObjectMeta{

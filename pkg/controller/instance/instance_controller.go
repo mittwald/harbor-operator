@@ -51,12 +51,12 @@ func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr, f))
 }
 
-// newReconciler returns a new reconcile.Reconciler
+// newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager, f internal.HelmClientFactory) reconcile.Reconciler {
 	return &ReconcileInstance{client: mgr.GetClient(), scheme: mgr.GetScheme(), helmClientReceiver: f}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
+// add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("harbor-controller", mgr, controller.Options{Reconciler: r})
@@ -230,7 +230,7 @@ func (r *ReconcileInstance) reconcileTerminatingInstance(ctx context.Context, lo
 	return nil
 }
 
-// updateInstanceCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
+// updateInstanceCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
 func (r *ReconcileInstance) updateInstanceCR(ctx context.Context, originalInstance,
 	instance *registriesv1alpha1.Instance) (reconcile.Result, error) {
 	if originalInstance == nil || instance == nil {

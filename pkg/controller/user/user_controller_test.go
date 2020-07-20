@@ -173,6 +173,7 @@ func TestUserController_User_Deletion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reconcile returned error: (%v)", err)
 	}
+
 	if res.Requeue {
 		t.Error("reconciliation was erroneously requeued")
 	}

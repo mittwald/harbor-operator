@@ -40,12 +40,12 @@ func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
 
-// newReconciler returns a new reconcile.Reconciler
+// newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileRegistry{client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
+// add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("registry-controller", mgr, controller.Options{Reconciler: r})
@@ -62,10 +62,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileRegistry implements reconcile.Reconciler
+// blank assignment to verify that ReconcileRegistry implements reconcile.Reconciler.
 var _ reconcile.Reconciler = &ReconcileRegistry{}
 
-// ReconcileRegistry reconciles a Registry object
+// ReconcileRegistry reconciles a Registry object.
 type ReconcileRegistry struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
@@ -175,7 +175,7 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 	return r.updateRegistryCR(ctx, harbor, originalRegistry, registry, result)
 }
 
-// updateRegistryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
+// updateRegistryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
 func (r *ReconcileRegistry) updateRegistryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance,
 	originalRegistry, registry *registriesv1alpha1.Registry, result reconcile.Result) (reconcile.Result, error) {
 	if originalRegistry == nil || registry == nil {
@@ -212,7 +212,7 @@ func (r *ReconcileRegistry) updateRegistryCR(ctx context.Context, parentInstance
 	return reconcile.Result{}, nil
 }
 
-// assertExistingRegistry checks a harbor registry for existence and creates it accordingly
+// assertExistingRegistry checks a harbor registry for existence and creates it accordingly.
 func (r *ReconcileRegistry) assertExistingRegistry(ctx context.Context, harborClient *h.RESTClient,
 	originalRegistry *registriesv1alpha1.Registry) error {
 	_, err := harborClient.GetRegistry(ctx, originalRegistry.Name)
@@ -279,7 +279,7 @@ func enumRegistryType(receivedRegistryType string) (string, error) {
 	}
 }
 
-// ensureRegistry gets and compares the spec of the registry held by the harbor API with the spec of the existing CR
+// ensureRegistry gets and compares the spec of the registry held by the harbor API with the spec of the existing CR.
 func (r *ReconcileRegistry) ensureRegistry(ctx context.Context, harborClient *h.RESTClient,
 	originalRegistry *registriesv1alpha1.Registry) error {
 	// Get the registry held by harbor
@@ -309,21 +309,19 @@ func (r *ReconcileRegistry) ensureRegistry(ctx context.Context, harborClient *h.
 	}
 	// Compare the registries and update accordingly
 	if !reflect.DeepEqual(heldRegistry, newReg) {
-		return r.updateRegistry(harborClient, newReg)
+		return r.updateRegistry(ctx, harborClient, newReg)
 	}
 
 	return nil
 }
 
-// updateRegistry triggers the update of a registry
-func (r *ReconcileRegistry) updateRegistry(harborClient *h.RESTClient, reg *modelv1.Registry) error {
-	// todo harborClient.UpdateRegistry
-	// return harborClient.UpdateRegistries().UpdateRegistryByID(reg)
-
-	return nil
+// updateRegistry triggers the update of a registry.
+func (r *ReconcileRegistry) updateRegistry(ctx context.Context, harborClient *h.RESTClient,
+	reg *modelv1.Registry) error {
+	return harborClient.UpdateRegistry(ctx, reg)
 }
 
-// buildRegistryFromSpec constructs and returns a Harbor registry object from the CR object's spec
+// buildRegistryFromSpec constructs and returns a Harbor registry object from the CR object's spec.
 func (r *ReconcileRegistry) buildRegistryFromSpec(originalRegistry *registriesv1alpha1.Registry) (*modelv1.Registry,
 	error) {
 	parsedURL, err := parseURL(originalRegistry.Spec.URL)
@@ -347,7 +345,7 @@ func (r *ReconcileRegistry) buildRegistryFromSpec(originalRegistry *registriesv1
 	}, nil
 }
 
-// assertDeletedRegistry deletes a registry, first ensuring its existence
+// assertDeletedRegistry deletes a registry, first ensuring its existence.
 func (r *ReconcileRegistry) assertDeletedRegistry(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
 	registry *registriesv1alpha1.Registry) error {
 	reg, err := harborClient.GetRegistry(ctx, registry.Name)

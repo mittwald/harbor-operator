@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CreateReplication returns a replication object with sample values
+// CreateReplication returns a replication object with sample values.
 func CreateReplication(name, namespace, instanceRef string) registriesv1alpha1.Replication {
 	r := registriesv1alpha1.Replication{
 		ObjectMeta: metav1.ObjectMeta{

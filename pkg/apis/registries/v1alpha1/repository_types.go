@@ -8,6 +8,7 @@ import (
 type (
 	RepositoryStatusPhaseName string
 	MemberRole                string
+	MemberRoleID              int64
 )
 
 const (
@@ -20,6 +21,12 @@ const (
 	MemberRoleDeveloper    MemberRole = "Developer"
 	MemberRoleGuest        MemberRole = "Guest"
 	MemberRoleMaster       MemberRole = "Master"
+
+	MemberRoleIDDefault      MemberRoleID = 0
+	MemberRoleIDProjectAdmin MemberRoleID = 1
+	MemberRoleIDDeveloper    MemberRoleID = 2
+	MemberRoleIDGuest        MemberRoleID = 3
+	MemberRoleIDMaster       MemberRoleID = 4
 )
 
 type RepositorySpec struct {
@@ -48,9 +55,6 @@ type RepositoryMetadata struct {
 	EnableContentTrust bool `json:"enableContentTrust"`
 	// Whether to scan images automatically when pushing or not
 	AutoScan bool `json:"autoScan"`
-	// If a vulnerability's severity is higher than the severity defined here,
-	// images can't be pulled. Valid values are "none", "low", "medium", "high", "critical".
-	Severity string `json:"severity"`
 	// Whether this repository reuses the system level CVE whitelist as the whitelist of its own.
 	// The valid values are "true", "false".
 	// If set to "true", the actual whitelist associated with this repository, if any, will be ignored.
@@ -59,6 +63,9 @@ type RepositoryMetadata struct {
 	PreventVul bool `json:"preventVul"`
 	// Public status of the Repository
 	Public bool `json:"public"`
+	// If a vulnerability's severity is higher than the severity defined here,
+	// images can't be pulled. Valid values are "none", "low", "medium", "high", "critical".
+	Severity string `json:"severity"`
 }
 
 type MemberRequest struct {
