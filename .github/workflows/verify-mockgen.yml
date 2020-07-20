@@ -6,31 +6,6 @@ env:
   OPERATOR_SDK_VERSION: v0.16.0
 
 jobs:
-  verify-mockery:
-    name: Verify mockery Codegen
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up Go 1.13
-        uses: actions/setup-go@v2
-        with:
-          go-version: '1.13.1'
-        id: go
-
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
-
-      - name: Set up vektra/mockery & dependencies
-        run: go get github.com/vektra/mockery/.../ && go mod download
-
-      - name: Run code generation
-        run: make mock
-
-      - name: Test diff
-        run: |
-          git diff | cat
-          git status --porcelain=v1
-          test $(git status --porcelain=v1 | wc -l) -eq 0
-
   verify-operator-sdk:
     name: Verify Operator-SDK Codegen
     runs-on: ubuntu-latest
