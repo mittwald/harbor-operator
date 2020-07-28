@@ -22,11 +22,11 @@ const (
 	MemberRoleGuest        MemberRole = "Guest"
 	MemberRoleMaster       MemberRole = "Master"
 
-	MemberRoleIDDefault      MemberRoleID = 0
-	MemberRoleIDProjectAdmin MemberRoleID = 1
-	MemberRoleIDDeveloper    MemberRoleID = 2
-	MemberRoleIDGuest        MemberRoleID = 3
-	MemberRoleIDMaster       MemberRoleID = 4
+	MemberRoleIDDefault MemberRoleID = iota
+	MemberRoleIDProjectAdmin
+	MemberRoleIDDeveloper
+	MemberRoleIDGuest
+	MemberRoleIDMaster
 )
 
 type RepositorySpec struct {

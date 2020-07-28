@@ -2,7 +2,6 @@ package registry
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"reflect"
@@ -192,8 +191,7 @@ func (r *ReconcileRegistry) updateRegistryCR(ctx context.Context, parentInstance
 	}
 
 	// set owner
-	if (originalRegistry.OwnerReferences == nil ||
-		len(originalRegistry.OwnerReferences) == 0) && parentInstance != nil {
+	if (len(originalRegistry.OwnerReferences) == 0) && parentInstance != nil {
 		err := controllerruntime.SetControllerReference(parentInstance, originalRegistry, r.scheme)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -254,11 +252,7 @@ func parseURL(raw string) (string, error) {
 }
 
 // enumRegistryType enumerates a string against valid GarbageCollection types.
-func enumRegistryType(receivedRegistryType string) (string, error) {
-	if receivedRegistryType == "" {
-		return "", errors.New("empty registry type provided")
-	}
-
+func enumRegistryType(receivedRegistryType registriesv1alpha1.RegistryType) (registriesv1alpha1.RegistryType, error) {
 	switch receivedRegistryType {
 	case
 		registriesv1alpha1.RegistryTypeHarbor,
@@ -326,7 +320,7 @@ func (r *ReconcileRegistry) buildRegistryFromSpec(originalRegistry *registriesv1
 	error) {
 	parsedURL, err := parseURL(originalRegistry.Spec.URL)
 	if err != nil {
-		return &modelv1.Registry{}, err
+		return nil, err
 	}
 
 	registryType, err := enumRegistryType(originalRegistry.Spec.Type)
@@ -338,7 +332,7 @@ func (r *ReconcileRegistry) buildRegistryFromSpec(originalRegistry *registriesv1
 		ID:          originalRegistry.Spec.ID,
 		Name:        originalRegistry.Spec.Name,
 		Description: originalRegistry.Spec.Description,
-		Type:        registryType,
+		Type:        string(registryType),
 		URL:         parsedURL,
 		Credential:  originalRegistry.Spec.Credential,
 		Insecure:    originalRegistry.Spec.Insecure,

@@ -56,7 +56,10 @@ spec:
                   type: string
               type: object
             passwordStrength:
+              description: The effective length of the generated user password
               format: int32
+              maximum: 128
+              minimum: 8
               type: integer
             realname:
               type: string

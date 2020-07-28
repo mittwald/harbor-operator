@@ -8,6 +8,10 @@ import (
 func NewRandomPassword(passwordStrength int32) (string, error) {
 	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
 
+	if passwordStrength == 0 {
+		passwordStrength = 8
+	}
+
 	buf := make([]byte, passwordStrength)
 
 	_, err := rand.Read(buf)

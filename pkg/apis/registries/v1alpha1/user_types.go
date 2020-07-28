@@ -16,7 +16,9 @@ const (
 
 type UserSpec struct {
 	AdminRole bool `json:"adminRole"`
-
+	// The effective length of the generated user password
+	// +kubebuilder:validation:Minimum=8
+	// +kubebuilder:validation:Maximum=128
 	PasswordStrength int32 `json:"passwordStrength"`
 	// ParentInstance is a LocalObjectReference to the
 	// name of the harbor instance the user is created for
@@ -27,8 +29,6 @@ type UserSpec struct {
 	UserSecretRef  corev1.LocalObjectReference `json:"userSecretRef"`
 	// +optional
 	Comments string `json:"comments,omitempty"`
-	// The effective length of the generated user password
-
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

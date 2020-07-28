@@ -2,7 +2,6 @@ package instance
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 
@@ -29,7 +28,7 @@ func (r *ReconcileInstance) reconcileGarbageCollection(ctx context.Context, harb
 	newGc := modelv1.AdminJobSchedule{
 		Schedule: &modelv1.AdminJobScheduleObj{
 			Cron: harbor.Spec.GarbageCollection.Cron,
-			Type: scheduleType,
+			Type: string(scheduleType),
 		},
 	}
 
@@ -38,7 +37,8 @@ func (r *ReconcileInstance) reconcileGarbageCollection(ctx context.Context, harb
 		if _, err := harborClient.NewSystemGarbageCollection(
 			ctx,
 			newGc.Schedule.Cron,
-			newGc.Schedule.Type); err != nil {
+			newGc.Schedule.Type,
+		); err != nil {
 			return err
 		}
 	} else {
@@ -57,12 +57,7 @@ func (r *ReconcileInstance) reconcileGarbageCollection(ctx context.Context, harb
 }
 
 // enumGCType enumerates a string against valid GarbageCollection schedule types.
-func enumGCType(receivedScheduleType string) (string, error) {
-	// "Hourly,Daily,Weekly,Custom,Manually,None"
-	if receivedScheduleType == "" {
-		return "", errors.New("empty garbage collection schedule type provided")
-	}
-
+func enumGCType(receivedScheduleType registriesv1alpha1.ScheduleType) (registriesv1alpha1.ScheduleType, error) {
 	switch receivedScheduleType {
 	case registriesv1alpha1.ScheduleTypeCustom, registriesv1alpha1.ScheduleTypeDaily,
 		registriesv1alpha1.ScheduleTypeHourly, registriesv1alpha1.ScheduleTypeManually,

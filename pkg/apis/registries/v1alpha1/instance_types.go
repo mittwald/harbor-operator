@@ -16,13 +16,15 @@ const (
 	InstanceStatusPhaseError       InstanceStatusPhaseName = "Error"
 )
 
+type ScheduleType string
+
 const (
-	ScheduleTypeHourly   string = "Hourly"
-	ScheduleTypeDaily    string = "Daily"
-	ScheduleTypeWeekly   string = "Weekly"
-	ScheduleTypeCustom   string = "Custom"
-	ScheduleTypeManually string = "Manually"
-	ScheduleTypeNone     string = "None"
+	ScheduleTypeHourly   ScheduleType = "Hourly"
+	ScheduleTypeDaily    ScheduleType = "Daily"
+	ScheduleTypeWeekly   ScheduleType = "Weekly"
+	ScheduleTypeCustom   ScheduleType = "Custom"
+	ScheduleTypeManually ScheduleType = "Manually"
+	ScheduleTypeNone     ScheduleType = "None"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -76,7 +78,7 @@ type GarbageCollection struct {
 	Cron string `json:"cron,omitempty"`
 
 	// +optional
-	ScheduleType string `json:"scheduleType,omitempty"`
+	ScheduleType ScheduleType `json:"scheduleType,omitempty"`
 }
 
 type InstanceDeployOptions struct {

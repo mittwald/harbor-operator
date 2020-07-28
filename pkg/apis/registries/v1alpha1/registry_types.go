@@ -6,7 +6,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type RegistryStatusPhaseName string
+type (
+	RegistryStatusPhaseName string
+	RegistryType            string
+)
 
 const (
 	RegistryStatusPhaseUnknown     RepositoryStatusPhaseName = ""
@@ -16,18 +19,18 @@ const (
 )
 
 const (
-	RegistryTypeHarbor           string = "harbor"
-	RegistryTypeDockerHub        string = "docker-hub"
-	RegistryTypeDockerRegistry   string = "docker-registry"
-	RegistryTypeHuaweiSWR        string = "huawei-SWR"
-	RegistryTypeGoogleGCR        string = "google-gcr"
-	RegistryTypeAwsECR           string = "aws-ecr"
-	RegistryTypeAzureECR         string = "azure-acr"
-	RegistryTypeAliACR           string = "ali-acr"
-	RegistryTypeJfrogArtifactory string = "jfrog-artifactory"
-	RegistryTypeQuayIo           string = "quay-io"
-	RegistryTypeGitlab           string = "gitlab"
-	RegistryTypeHelmHub          string = "helm-hub"
+	RegistryTypeHarbor           RegistryType = "harbor"
+	RegistryTypeDockerHub        RegistryType = "docker-hub"
+	RegistryTypeDockerRegistry   RegistryType = "docker-registry"
+	RegistryTypeHuaweiSWR        RegistryType = "huawei-SWR"
+	RegistryTypeGoogleGCR        RegistryType = "google-gcr"
+	RegistryTypeAwsECR           RegistryType = "aws-ecr"
+	RegistryTypeAzureECR         RegistryType = "azure-acr"
+	RegistryTypeAliACR           RegistryType = "ali-acr"
+	RegistryTypeJfrogArtifactory RegistryType = "jfrog-artifactory"
+	RegistryTypeQuayIo           RegistryType = "quay-io"
+	RegistryTypeGitlab           RegistryType = "gitlab"
+	RegistryTypeHelmHub          RegistryType = "helm-hub"
 )
 
 // RegistrySpec defines the desired state of a Registry.
@@ -41,7 +44,7 @@ type RegistrySpec struct {
 	// +optional
 	Description string `json:"description,omitempty"`
 
-	Type string `json:"type"`
+	Type RegistryType `json:"type"`
 
 	// Target URL of the registry
 	URL string `json:"url"`

@@ -214,8 +214,7 @@ func (r *ReconcileReplication) updateReplicationCR(ctx context.Context,
 	}
 
 	// set owner
-	if (originalReplication.OwnerReferences == nil ||
-		len(originalReplication.OwnerReferences) == 0) && parentInstance != nil {
+	if (len(originalReplication.OwnerReferences) == 0) && parentInstance != nil {
 		err := controllerruntime.SetControllerReference(parentInstance, originalReplication, r.scheme)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -390,8 +389,8 @@ func (r *ReconcileReplication) buildReplicationFromSpec(originalReplication *reg
 	return &newRep, nil
 }
 
-func addReplicationFilters(originalFilters []registriesv1alpha1.ReplicationFilter) (newFilters []*modelv1.
-	ReplicationFilter, err error) {
+func addReplicationFilters(originalFilters []registriesv1alpha1.ReplicationFilter) (
+	newFilters []*modelv1.ReplicationFilter, err error) {
 	for _, f := range originalFilters {
 		filterType, err := enumReplicationFilterType(f.Type)
 		if err != nil {

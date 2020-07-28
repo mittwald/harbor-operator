@@ -37,7 +37,7 @@ type ReplicationSpec struct {
 	// +optional
 	Enabled bool `json:"enabled,omitempty"`
 	// +optional
-	TriggerAfterCreation bool `json:"triggerAfterCreation"`
+	TriggerAfterCreation bool `json:"triggerAfterCreation,omitempty"`
 	// Whether to replicate the deletion operation
 	// +optional
 	ReplicateDeletion bool `json:"replicateDeletion,omitempty"`

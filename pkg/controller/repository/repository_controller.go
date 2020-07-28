@@ -243,7 +243,7 @@ func (r *ReconcileRepository) assertDeletedRepository(ctx context.Context, log l
 }
 
 // assertExistingRepository
-// Check harbor projects and their components for their existence,
+// Check Harbor projects and their components for their existence,
 // create and delete either of those to match the specification
 func (r *ReconcileRepository) assertExistingRepository(ctx context.Context, harborClient *h.RESTClient,
 	repository *registriesv1alpha1.Repository) error {
@@ -262,23 +262,24 @@ func (r *ReconcileRepository) assertExistingRepository(ctx context.Context, harb
 
 // generateRepositoryMetadata constructs the repository metadata for a Harbor project
 func (r *ReconcileRepository) generateRepositoryMetadata(
-	projectMeta *registriesv1alpha1.RepositoryMetadata) *modelv1.ProjectMetadata {
+	repositoryMeta *registriesv1alpha1.RepositoryMetadata) *modelv1.ProjectMetadata {
 	pm := modelv1.ProjectMetadata{
-		AutoScan:             helper.BoolToString(projectMeta.AutoScan),
-		EnableContentTrust:   helper.BoolToString(projectMeta.EnableContentTrust),
-		PreventVul:           helper.BoolToString(projectMeta.PreventVul),
-		Public:               helper.BoolToString(projectMeta.Public),
-		ReuseSysCveWhitelist: helper.BoolToString(projectMeta.ReuseSysSVEWhitelist),
-		Severity:             projectMeta.Severity,
+		AutoScan:             helper.BoolToString(repositoryMeta.AutoScan),
+		EnableContentTrust:   helper.BoolToString(repositoryMeta.EnableContentTrust),
+		PreventVul:           helper.BoolToString(repositoryMeta.PreventVul),
+		Public:               helper.BoolToString(repositoryMeta.Public),
+		ReuseSysCveWhitelist: helper.BoolToString(repositoryMeta.ReuseSysSVEWhitelist),
+		Severity:             repositoryMeta.Severity,
 	}
 
 	return &pm
 }
 
-// reconcileProjectMembers reconciles the user-defined project members for a repository based on an existing Harbor user
-func (r *ReconcileRepository) reconcileProjectMembers(ctx context.Context, repository *registriesv1alpha1.Repository,
+// reconcileRepositoryMembers reconciles the user-defined project members
+// for a repository based on an existing Harbor user
+func (r *ReconcileRepository) reconcileRepositoryMembers(ctx context.Context, repository *registriesv1alpha1.Repository,
 	harborClient *h.RESTClient, heldProject *modelv1.Project) error {
-	// List project members
+	// List Harbor project members
 	members, err := harborClient.ListProjectMembers(ctx, heldProject)
 	if err != nil {
 		return err
@@ -310,12 +311,11 @@ func (r *ReconcileRepository) reconcileProjectMembers(ctx context.Context, repos
 
 			break
 		} else {
-			// Update the project member
+			// Update the Harbor project member
 			if roleID == registriesv1alpha1.MemberRoleID(member.RoleID) {
 				break
 			}
-			err = harborClient.UpdateProjectMemberRole(ctx, heldProject, harborUser, int(roleID))
-			if err != nil {
+			if err := harborClient.UpdateProjectMemberRole(ctx, heldProject, harborUser, int(roleID)); err != nil {
 				return err
 			}
 		}
@@ -346,24 +346,24 @@ func getMemberUserFromList(members []*modelv1.ProjectMemberEntity,
 
 // ensureRepository triggers reconciliation of project members
 // and compares the state of the CR object with the project held by Harbor
-func (r *ReconcileRepository) ensureRepository(ctx context.Context, heldProject *modelv1.Project,
+func (r *ReconcileRepository) ensureRepository(ctx context.Context, heldRepository *modelv1.Project,
 	harborClient *h.RESTClient, repository *registriesv1alpha1.Repository) error {
-	updatedRepository := &modelv1.Project{}
-	// Copy the held projects spec into a new object of the same type *harbor.Repository
-	err := copier.Copy(&updatedRepository, &heldProject)
+	updatedProject := &modelv1.Project{}
+	// Copy the spec of the project held by Harbor into a new object of the same type *harbor.Repository
+	err := copier.Copy(&updatedProject, &heldRepository)
 	if err != nil {
 		return err
 	}
 
-	err = r.reconcileProjectMembers(ctx, repository, harborClient, heldProject)
+	err = r.reconcileRepositoryMembers(ctx, repository, harborClient, heldRepository)
 	if err != nil {
 		return err
 	}
 
-	updatedRepository.Metadata = r.generateRepositoryMetadata(&repository.Spec.Metadata)
+	updatedProject.Metadata = r.generateRepositoryMetadata(&repository.Spec.Metadata)
 
-	if updatedRepository != heldProject {
-		return harborClient.UpdateProject(ctx, heldProject, repository.Spec.StorageLimit, repository.Spec.CountLimit)
+	if updatedProject != heldRepository {
+		return harborClient.UpdateProject(ctx, heldRepository, repository.Spec.StorageLimit, repository.Spec.CountLimit)
 	}
 
 	return nil

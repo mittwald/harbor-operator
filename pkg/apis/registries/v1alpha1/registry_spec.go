@@ -10,7 +10,7 @@ func (spec *RegistrySpec) ToHarborRegistry() *modelv1.Registry {
 		ID:          spec.ID,
 		Name:        spec.Name,
 		Description: spec.Description,
-		Type:        spec.Type,
+		Type:        string(spec.Type),
 		URL:         spec.URL,
 		Credential:  spec.Credential,
 		Insecure:    spec.Insecure,
