@@ -40,6 +40,8 @@ spec:
           properties:
             adminRole:
               type: boolean
+            comments:
+              type: string
             email:
               type: string
             name:
@@ -53,6 +55,12 @@ spec:
                     TODO: Add other useful fields. apiVersion, kind, uid?'
                   type: string
               type: object
+            passwordStrength:
+              description: The effective length of the generated user password
+              format: int32
+              maximum: 128
+              minimum: 8
+              type: integer
             realname:
               type: string
             userSecretRef:
@@ -69,6 +77,7 @@ spec:
           - email
           - name
           - parentInstance
+          - passwordStrength
           - realname
           - userSecretRef
           type: object

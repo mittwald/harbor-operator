@@ -5,7 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CreateInstanceChartRepo returns an instancechartrepo object with sample values
+// CreateInstanceChartRepo returns an instancechartrepo object with sample values.
 func CreateInstanceChartRepo(name, namespace string) registriesv1alpha1.InstanceChartRepo {
 	icr := registriesv1alpha1.InstanceChartRepo{
 		TypeMeta: metav1.TypeMeta{},

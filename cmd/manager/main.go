@@ -17,7 +17,6 @@ import (
 	"github.com/mittwald/harbor-operator/pkg/apis"
 	opconfig "github.com/mittwald/harbor-operator/pkg/config"
 	"github.com/mittwald/harbor-operator/pkg/controller"
-	"github.com/mittwald/harbor-operator/version"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"
@@ -37,7 +36,6 @@ import (
 var log = logf.Log.WithName("cmd")
 
 func printVersion() {
-	log.Info(fmt.Sprintf("Operator Version: %s", version.Version))
 	log.Info(fmt.Sprintf("Go Version: %s", runtime.Version()))
 	log.Info(fmt.Sprintf("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH))
 	log.Info(fmt.Sprintf("Version of operator-sdk: %v", sdkVersion.Version))
@@ -58,13 +56,17 @@ func main() {
 	pflag.Int32("metrics-port", 8383, "metrics port")
 
 	// don't bind commands to variables, access them through viper
-	pflag.String("helm-client-repo-cache-path", "/tmp/.helmcache", "helm client repository cache path")
-	pflag.String("helm-client-repo-conf-path", "/tmp/.helmconfig", "helm client repository config path")
+	pflag.String("helm-client-repo-cache-path",
+		"/tmp/.helmcache", "helm client repository cache path")
+	pflag.String("helm-client-repo-conf-path",
+		"/tmp/.helmconfig", "helm client repository config path")
 
 	pflag.Parse()
 
 	viper.SetEnvPrefix("HARBOR_OPERATOR")
+
 	replacer := strings.NewReplacer("-", "_")
+
 	viper.SetEnvKeyReplacer(replacer)
 
 	viper.AutomaticEnv()
@@ -75,7 +77,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	opconfig.ConfigFromViper()
+	opconfig.FromViper()
 
 	// Use a zap logr.Logger implementation. If none of the zap
 	// flags are configured (or if the zap flag set is not being
@@ -151,20 +153,32 @@ func main() {
 }
 
 // addMetrics will create the Services and Service Monitors to allow the operator export the metrics by using
-// the Prometheus operator
-func addMetrics(ctx context.Context, cfg *rest.Config, namespace string, metricsHost string, metricsPort int32, operatorMetricsPort int32) {
+// the Prometheus operator.
+func addMetrics(ctx context.Context, cfg *rest.Config, namespace string,
+	metricsHost string, metricsPort int32, operatorMetricsPort int32) {
 	if err := serveCRMetrics(cfg, metricsHost, operatorMetricsPort); err != nil {
 		if errors.Is(err, k8sutil.ErrRunLocal) {
 			log.Info("Skipping CR metrics server creation; not running in a cluster.")
 			return
 		}
+
 		log.Info("Could not generate and serve custom resource metrics", "error", err.Error())
 	}
 
 	// Add to the below struct any other metrics ports you want to expose.
 	servicePorts := []v1.ServicePort{
-		{Port: metricsPort, Name: metrics.OperatorPortName, Protocol: v1.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: metricsPort}},
-		{Port: operatorMetricsPort, Name: metrics.CRPortName, Protocol: v1.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: operatorMetricsPort}},
+		{
+			Port:       metricsPort,
+			Name:       metrics.OperatorPortName,
+			Protocol:   v1.ProtocolTCP,
+			TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: metricsPort},
+		},
+		{
+			Port:       operatorMetricsPort,
+			Name:       metrics.CRPortName,
+			Protocol:   v1.ProtocolTCP,
+			TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: operatorMetricsPort},
+		},
 	}
 
 	// Create Service object to expose the metrics port(s).
@@ -176,13 +190,15 @@ func addMetrics(ctx context.Context, cfg *rest.Config, namespace string, metrics
 	// CreateServiceMonitors will automatically create the prometheus-operator ServiceMonitor resources
 	// necessary to configure Prometheus to scrape metrics from this operator.
 	services := []*v1.Service{service}
+
 	_, err = metrics.CreateServiceMonitors(cfg, namespace, services)
 	if err != nil {
 		log.Info("Could not create ServiceMonitor object", "error", err.Error())
 		// If this operator is deployed to a cluster without the prometheus-operator running, it will return
 		// ErrServiceMonitorNotPresent, which can be used to safely skip ServiceMonitor creation.
 		if err == metrics.ErrServiceMonitorNotPresent {
-			log.Info("Install prometheus-operator in your cluster to create ServiceMonitor objects", "error", err.Error())
+			log.Info("Install prometheus-operator in your cluster to create ServiceMonitor objects",
+				"error", err.Error())
 		}
 	}
 }
@@ -208,5 +224,6 @@ func serveCRMetrics(cfg *rest.Config, metricsHost string, operatorMetricsPort in
 	if err != nil {
 		return err
 	}
+
 	return nil
 }

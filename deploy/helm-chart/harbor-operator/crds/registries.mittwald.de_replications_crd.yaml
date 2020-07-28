@@ -60,23 +60,22 @@ spec:
             filters:
               description: The replication policy filter array
               items:
-                description: Filter holds the info of a filter Use string instead
-                  of interface{}, or else CRD generation will fail
+                description: ReplicationFilter holds the specifications of a replication
+                  filter
                 properties:
                   type:
-                    description: FilterType represents the type info of the filter.
+                    description: The replication policy filter type.
                     type: string
                   value:
+                    description: The value of replication policy filter.
                     type: string
-                required:
-                - type
-                - value
                 type: object
               type: array
             id:
               format: int64
               type: integer
             name:
+              description: The name of the replication
               type: string
             override:
               description: Whether to override the resources on the destination registry
@@ -114,10 +113,7 @@ spec:
                   - cron
                   type: object
                 type:
-                  description: TriggerType represents the type of trigger.
                   type: string
-              required:
-              - type
               type: object
             triggerAfterCreation:
               type: boolean

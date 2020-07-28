@@ -1,20 +1,20 @@
 package v1alpha1
 
-// ID returns a role ID integer by enumerating the given role
-func (role MemberRole) ID() int {
+// ID returns a role ID integer by enumerating the given role.
+func (role MemberRole) ID() MemberRoleID {
 	switch role {
 	case MemberRoleProjectAdmin:
-		return 1
+		return MemberRoleIDProjectAdmin
 
 	case MemberRoleDeveloper:
-		return 2
+		return MemberRoleIDDeveloper
 
 	case MemberRoleGuest:
-		return 3
+		return MemberRoleIDGuest
 
 	case MemberRoleMaster:
-		return 4
+		return MemberRoleIDMaster
 	}
 
-	return 0
+	return MemberRoleIDDefault
 }

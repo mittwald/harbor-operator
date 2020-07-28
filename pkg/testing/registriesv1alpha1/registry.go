@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CreateRegistry returns a registry object with sample values
+// CreateRegistry returns a registry object with sample values.
 func CreateRegistry(name, namespace, instanceRef string) registriesv1alpha1.Registry {
 	r := registriesv1alpha1.Registry{
 		ObjectMeta: metav1.ObjectMeta{
@@ -14,15 +14,14 @@ func CreateRegistry(name, namespace, instanceRef string) registriesv1alpha1.Regi
 			Namespace: namespace,
 		},
 		Spec: registriesv1alpha1.RegistrySpec{
-			ID:              1,
-			Name:            "test-registry",
-			Description:     "test registry",
-			Type:            "manual",
-			URL:             "https://core.harbor.domain",
-			TokenServiceURL: "https://core.harbor.domain",
-			Credential:      nil,
-			Insecure:        false,
-			ParentInstance:  corev1.LocalObjectReference{Name: instanceRef},
+			ID:             1,
+			Name:           "test-registry",
+			Description:    "test registry",
+			Type:           "manual",
+			URL:            "https://core.harbor.domain",
+			Credential:     nil,
+			Insecure:       false,
+			ParentInstance: corev1.LocalObjectReference{Name: instanceRef},
 		},
 	}
 

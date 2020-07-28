@@ -20,6 +20,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const (
+	ns   string = "test-namespace"
+	name string = "test-instance"
+)
+
 // buildReconcileWithFakeClientWithMocks
 // returns a reconcile with fake client, schemes and mock objects
 // reference: https://github.com/aerogear/mobile-security-service-operator/blob/e74272a6c7addebdc77b18eeffb5e888b35f4dfd/pkg/controller/mobilesecurityservice/fakeclient_test.go#L14
@@ -43,8 +48,8 @@ func buildReconcileWithFakeClientWithMocks(objs []runtime.Object) *ReconcileInst
 func TestInstanceController_Empty_Instance_Spec(t *testing.T) {
 	i := registriesv1alpha1.Instance{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-instance",
-			Namespace: "test-namespace",
+			Name:      name,
+			Namespace: ns,
 		},
 	}
 
@@ -70,9 +75,7 @@ func TestInstanceController_Empty_Instance_Spec(t *testing.T) {
 // TestInstanceController_Empty_Instance_Spec
 // Test reconciliation with a mocked instance object which is expected to be requeued
 func TestInstanceController_With_Instance_Spec(t *testing.T) {
-	name := "test-instance"
-	namespace := "test-namespace"
-	i := testingregistriesv1alpha1.CreateInstance(name, namespace)
+	i := testingregistriesv1alpha1.CreateInstance(name, ns)
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i})
 
@@ -87,18 +90,16 @@ func TestInstanceController_With_Instance_Spec(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reconcile returned error: (%v)", err)
 	}
+
 	if !res.Requeue {
 		t.Error("reconciliation was not requeued")
 	}
-
 }
 
 // TestInstanceController_Transition_Installing
 // Test reconciliation with valid instance object which is expected not to be requeued
 func TestInstanceController_Transition_Installing(t *testing.T) {
-	ns := "test-namespace"
-
-	i := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
+	i := testingregistriesv1alpha1.CreateInstance(name, ns)
 
 	instanceSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", ns)
 	i.Spec.HelmChart.ValuesYaml = `
@@ -158,7 +159,8 @@ func TestInstanceController_Transition_Installing(t *testing.T) {
 	}
 
 	if instance.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseInstalling {
-		t.Errorf("instance status unexpected, status: %s, expected: %s", instance.Status.Phase.Name, registriesv1alpha1.InstanceStatusPhaseInstalling)
+		t.Errorf("instance status unexpected, status: %s, expected: %s", instance.Status.Phase.Name,
+			registriesv1alpha1.InstanceStatusPhaseInstalling)
 	}
 }
 
@@ -184,22 +186,25 @@ func TestInstanceController_Instance_Installation(t *testing.T) {
 			Version:     i.Spec.HelmChart.Version,
 		}),
 	)
+
 	r.helmClientReceiver = func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
 		return helmclient.Client(mockClient), nil
 	}
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: i.Name, Namespace: i.Namespace}}
-	res, err := r.Reconcile(req)
 
+	res, err := r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile returned error: %v", err)
 	}
+
 	if !res.Requeue {
 		t.Errorf("object got requeued, but should have not")
 	}
 
 	fetched := &registriesv1alpha1.Instance{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, fetched)
+
 	if err != nil {
 		t.Fatalf("could not get instance: %v", err)
 	}
@@ -212,6 +217,7 @@ func TestInstanceController_Instance_Installation(t *testing.T) {
 		t.Errorf("wrong phase of received instance, want: %s, got: %s",
 			registriesv1alpha1.InstanceStatusPhaseReady, i.Status.Phase.Name)
 	}
+
 	if fetched.Status.Version != i.Spec.Version {
 		t.Errorf("wrong status.version of received instance, want: %s, got: %s",
 			i.Spec.Version, fetched.Status.Version)
@@ -239,13 +245,14 @@ func TestInstanceController_Instance_Deletion(t *testing.T) {
 		ValuesYaml:  i.Spec.HelmChart.ValuesYaml,
 		Version:     i.Spec.HelmChart.Version,
 	})
+
 	r.helmClientReceiver = func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
 		return helmclient.Client(mockClient), nil
 	}
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: i.Name, Namespace: i.Namespace}}
-	res, err := r.Reconcile(req)
 
+	res, err := r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile returned error: %v", err)
 	}
@@ -255,13 +262,15 @@ func TestInstanceController_Instance_Deletion(t *testing.T) {
 	}
 
 	fetched := &registriesv1alpha1.Instance{}
+
 	err = r.client.Get(context.TODO(), req.NamespacedName, fetched)
 	if err != nil {
 		t.Fatalf("could not get instance: %v", err)
 	}
 
 	if len(fetched.GetFinalizers()) != 0 {
-		t.Errorf("Unexpected length of finalizers, expected: %d, got: %d", 0, len(fetched.GetFinalizers()))
+		t.Errorf("Unexpected length of finalizers, expected: %d, got: %d",
+			0, len(fetched.GetFinalizers()))
 	}
 }
 
@@ -292,6 +301,7 @@ func TestInstanceController_Instance_Ready_Deletion(t *testing.T) {
 		ValuesYaml:  i.Spec.HelmChart.ValuesYaml,
 		Version:     i.Spec.HelmChart.Version,
 	})
+
 	r.helmClientReceiver = func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
 		return helmclient.Client(mockClient), nil
 	}
@@ -300,17 +310,21 @@ func TestInstanceController_Instance_Ready_Deletion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reconcile returned error: (%v)", err)
 	}
+
 	if !res.Requeue {
 		t.Error("reconciliation was not requeued")
 	}
 
 	fetched := &registriesv1alpha1.Instance{}
+
 	err = r.client.Get(context.TODO(), req.NamespacedName, fetched)
 	if err != nil {
 		t.Fatalf("could not get instance %s", err)
 	}
+
 	if fetched.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseTerminating {
-		t.Errorf("instance status unexpected: %s, expected: %s", fetched.Status.Phase.Name, registriesv1alpha1.InstanceStatusPhaseTerminating)
+		t.Errorf("instance status unexpected: %s, expected: %s", fetched.Status.Phase.Name,
+			registriesv1alpha1.InstanceStatusPhaseTerminating)
 	}
 
 	// Reconcile again here to run the steps in the `InstanceStatusPhaseTerminating` phase.
@@ -319,6 +333,7 @@ func TestInstanceController_Instance_Ready_Deletion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reconcile returned error: (%v)", err)
 	}
+
 	if !res.Requeue {
 		t.Error("reconciliation was not requeued")
 	}
@@ -350,11 +365,13 @@ func TestInstanceController_Instance_Ready_Ensure_Chart_Spec(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reconcile returned error: (%v)", err)
 	}
+
 	if !res.Requeue {
 		t.Error("reconciliation was not requeued")
 	}
 
 	fetched := &registriesv1alpha1.Instance{}
+
 	err = r.client.Get(context.TODO(), req.NamespacedName, fetched)
 	if err != nil {
 		t.Fatalf("could not get instance %s", err)
@@ -364,11 +381,13 @@ func TestInstanceController_Instance_Ready_Ensure_Chart_Spec(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reconcile returned error: (%v)", err)
 	}
+
 	if !res.Requeue {
 		t.Error("reconciliation was not requeued")
 	}
 
 	fetched = &registriesv1alpha1.Instance{}
+
 	err = r.client.Get(context.TODO(), req.NamespacedName, fetched)
 	if err != nil {
 		t.Fatalf("could not get instance %s", err)
@@ -382,10 +401,8 @@ func TestInstanceController_Instance_Ready_Ensure_Chart_Spec(t *testing.T) {
 // TestInstanceController_Add_Finalizer
 // Test adding the finalizer
 func TestInstanceController_Add_Finalizer(t *testing.T) {
-	ns := "test-namespace"
-
 	// Create mock instance + secret
-	i := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
+	i := testingregistriesv1alpha1.CreateInstance(name, ns)
 	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
 	i.Spec.GarbageCollection = nil
 
@@ -406,6 +423,7 @@ func TestInstanceController_Add_Finalizer(t *testing.T) {
 			Version:     i.Spec.HelmChart.Version,
 		}),
 	)
+
 	r.helmClientReceiver = func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
 		return helmclient.Client(mockClient), nil
 	}
@@ -421,15 +439,18 @@ func TestInstanceController_Add_Finalizer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reconcile returned error: (%v)", err)
 	}
+
 	if !res.Requeue {
 		t.Error("reconciliation was not requeued")
 	}
 
 	instance := &registriesv1alpha1.Instance{}
+
 	err = r.client.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
 		t.Error("could not get instance")
 	}
+
 	if instance.Finalizers == nil || len(instance.Finalizers) == 0 {
 		t.Error("finalizer has not been added")
 	}
@@ -442,10 +463,8 @@ func TestInstanceController_Add_Finalizer(t *testing.T) {
 // TestInstanceController_Existing_Finalizer
 // Test the finalizer for existence
 func TestInstanceController_Existing_Finalizer(t *testing.T) {
-	ns := "test-namespace"
-
 	// Create mock instance + secret
-	i := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
+	i := testingregistriesv1alpha1.CreateInstance(name, ns)
 	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
 	i.Spec.GarbageCollection = nil
 
@@ -466,6 +485,7 @@ func TestInstanceController_Existing_Finalizer(t *testing.T) {
 			Version:     i.Spec.HelmChart.Version,
 		}),
 	)
+
 	r.helmClientReceiver = func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
 		return helmclient.Client(mockClient), nil
 	}

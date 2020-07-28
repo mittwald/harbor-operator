@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CreateUser returns a user object with sample values
+// CreateUser returns a user object with sample values.
 func CreateUser(name, namespace string) registriesv1alpha1.User {
 	u := registriesv1alpha1.User{
 		ObjectMeta: metav1.ObjectMeta{

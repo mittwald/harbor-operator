@@ -1,8 +1,7 @@
 package v1alpha1
 
 import (
-	"github.com/mittwald/go-helm-client"
-	h "github.com/mittwald/goharbor-client"
+	helmclient "github.com/mittwald/go-helm-client"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -15,6 +14,17 @@ const (
 	InstanceStatusPhaseReady       InstanceStatusPhaseName = "Ready"
 	InstanceStatusPhaseTerminating InstanceStatusPhaseName = "Terminating"
 	InstanceStatusPhaseError       InstanceStatusPhaseName = "Error"
+)
+
+type ScheduleType string
+
+const (
+	ScheduleTypeHourly   ScheduleType = "Hourly"
+	ScheduleTypeDaily    ScheduleType = "Daily"
+	ScheduleTypeWeekly   ScheduleType = "Weekly"
+	ScheduleTypeCustom   ScheduleType = "Custom"
+	ScheduleTypeManually ScheduleType = "Manually"
+	ScheduleTypeNone     ScheduleType = "None"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -32,7 +42,7 @@ type Instance struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// InstanceList contains a list of Instance
+// InstanceList contains a list of Instance.
 type InstanceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -43,7 +53,7 @@ func init() {
 	SchemeBuilder.Register(&Instance{}, &InstanceList{})
 }
 
-// InstanceSpec defines the desired state of Instance
+// InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
@@ -59,21 +69,16 @@ type InstanceSpec struct {
 	HelmChart *InstanceHelmChartSpec `json:"helmChart"`
 
 	// +optional
-	GarbageCollection *GarbageCollectionReq `json:"garbageCollection,omitempty"`
+	GarbageCollection *GarbageCollection `json:"garbageCollection,omitempty"`
 }
 
-// GarbageCollectionReq holds request information for a garbage collection schedule
-type GarbageCollectionReq struct {
-	Schedule *h.ScheduleParam `json:"schedule"`
+// GarbageCollectionReq holds request information for a garbage collection schedule.
+type GarbageCollection struct {
+	// +optional
+	Cron string `json:"cron,omitempty"`
 
 	// +optional
-	Name string `json:"name,omitempty"`
-	// +optional
-	Status string `json:"status,omitempty"`
-	// +optional
-	ID int64 `json:"id,omitempty"`
-	// +optional
-	Parameters map[string]string `json:"parameters,omitempty"`
+	ScheduleType ScheduleType `json:"scheduleType,omitempty"`
 }
 
 type InstanceDeployOptions struct {
@@ -99,7 +104,7 @@ type InstanceHelmChartSecretValues struct {
 	Key       string                       `json:"key"`
 }
 
-// InstanceStatus defines the observed state of Instance
+// InstanceStatus defines the observed state of Instance.
 type InstanceStatus struct {
 	Phase InstanceStatusPhase `json:"phase"`
 	// +optional
@@ -112,7 +117,7 @@ type InstanceStatusPhase struct {
 
 	Message string `json:"message"`
 
-	// Time of last observed transition into this state
+	// Time of last observed transition into this state.
 	// +optional
 	LastTransition *metav1.Time `json:"lastTransition,omitempty"`
 }

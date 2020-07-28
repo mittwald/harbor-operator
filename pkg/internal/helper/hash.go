@@ -8,17 +8,17 @@ import (
 	helmclient "github.com/mittwald/go-helm-client"
 )
 
-// String returns the string value of an interface hash
+// String returns the string value of an interface hash.
 func (hash *InterfaceHash) String() string {
 	return fmt.Sprintf("%x", *hash)
 }
 
-// Short returns the first 8 characters of an interface hash
+// Short returns the first 8 characters of an interface hash.
 func (hash *InterfaceHash) Short() string {
 	return hash.String()[:8]
 }
 
-// GenerateHashFromInterfaces returns a hash sum based on a slice of given interfaces
+// GenerateHashFromInterfaces returns a hash sum based on a slice of given interfaces.
 func GenerateHashFromInterfaces(interfaces []interface{}) (InterfaceHash, error) {
 	var hashSrc []byte
 
@@ -32,6 +32,7 @@ func GenerateHashFromInterfaces(interfaces []interface{}) (InterfaceHash, error)
 	}
 
 	hash := sha256.New()
+
 	_, err := hash.Write(hashSrc)
 	if err != nil {
 		return nil, err
@@ -40,7 +41,7 @@ func GenerateHashFromInterfaces(interfaces []interface{}) (InterfaceHash, error)
 	return hash.Sum(nil), nil
 }
 
-// CreateSpecHash returns a hash string constructed with the helm chart spec
+// CreateSpecHash returns a hash string constructed with the helm chart spec.
 func CreateSpecHash(spec *helmclient.ChartSpec) (string, error) {
 	hashSrc, err := json.Marshal(spec)
 	if err != nil {
@@ -48,6 +49,7 @@ func CreateSpecHash(spec *helmclient.ChartSpec) (string, error) {
 	}
 
 	toHash := []interface{}{hashSrc}
+
 	hash, err := GenerateHashFromInterfaces(toHash)
 	if err != nil {
 		return "", err

@@ -34,26 +34,23 @@ spec:
         metadata:
           type: object
         spec:
-          description: RegistrySpec defines the desired state of a Registry
+          description: RegistrySpec defines the desired state of a Registry.
           properties:
             credential:
-              description: Credential keeps the access key and/or secret for the related
-                registry
+              description: "RegistryCredential registry credential \n swagger:model
+                RegistryCredential"
               properties:
                 access_key:
-                  description: The key of the access account, for OAuth token, it
-                    can be empty
+                  description: Access key, e.g. user name when credential type is
+                    'basic'.
                   type: string
                 access_secret:
-                  description: The secret or password for the key
+                  description: Access secret, e.g. password when credential type is
+                    'basic'.
                   type: string
                 type:
-                  description: Type of the credential
+                  description: Credential type, such as 'basic', 'oauth'.
                   type: string
-              required:
-              - access_key
-              - access_secret
-              - type
               type: object
             description:
               type: string
@@ -77,14 +74,7 @@ spec:
                     TODO: Add other useful fields. apiVersion, kind, uid?'
                   type: string
               type: object
-            tokenServiceUrl:
-              description: TokenServiceURL is only used for local harbor instances
-                to avoid the requests passing through the external proxy for now
-              type: string
             type:
-              description: 'TODO: A string enum would be appropriate here, though
-                kubebuilder seems to not like this annotation: "+kubebuilder:validation:Enum:=harbor,docker-hub,docker-registry,huawei-SWR,google-gcr,aws-ecr,azure-acr,ali-acr,jfrog-artifactory,quay-io,gitlab,helm-hub"
-                Leaving it as is for the time being'
               type: string
             url:
               description: Target URL of the registry
@@ -96,7 +86,7 @@ spec:
           - url
           type: object
         status:
-          description: RegistryStatus defines the observed state of Registry
+          description: RegistryStatus defines the observed state of Registry.
           properties:
             lastTransition:
               description: Time of last observed transition into this state

@@ -39,6 +39,8 @@ spec:
           type: object
         spec:
           properties:
+            countLimit:
+              type: integer
             memberRequests:
               description: Ref to the name of a 'User' resource
               items:
@@ -79,8 +81,8 @@ spec:
                 reuseSysSVEWhitelist:
                   description: Whether this repository reuses the system level CVE
                     whitelist as the whitelist of its own. The valid values are "true",
-                    "false". If it is set to "true" the actual whitelist associate
-                    with this repository, if any, will be ignored.
+                    "false". If set to "true", the actual whitelist associated with
+                    this repository, if any, will be ignored.
                   type: boolean
                 severity:
                   description: If a vulnerability's severity is higher than the severity
@@ -106,6 +108,8 @@ spec:
                     TODO: Add other useful fields. apiVersion, kind, uid?'
                   type: string
               type: object
+            storageLimit:
+              type: integer
           required:
           - metadata
           - name

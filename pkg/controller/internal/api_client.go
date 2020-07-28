@@ -12,13 +12,15 @@ import (
 )
 
 // BuildClient builds a harbor client to interact with the API
-// using the default (admin) credentials of an existing harbor instance
-func BuildClient(ctx context.Context, client client.Client, harbor *registriesv1alpha1.Instance) (*h.Client, error) {
+// using the default (admin) credentials of an existing harbor instance.
+func BuildClient(ctx context.Context, client client.Client,
+	harbor *registriesv1alpha1.Instance) (*h.RESTClient, error) {
 	sec := &corev1.Secret{}
+
 	err := client.Get(ctx, types.NamespacedName{
 		Name:      harbor.Name + "-harbor-core",
-		Namespace: harbor.Namespace},
-		sec)
+		Namespace: harbor.Namespace,
+	}, sec)
 	if err != nil {
 		return nil, err
 	}
@@ -28,5 +30,5 @@ func BuildClient(ctx context.Context, client client.Client, harbor *registriesv1
 		return nil, err
 	}
 
-	return h.NewClient(harbor.Spec.InstanceURL, "admin", corePassword)
+	return h.NewRESTClientForHost(harbor.Spec.InstanceURL, "/api", "admin", corePassword), nil
 }

@@ -38,7 +38,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: InstanceChartRepoSpec defines the desired state of InstanceChartRepo
+          description: InstanceChartRepoSpec defines the desired state of InstanceChartRepo.
           properties:
             name:
               type: string
@@ -57,7 +57,7 @@ spec:
           - url
           type: object
         status:
-          description: InstanceChartRepoStatus defines the observed state of InstanceChartRepo
+          description: InstanceChartRepoStatus defines the observed state of InstanceChartRepo.
           properties:
             state:
               type: string

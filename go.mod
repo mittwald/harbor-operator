@@ -3,30 +3,31 @@ module github.com/mittwald/harbor-operator
 go 1.13
 
 require (
+	github.com/elazarl/goproxy v0.0.0-20200315184450-1f3cb6622dad // indirect
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/go-logr/logr v0.1.0
+	github.com/go-openapi/jsonreference v0.19.4 // indirect
+	github.com/go-openapi/runtime v0.19.20 // indirect
 	github.com/golang/mock v1.4.3
 	github.com/imdario/mergo v0.3.8
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/json-iterator/go v1.1.8 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mittwald/go-helm-client v0.2.0
-	github.com/mittwald/goharbor-client v0.1.4
+	github.com/mittwald/goharbor-client v1.0.1
 	github.com/operator-framework/operator-sdk v0.16.0
-	github.com/parnurzeal/gorequest v0.2.16 // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.4.0
-	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975 // indirect
-	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2 // indirect
+	github.com/stretchr/testify v1.6.1
+	go.mongodb.org/mongo-driver v1.3.5 // indirect
+	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
 	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f // indirect
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.3.0
 	helm.sh/helm/v3 v3.1.2
 	k8s.io/api v0.18.0
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a // indirect
-	k8s.io/kubectl v0.17.2
-	moul.io/http2curl v1.0.0 // indirect
 	sigs.k8s.io/controller-runtime v0.5.2
 )
 

@@ -38,41 +38,16 @@ spec:
         metadata:
           type: object
         spec:
-          description: InstanceSpec defines the desired state of Instance
+          description: InstanceSpec defines the desired state of Instance.
           properties:
             garbageCollection:
               description: GarbageCollectionReq holds request information for a garbage
-                collection schedule
+                collection schedule.
               properties:
-                id:
-                  format: int64
-                  type: integer
-                name:
+                cron:
                   type: string
-                parameters:
-                  additionalProperties:
-                    type: string
-                  type: object
-                schedule:
-                  description: ScheduleParam defines the parameters of a schedule
-                    trigger
-                  properties:
-                    cron:
-                      description: The cron string of scheduled job
-                      type: string
-                    type:
-                      description: 'Daily, Hourly, Weekly, Custom, Manual, None Note:
-                        When creating pre-defined schedule types (e.g. ''Hourly''),
-                        the Cron string has to be provided.'
-                      type: string
-                  required:
-                  - cron
-                  - type
-                  type: object
-                status:
+                scheduleType:
                   type: string
-              required:
-              - schedule
               type: object
             helmChart:
               properties:
@@ -188,12 +163,12 @@ spec:
           - version
           type: object
         status:
-          description: InstanceStatus defines the observed state of Instance
+          description: InstanceStatus defines the observed state of Instance.
           properties:
             phase:
               properties:
                 lastTransition:
-                  description: Time of last observed transition into this state
+                  description: Time of last observed transition into this state.
                   format: date-time
                   type: string
                 message:

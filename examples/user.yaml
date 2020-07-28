@@ -12,3 +12,4 @@ spec:
   userSecretRef:
     name: harbor-user
   adminRole: true
+  passwordStrength: 16
