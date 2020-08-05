@@ -61,7 +61,8 @@ type InstanceSpec struct {
 	// error: Hit an unsupported type invalid type for invalid type
 	Type string `json:"type"`
 
-	InstanceURL string `json:"instanceURL"`
+	// The FQDN name of the host machine
+	InstanceHost string `json:"instanceHost"`
 
 	// +optional
 	Options *InstanceDeployOptions `json:"options,omitempty"`

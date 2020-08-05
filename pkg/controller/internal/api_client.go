@@ -30,5 +30,5 @@ func BuildClient(ctx context.Context, client client.Client,
 		return nil, err
 	}
 
-	return h.NewRESTClientForHost(harbor.Spec.InstanceURL, "/api", "admin", corePassword), nil
+	return h.NewRESTClientForHost(harbor.Spec.InstanceHost, "/api", "admin", corePassword), nil
 }

@@ -124,7 +124,8 @@ spec:
               - namespace
               - release
               type: object
-            instanceURL:
+            instanceHost:
+              description: The FQDN name of the host machine
               type: string
             name:
               type: string
@@ -157,7 +158,7 @@ spec:
               type: string
           required:
           - helmChart
-          - instanceURL
+          - instanceHost
           - name
           - type
           - version
