@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -78,7 +79,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // blank assignment to verify that ReconcileRepository implements reconcile.Reconciler.
 var _ reconcile.Reconciler = &ReconcileRepository{}
 
-// ReconcileRepository reconciles a Repository object
+// ReconcileRepository reconciles a Repository object.
 type ReconcileRepository struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
@@ -91,19 +92,17 @@ type ReconcileRepository struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileRepository) Reconcile(request reconcile.Request) (result reconcile.Result, err error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling Repository")
 
 	now := metav1.Now()
 	ctx := context.Background()
 
-	var result reconcile.Result
-
 	// Fetch the Repository instance
 	repository := &registriesv1alpha1.Repository{}
 
-	err := r.client.Get(ctx, request.NamespacedName, repository)
+	err = r.client.Get(ctx, request.NamespacedName, repository)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -122,7 +121,7 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseTerminating}
 		result = reconcile.Result{Requeue: true}
 
-		return r.updateRepositoryCR(ctx, nil, originalRepository, repository, result)
+		return r.updateRepositoryCR(ctx, nil, originalRepository, repository)
 	}
 
 	// Fetch the Instance
@@ -140,7 +139,7 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 			result = reconcile.Result{RequeueAfter: 120 * time.Second}
 		}
 
-		return r.updateRepositoryCR(ctx, nil, originalRepository, repository, result)
+		return r.updateRepositoryCR(ctx, nil, originalRepository, repository)
 	}
 
 	// Build a client to connect to the harbor API
@@ -187,12 +186,11 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 		result = reconcile.Result{}
 	}
 
-	return r.updateRepositoryCR(ctx, harbor, originalRepository, repository, result)
+	return r.updateRepositoryCR(ctx, harbor, originalRepository, repository)
 }
 
 // updateRepositoryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
-func (r *ReconcileRepository) updateRepositoryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance,
-	originalRepository, repository *registriesv1alpha1.Repository, result reconcile.Result) (reconcile.Result, error) {
+func (r *ReconcileRepository) updateRepositoryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalRepository, repository *registriesv1alpha1.Repository) (reconcile.Result, error) {
 	if originalRepository == nil || repository == nil {
 		return reconcile.Result{},
 			fmt.Errorf("cannot update repository '%s' because the original repository is nil", repository.Spec.Name)
@@ -228,7 +226,7 @@ func (r *ReconcileRepository) updateRepositoryCR(ctx context.Context, parentInst
 	return reconcile.Result{}, nil
 }
 
-// assertDeletedRepository deletes a Harbor project, first ensuring its existence
+// assertDeletedRepository deletes a Harbor project, first ensuring its existence.
 func (r *ReconcileRepository) assertDeletedRepository(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
 	repository *registriesv1alpha1.Repository) error {
 	_, err := harborClient.GetProject(ctx, repository.Name)
@@ -244,12 +242,12 @@ func (r *ReconcileRepository) assertDeletedRepository(ctx context.Context, log l
 
 // assertExistingRepository
 // Check Harbor projects and their components for their existence,
-// create and delete either of those to match the specification
+// create and delete either of those to match the specification.
 func (r *ReconcileRepository) assertExistingRepository(ctx context.Context, harborClient *h.RESTClient,
 	repository *registriesv1alpha1.Repository) error {
 	heldRepo, err := harborClient.GetProject(ctx, repository.Name)
 
-	if err.Error() == project.ErrProjectNotFoundMsg {
+	if errors.Is(err, &project.ErrProjectNotFound{}) {
 		_, err := harborClient.NewProject(ctx, repository.Spec.Name, repository.Spec.CountLimit,
 			repository.Spec.StorageLimit)
 		return err

@@ -95,19 +95,17 @@ type ReconcileUser struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileUser) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileUser) Reconcile(request reconcile.Request) (result reconcile.Result, err error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling User")
 
 	now := metav1.Now()
 	ctx := context.Background()
 
-	var result reconcile.Result
-
 	// Fetch the User instance
 	user := &registriesv1alpha1.User{}
 
-	err := r.client.Get(ctx, request.NamespacedName, user)
+	err = r.client.Get(ctx, request.NamespacedName, user)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.

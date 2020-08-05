@@ -191,7 +191,7 @@ func (r *ReconcileInstanceChartRepo) specToRepoEntry(ctx context.Context,
 	return &entry, nil
 }
 
-// getSecret gets and returns a kubernetes secret
+// getSecret gets and returns a kubernetes secret.
 func (r *ReconcileInstanceChartRepo) getSecret(ctx context.Context,
 	cr *registriesv1alpha1.InstanceChartRepo) (*corev1.Secret, error) {
 	var secret corev1.Secret

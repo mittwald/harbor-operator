@@ -79,19 +79,17 @@ type ReconcileReplication struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileReplication) Reconcile(request reconcile.Request) (result reconcile.Result, err error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling Replication")
 
 	now := metav1.Now()
 	ctx := context.Background()
 
-	var result reconcile.Result
-
 	// Fetch the Replication instance
 	replication := &registriesv1alpha1.Replication{}
 
-	err := r.client.Get(context.TODO(), request.NamespacedName, replication)
+	err = r.client.Get(context.TODO(), request.NamespacedName, replication)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -112,7 +110,7 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		}
 		result = reconcile.Result{Requeue: true}
 
-		return r.updateReplicationCR(ctx, nil, originalReplication, replication, result)
+		return r.updateReplicationCR(ctx, nil, originalReplication, replication)
 	}
 
 	// Fetch the Instance
@@ -133,7 +131,7 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 			result = reconcile.Result{RequeueAfter: 120 * time.Second}
 		}
 
-		return r.updateReplicationCR(ctx, nil, originalReplication, replication, result)
+		return r.updateReplicationCR(ctx, nil, originalReplication, replication)
 	}
 
 	// Build a client to connect to the harbor API
@@ -192,20 +190,19 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		result = reconcile.Result{}
 	}
 
-	return r.updateReplicationCR(ctx, harbor, originalReplication, replication, result)
+	return r.updateReplicationCR(ctx, harbor, originalReplication, replication)
 }
 
 // updateReplicationCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReconcileReplication) updateReplicationCR(ctx context.Context,
-	parentInstance *registriesv1alpha1.Instance, originalReplication,
-	replication *registriesv1alpha1.Replication, result reconcile.Result) (reconcile.Result, error) {
-	if originalReplication == nil || replication == nil {
+func (r *ReconcileReplication) updateReplicationCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance,
+	originalReplication, replication *registriesv1alpha1.Replication) (reconcile.Result, error) {
+	if originalReplication == nil {
 		return reconcile.Result{},
 			fmt.Errorf("cannot update replication '%s' because the original replication is nil",
 				replication.Spec.Name)
 	}
 
-	// Update Status
+	// Update status
 	if !reflect.DeepEqual(originalReplication.Status, replication.Status) {
 		originalReplication.Status = replication.Status
 		if err := r.client.Status().Update(ctx, originalReplication); err != nil {
@@ -213,7 +210,7 @@ func (r *ReconcileReplication) updateReplicationCR(ctx context.Context,
 		}
 	}
 
-	// set owner
+	// Set owner
 	if (len(originalReplication.OwnerReferences) == 0) && parentInstance != nil {
 		err := controllerruntime.SetControllerReference(parentInstance, originalReplication, r.scheme)
 		if err != nil {
@@ -221,7 +218,7 @@ func (r *ReconcileReplication) updateReplicationCR(ctx context.Context,
 		}
 	}
 
-	// Update Finalizer
+	// Update finalizer
 	if !reflect.DeepEqual(originalReplication.Finalizers, replication.Finalizers) {
 		originalReplication.SetFinalizers(replication.Finalizers)
 	}
@@ -237,7 +234,7 @@ func (r *ReconcileReplication) updateReplicationCR(ctx context.Context,
 func (r *ReconcileReplication) assertExistingReplication(ctx context.Context, harborClient *h.RESTClient,
 	originalReplication *registriesv1alpha1.Replication) error {
 	_, err := harborClient.GetReplicationPolicy(ctx, originalReplication.Name)
-	if err == internal.ErrReplicationNotFound {
+	if errors.Is(err, internal.ErrReplicationNotFound) {
 		rReq, err := r.buildReplicationFromSpec(originalReplication)
 		if err != nil {
 			return err

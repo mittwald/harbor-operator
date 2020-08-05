@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"reflect"
@@ -77,19 +78,17 @@ type ReconcileRegistry struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (result reconcile.Result, err error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling Registry")
 
 	now := metav1.Now()
 	ctx := context.Background()
 
-	var result reconcile.Result
-
 	// Fetch the Registry instance
 	registry := &registriesv1alpha1.Registry{}
 
-	err := r.client.Get(ctx, request.NamespacedName, registry)
+	err = r.client.Get(ctx, request.NamespacedName, registry)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -108,7 +107,7 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
 		result = reconcile.Result{Requeue: true}
 
-		return r.updateRegistryCR(ctx, nil, originalRegistry, registry, result)
+		return r.updateRegistryCR(ctx, nil, originalRegistry, registry)
 	}
 
 	// Fetch the Instance
@@ -125,7 +124,7 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 			result = reconcile.Result{RequeueAfter: 120 * time.Second}
 		}
 
-		return r.updateRegistryCR(ctx, nil, originalRegistry, registry, result)
+		return r.updateRegistryCR(ctx, nil, originalRegistry, registry)
 	}
 
 	// Build a client to connect to the harbor API
@@ -171,12 +170,11 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		result = reconcile.Result{}
 	}
 
-	return r.updateRegistryCR(ctx, harbor, originalRegistry, registry, result)
+	return r.updateRegistryCR(ctx, harbor, originalRegistry, registry)
 }
 
 // updateRegistryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
-func (r *ReconcileRegistry) updateRegistryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance,
-	originalRegistry, registry *registriesv1alpha1.Registry, result reconcile.Result) (reconcile.Result, error) {
+func (r *ReconcileRegistry) updateRegistryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalRegistry, registry *registriesv1alpha1.Registry) (reconcile.Result, error) {
 	if originalRegistry == nil || registry == nil {
 		return reconcile.Result{}, fmt.Errorf("cannot update registry '%s' because the original registry is nil",
 			registry.Spec.Name)
@@ -215,7 +213,7 @@ func (r *ReconcileRegistry) assertExistingRegistry(ctx context.Context, harborCl
 	originalRegistry *registriesv1alpha1.Registry) error {
 	_, err := harborClient.GetRegistry(ctx, originalRegistry.Name)
 
-	if err == internal.ErrRegistryNotFound {
+	if errors.Is(err, internal.ErrRegistryNotFound) {
 		rReq, err := r.buildRegistryFromSpec(originalRegistry)
 		if err != nil {
 			return err
