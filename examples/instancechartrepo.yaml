@@ -5,5 +5,5 @@ metadata:
   namespace: harbor-operator
 spec:
   url: https://helm.goharbor.io
-  secretRef:
-    name: harbor-instancechartrepo-secret
+#  secretRef:
+#    name: harbor-instancechartrepo-secret

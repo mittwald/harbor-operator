@@ -37,12 +37,12 @@ spec:
   name: test-harbor
   version: v1.3.1
   type: manual
-  instanceURL: https://core.harbor.domain/
+  instanceHost: core.harbor.domain
   garbageCollection:
     cron: "0 * * * *"
     scheduleType: "Hourly"
   helmChart:
-      release: test-harbor
+      release: test-harbortinsance
       chart: harbor/harbor
       version: v1.3.1
       namespace: harbor-operator
