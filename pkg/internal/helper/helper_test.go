@@ -103,7 +103,24 @@ func TestCreateSpecHash(t *testing.T) {
 	hash, err := CreateSpecHash(spec)
 
 	assert.NoError(t, err)
-	assert.NotNil(t, hash)
+
+	hash2, err := CreateSpecHash(spec)
+
+	assert.NoError(t, err)
+
+	if assert.NotNil(t, hash) && assert.NotNil(t, hash2) {
+		assert.Equal(t, hash, hash2)
+	}
+
+	spec.ChartName = "foo"
+
+	hash3, err := CreateSpecHash(spec)
+
+	assert.NoError(t, err)
+
+	if assert.NotNil(t, hash3) {
+		assert.NotEqual(t, hash, hash3)
+	}
 }
 
 func TestPushFinalizer(t *testing.T) {

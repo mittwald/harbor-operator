@@ -34,7 +34,7 @@ const (
 	testSecretCaFile   = "testcafile"
 )
 
-// newTestReconciler returns a reconcile with fake client, schemes and mock objects
+// newTestReconciler returns a reconcile with fake client, schemes and mock objects.
 func newTestReconciler(objs []runtime.Object) *ReconcileInstanceChartRepo {
 	s := scheme.Scheme
 

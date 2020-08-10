@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"reflect"
@@ -84,8 +85,6 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 	now := metav1.Now()
 	ctx := context.Background()
 
-	var result reconcile.Result
-
 	// Fetch the Registry instance
 	registry := &registriesv1alpha1.Registry{}
 
@@ -106,9 +105,8 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 	if registry.ObjectMeta.DeletionTimestamp != nil &&
 		registry.Status.Phase != registriesv1alpha1.RegistryStatusPhaseTerminating {
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
-		result = reconcile.Result{Requeue: true}
 
-		return r.updateRegistryCR(ctx, nil, originalRegistry, registry, result)
+		return r.updateRegistryCR(ctx, nil, originalRegistry, registry)
 	}
 
 	// Fetch the Instance
@@ -117,15 +115,13 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
 			helper.PullFinalizer(registry, FinalizerName)
 
-			result = reconcile.Result{}
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
 			return reconcile.Result{RequeueAfter: 30 * time.Second}, err
 		} else {
 			registry.Status = registriesv1alpha1.RegistryStatus{LastTransition: &now}
-			result = reconcile.Result{RequeueAfter: 120 * time.Second}
 		}
 
-		return r.updateRegistryCR(ctx, nil, originalRegistry, registry, result)
+		return r.updateRegistryCR(ctx, nil, originalRegistry, registry)
 	}
 
 	// Build a client to connect to the harbor API
@@ -140,7 +136,6 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	case registriesv1alpha1.RegistryStatusPhaseUnknown:
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseCreating}
-		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.RegistryStatusPhaseCreating:
 		helper.PushFinalizer(registry, FinalizerName)
@@ -152,14 +147,11 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseReady}
-		result = reconcile.Result{Requeue: true}
 	case registriesv1alpha1.RegistryStatusPhaseReady:
 		err := r.assertExistingRegistry(ctx, harborClient, registry)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-
-		result = reconcile.Result{}
 
 	case registriesv1alpha1.RegistryStatusPhaseTerminating:
 		// Delete the registry via harbor API
@@ -167,16 +159,13 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-
-		result = reconcile.Result{}
 	}
 
-	return r.updateRegistryCR(ctx, harbor, originalRegistry, registry, result)
+	return r.updateRegistryCR(ctx, harbor, originalRegistry, registry)
 }
 
 // updateRegistryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
-func (r *ReconcileRegistry) updateRegistryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance,
-	originalRegistry, registry *registriesv1alpha1.Registry, result reconcile.Result) (reconcile.Result, error) {
+func (r *ReconcileRegistry) updateRegistryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalRegistry, registry *registriesv1alpha1.Registry) (reconcile.Result, error) {
 	if originalRegistry == nil || registry == nil {
 		return reconcile.Result{}, fmt.Errorf("cannot update registry '%s' because the original registry is nil",
 			registry.Spec.Name)
@@ -215,7 +204,7 @@ func (r *ReconcileRegistry) assertExistingRegistry(ctx context.Context, harborCl
 	originalRegistry *registriesv1alpha1.Registry) error {
 	_, err := harborClient.GetRegistry(ctx, originalRegistry.Name)
 
-	if err == internal.ErrRegistryNotFound {
+	if errors.Is(err, internal.ErrRegistryNotFound) {
 		rReq, err := r.buildRegistryFromSpec(originalRegistry)
 		if err != nil {
 			return err

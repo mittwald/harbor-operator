@@ -147,7 +147,6 @@ func TestUserController_Instance_Phase(t *testing.T) {
 	})
 }
 
-// TestUserController_User_Deletion
 func TestUserController_User_Deletion(t *testing.T) {
 	instance := testingregistriesv1alpha1.CreateInstance(instanceName, ns)
 	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady

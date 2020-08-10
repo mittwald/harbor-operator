@@ -20,7 +20,7 @@ func (hash *InterfaceHash) Short() string {
 
 // GenerateHashFromInterfaces returns a hash sum based on a slice of given interfaces.
 func GenerateHashFromInterfaces(interfaces []interface{}) (InterfaceHash, error) {
-	var hashSrc []byte
+	hashSrc := make([]byte, len(interfaces))
 
 	for _, in := range interfaces {
 		chainElem, err := json.Marshal(in)
