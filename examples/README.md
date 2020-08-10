@@ -42,7 +42,7 @@ spec:
     cron: "0 * * * *"
     scheduleType: "Hourly"
   helmChart:
-      release: test-harbortinsance
+      release: test-harborinstance
       chart: harbor/harbor
       version: v1.3.1
       namespace: harbor-operator
