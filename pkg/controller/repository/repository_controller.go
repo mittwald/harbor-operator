@@ -92,7 +92,7 @@ type ReconcileRepository struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileRepository) Reconcile(request reconcile.Request) (result reconcile.Result, err error) {
+func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling Repository")
 
@@ -102,7 +102,7 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (result recon
 	// Fetch the Repository instance
 	repository := &registriesv1alpha1.Repository{}
 
-	err = r.client.Get(ctx, request.NamespacedName, repository)
+	err := r.client.Get(ctx, request.NamespacedName, repository)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -119,7 +119,6 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (result recon
 	if repository.ObjectMeta.DeletionTimestamp != nil &&
 		repository.Status.Phase != registriesv1alpha1.RepositoryStatusPhaseTerminating {
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseTerminating}
-		result = reconcile.Result{Requeue: true}
 
 		return r.updateRepositoryCR(ctx, nil, originalRepository, repository)
 	}
@@ -131,12 +130,10 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (result recon
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
 			helper.PullFinalizer(repository, FinalizerName)
 
-			result = reconcile.Result{}
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
 			return reconcile.Result{RequeueAfter: 30 * time.Second}, err
 		} else {
 			repository.Status = registriesv1alpha1.RepositoryStatus{LastTransition: &now}
-			result = reconcile.Result{RequeueAfter: 120 * time.Second}
 		}
 
 		return r.updateRepositoryCR(ctx, nil, originalRepository, repository)
@@ -154,7 +151,6 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (result recon
 
 	case registriesv1alpha1.RepositoryStatusPhaseUnknown:
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseCreating}
-		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.RepositoryStatusPhaseCreating:
 		helper.PushFinalizer(repository, FinalizerName)
@@ -166,15 +162,12 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (result recon
 		}
 
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseReady}
-		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.RepositoryStatusPhaseReady:
 		err := r.assertExistingRepository(ctx, harborClient, repository)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-
-		result = reconcile.Result{}
 
 	case registriesv1alpha1.RepositoryStatusPhaseTerminating:
 		// Delete the repository via harbor API
@@ -183,7 +176,6 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (result recon
 			return reconcile.Result{}, err
 		}
 
-		result = reconcile.Result{}
 	}
 
 	return r.updateRepositoryCR(ctx, harbor, originalRepository, repository)

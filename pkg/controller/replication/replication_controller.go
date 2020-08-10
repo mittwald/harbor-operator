@@ -79,7 +79,7 @@ type ReconcileReplication struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileReplication) Reconcile(request reconcile.Request) (result reconcile.Result, err error) {
+func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling Replication")
 
@@ -89,7 +89,7 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (result reco
 	// Fetch the Replication instance
 	replication := &registriesv1alpha1.Replication{}
 
-	err = r.client.Get(context.TODO(), request.NamespacedName, replication)
+	err := r.client.Get(context.TODO(), request.NamespacedName, replication)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -108,7 +108,6 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (result reco
 		replication.Status = registriesv1alpha1.ReplicationStatus{
 			Phase: registriesv1alpha1.ReplicationStatusPhaseTerminating,
 		}
-		result = reconcile.Result{Requeue: true}
 
 		return r.updateReplicationCR(ctx, nil, originalReplication, replication)
 	}
@@ -122,13 +121,11 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (result reco
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
 			helper.PullFinalizer(replication, FinalizerName)
 
-			result = reconcile.Result{}
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
 			return reconcile.Result{RequeueAfter: 30 * time.Second}, err
 		} else {
 			replication.Status = registriesv1alpha1.ReplicationStatus{LastTransition: &now}
 
-			result = reconcile.Result{RequeueAfter: 120 * time.Second}
 		}
 
 		return r.updateReplicationCR(ctx, nil, originalReplication, replication)
@@ -147,7 +144,6 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (result reco
 		replication.Status = registriesv1alpha1.ReplicationStatus{
 			Phase: registriesv1alpha1.ReplicationStatusPhaseCreating,
 		}
-		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.ReplicationStatusPhaseCreating:
 		helper.PushFinalizer(replication, FinalizerName)
@@ -170,7 +166,6 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (result reco
 		}
 
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseReady}
-		result = reconcile.Result{Requeue: true}
 
 	case registriesv1alpha1.ReplicationStatusPhaseReady:
 		err := r.assertExistingReplication(ctx, harborClient, replication)
@@ -178,16 +173,12 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (result reco
 			return reconcile.Result{}, err
 		}
 
-		result = reconcile.Result{}
-
 	case registriesv1alpha1.ReplicationStatusPhaseTerminating:
 		// Delete the replication via harbor API
 		err := r.assertDeletedReplication(ctx, reqLogger, harborClient, replication)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-
-		result = reconcile.Result{}
 	}
 
 	return r.updateReplicationCR(ctx, harbor, originalReplication, replication)
