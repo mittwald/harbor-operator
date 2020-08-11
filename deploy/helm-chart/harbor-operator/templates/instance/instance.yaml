@@ -9,8 +9,8 @@ spec:
   name: {{ .name }}
   version: {{ .version }}
   type: {{ .type }}
-  {{- if .instanceURL }}
-  instanceURL: {{ .instanceURL  }}
+  {{- if .InstanceURL }}
+  instanceURL: {{ .InstanceURL  }}
   {{- else }}
   instanceURL: "{{ .name }}-harbor-core"
   {{- end }}

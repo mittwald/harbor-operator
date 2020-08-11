@@ -672,6 +672,8 @@ github.com/mittwald/goharbor-client v1.0.1 h1:kVfppDh/R7PrfFRyR4A/BoGE8uaY7zmMKN
 github.com/mittwald/goharbor-client v1.0.1/go.mod h1:vsyXzu5KJYUCzey+G75KtRdDGVjSbCXu/9tTKC85BJQ=
 github.com/mittwald/goharbor-client v1.0.2 h1:jxj62uyIQR7bSxGB0oPwbyPKhG7lB6UVI9s3Dq/SFiw=
 github.com/mittwald/goharbor-client v1.0.2/go.mod h1:vsyXzu5KJYUCzey+G75KtRdDGVjSbCXu/9tTKC85BJQ=
+github.com/mittwald/goharbor-client v1.0.3 h1:Rcpv8skea7/LngU9crogpFYlhqdIn+Zj10rNDje2o84=
+github.com/mittwald/goharbor-client v1.0.3/go.mod h1:vsyXzu5KJYUCzey+G75KtRdDGVjSbCXu/9tTKC85BJQ=
 github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309 h1:cvy4lBOYN3gKfKj8Lzz5Q9TfviP+L7koMHY7SvkyTKs=
 github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309/go.mod h1:fDXVQ6+S340veQPv35CzDahGBmHsiclFwfEygB/TWMc=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=

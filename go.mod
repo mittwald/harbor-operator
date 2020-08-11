@@ -17,7 +17,7 @@ require (
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/mittwald/go-helm-client v0.2.0
-	github.com/mittwald/goharbor-client v1.0.2
+	github.com/mittwald/goharbor-client v1.0.3
 	github.com/operator-framework/operator-sdk v0.16.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.4.0

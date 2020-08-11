@@ -62,7 +62,7 @@ type InstanceSpec struct {
 	Type string `json:"type"`
 
 	// The URL of the Harbor instance
-	instanceURL string `json:"instanceURL"`
+	InstanceURL string `json:"instanceURL"`
 
 	// +optional
 	Options *InstanceDeployOptions `json:"options,omitempty"`
