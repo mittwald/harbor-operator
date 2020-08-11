@@ -37,7 +37,7 @@ spec:
   name: test-harbor
   version: v1.3.1
   type: manual
-  instanceHost: core.harbor.domain
+  instanceURL: http://core.harbor.domain
   garbageCollection:
     cron: "0 * * * *"
     scheduleType: "Hourly"

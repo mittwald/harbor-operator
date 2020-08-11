@@ -18,7 +18,7 @@ func CreateInstance(name, namespace string) registriesv1alpha1.Instance {
 			Name:        name,
 			Version:     "v1.0.0",
 			Type:        "manual",
-			InstanceHost: "core.harbor.domain",
+			InstanceURL: "http://core.harbor.domain",
 			GarbageCollection: &registriesv1alpha1.GarbageCollection{
 				Cron:         "0 * * * *",
 				ScheduleType: "Hourly",

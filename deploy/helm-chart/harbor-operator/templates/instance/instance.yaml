@@ -9,10 +9,10 @@ spec:
   name: {{ .name }}
   version: {{ .version }}
   type: {{ .type }}
-  {{- if .instanceHost }}
-  instanceHost: {{ .instanceHost  }}
+  {{- if .instanceURL }}
+  instanceURL: {{ .instanceURL  }}
   {{- else }}
-  instanceHost: "{{ .name }}-harbor-core"
+  instanceURL: "{{ .name }}-harbor-core"
   {{- end }}
   helmChart:
     release: {{ .name }}
