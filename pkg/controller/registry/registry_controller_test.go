@@ -89,7 +89,7 @@ func TestRegistryController_Registry_Deletion(t *testing.T) {
 	ns := "test-namespace"
 
 	instance := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
-	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
 
 	repo := testingregistriesv1alpha1.CreateRegistry("test-registry", ns, instance.Spec.Name)
 	repo.Status.Phase = registriesv1alpha1.RegistryStatusPhaseReady

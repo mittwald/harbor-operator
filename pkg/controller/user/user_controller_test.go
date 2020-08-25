@@ -43,7 +43,7 @@ func buildReconcileWithFakeClientWithMocks(objs []runtime.Object) *ReconcileUser
 
 func TestUserController_Empty_User_Spec(t *testing.T) {
 	instance := testingregistriesv1alpha1.CreateInstance(instanceName, ns)
-	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
 
 	instanceSecret := testingregistriesv1alpha1.CreateSecret(instance.Name+"-harbor-core", ns)
 
@@ -123,7 +123,7 @@ func TestUserController_Instance_Phase(t *testing.T) {
 
 	t.Run("ExistingInstance", func(t *testing.T) {
 		instance := testingregistriesv1alpha1.CreateInstance(instanceName, ns)
-		instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+		instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
 
 		u := registriesv1alpha1.User{}
 
@@ -149,7 +149,7 @@ func TestUserController_Instance_Phase(t *testing.T) {
 
 func TestUserController_User_Deletion(t *testing.T) {
 	instance := testingregistriesv1alpha1.CreateInstance(instanceName, ns)
-	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
 
 	u := testingregistriesv1alpha1.CreateUser("test-user", ns)
 	u.Spec.ParentInstance.Name = instance.Spec.Name

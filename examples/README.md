@@ -1,5 +1,5 @@
 ## Example Resources
-This page covers example usage of the following custom resources:
+This page covers example usage of all resources supported by this operator.
 
 [Instances](#Instances) (Harbor Helm installations)
 
@@ -11,20 +11,19 @@ This page covers example usage of the following custom resources:
 
 [Registries](#Registries)
 
-[Users](#Users)
-   
-   - [User Secrets](#User-Secrets)
-
 [Replications](#Replications)
     
    - [Source Registries](#Source-Registries)
 
    - [Destination Registries](#Destination-Registries)
 
-### Instances
-The`Instance`-resource utilizes the `InstanceChartRepo`-resource for helm deployments
+[Users](#Users)
+   
+   - [User Secrets](#User-Secrets)
 
-The former describes the helm deployment of a desired harbor instance:
+
+### Instances
+The`Instance`-resource specifies the desired Harbor helm installation:
 
 [./instance.yaml](./instance.yaml)
 ```yaml
@@ -37,7 +36,7 @@ spec:
   name: test-harbor
   version: v1.3.1
   type: manual
-  instanceURL: https://core.harbor.domain/
+  instanceURL: http://core.harbor.domain:30002 # this may be replaced with {http/https}://yourdomain.com
   garbageCollection:
     cron: "0 * * * *"
     scheduleType: "Hourly"
@@ -46,22 +45,24 @@ spec:
       chart: harbor/harbor
       version: v1.3.1
       namespace: harbor-operator
-      valuesYaml: |
-          expose:
-            type: ingress
-            tls:
-              enabled: true
-            ingress:
-              hosts:
-                core: core.harbor.domain
-            persistence:
-              enabled: true
-            harborAdminPassword: ""
+      valuesYaml: | # the helm values the harbor instance is deployed with
+        expose:
+          type: nodePort
+          tls:
+            enabled: false
+            secretName: ""
+            notarySecretName: ""
+            commonName: ""
+          ingress:
       [...]
 ```
 
-Note: Specyfing an empty string for the `harborAdminPassword`-key in `spec.helmChart.valuesYaml` will trigger password generation by the harbor instance itself.
-The admin password will then be saved under the key `HARBOR_ADMIN_PASSWORD` in a secret named `HELM_RELEASE_NAME`-`harbor-core`.
+The operator utilizes the [InstanceChartRepo](#InstanceChartRepos)-resource for these helm installations.
+
+Note: Specifying an empty string for the `harborAdminPassword`-key in `spec.helmChart.valuesYaml` will trigger
+ password generation by the Harbor instance itself.
+The admin password will be saved under the key `HARBOR_ADMIN_PASSWORD` in a secret named `HELM_RELEASE_NAME
+`-`harbor-core`.
 
 [Harbor Garbage Collection](https://goharbor.io/docs/1.10/administration/garbage-collection/) can be configured via `spec.garbageCollection`.
 Valid values for `.scheduleType` are `Hourly`, `Daily`, `Weekly`, `Custom`, `Manual`, and `None` (each starting with
@@ -74,12 +75,13 @@ The `.cron` parameter is a cron expression:
     scheduleType: "Hourly"
 ```
 
-The `None`-value of the schedule type effectively deactivates the garbage collection.
+A `None`-value of the schedule type effectively deactivates the garbage collection.
  
 ### InstanceChartRepos
 An `InstanceChartRepo` object references the actual chart repository to be installed.
 
-By utilizing a custom [helm client](https://github.com/mittwald/go-helm-client), the accompanying controller automatically adds/updates the specified chart in it's local cache (similarly to `helm repo add`).
+By utilizing a custom [helm client](https://github.com/mittwald/go-helm-client), 
+the accompanying controller automatically adds/updates the specified chart in its local cache (similarly to `helm repo add`).
 
 An example `InstanceChartRepo`, using the official [goharbor/harbor-helm](https://github.com/goharbor/harbor-helm) chart might look like this:
 
@@ -94,12 +96,20 @@ spec:
   url: https://helm.goharbor.io
 ```
 
+When using `kubectl get`, the following fields are exposed through the CRs status fields:
+
+```shell script
+kubectl get instancechartrepos.registries.mittwald.de 
+NAME     URL                        STATUS
+harbor   https://helm.goharbor.io   Ready
+```
+
 If you need credentials accessing the desired helm repository, you can use kubernetes secrets and reference it with `spec.secretRef.name: <my-secret-name>`
 
 #### InstanceChartRepo Secrets
-`instancechartrepo` secrets are saved as kubernetes secrets:
+An `instancechartrepo`'s secret is a kubernetes secret:
 
-[./instancechartrepo_secret.yaml](./instancechartrepo_secret.yaml)
+[./instancechartrepo-secret.yaml](./instancechartrepo-secret.yaml)
 ```yaml
 apiVersion: v1
 data:
@@ -112,13 +122,22 @@ metadata:
 ```
 
 ### Repositories
-Repositories (or *Harbor Projects*) hold the information of a Harbor project, mirroring values from it's spec to on to a Harbor instance via the [goharbor-client](https://github.com/mittwald/goharbor-client) library.
+Repositories (or *Harbor Projects*) hold the information of a Harbor project, mirroring values from its spec on to a Harbor instance via the [goharbor-client](https://github.com/mittwald/goharbor-client) library.
 
 A harbor project is "hollow", in the sense of being the authority that holds repository and helm chart information over its lifecycle.
 
 The essential values for a repository are its `.spec.name` and `.spec.parentInstance`. The latter is a reference to the name of the harbor instance.
 
-Notice that project members are also supported - you can specify these under `.spec.memberRequests`.
+Notice that the operator supports project members, too - you can specify these under `.spec
+.memberRequests`.
+
+When using `kubectl get`, the following fields are exposed through the CRs status fields:
+
+```shell script
+kubectl get repository.registries.mittwald.de
+NAME           STATUS   ID    PUBLIC
+repository-1   Ready    1     false
+```
 
 [./repository.yaml](./repository.yaml)
 ```yaml
@@ -131,7 +150,7 @@ spec:
   memberRequests:
   - role: ProjectAdmin # one of "ProjectAdmin", "Developer", "Guest" or "Master"
     user:
-     name: "harbor-user" # reference to an user
+     name: "harbor-user" # reference to a user object
   name: repository-1
   parentInstance:
     name: test-harbor
@@ -145,30 +164,61 @@ spec:
 ```
 
 ### Registries
-Registries (or *registry endpoints*) are user-defined registry endpoints, for example a custom `docker-registry` or another `harbor` instance.
+Registries (or *registry endpoints*) are user-defined registry endpoints, for example a custom `docker-registry
+`, `docker-hub` or another `harbor` instance.
 
 This example shows a registry endpoint targeted at [Docker Hub](https://hub.docker.com/):
 
-The available registry types (configureable via `.spec.type`) are:
+The available registry types (configurable via `.spec.type`) are:
 
 `harbor`, `docker-hub`, `docker-registry`, `huawei-SWR`, `google-gcr`, `aws-ecr`,
 `azure-acr`, `ali-acr`, `jfrog-artifactory`, `quay-io`, `gitlab`, `helm-hub`.
 
-[./registry.yaml](./registry.yaml)
+[./registry-dockerhub.yaml](./registry-dockerhub.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha1
 kind: Registry
 metadata:
-  name: test-registry
+  name: test-registry-dockerhub
   namespace: harbor-operator
 spec:
-  id: 1
-  name: test-registry
+  name: test-registry-dockerhub
   parentInstance:
     name: test-harbor
   type: docker-hub
   url: https://hub.docker.com
   insecure: false
+```
+
+_Testing the operator locally?_
+
+An example [docker-registry](https://hub.docker.com/_/registry) will be deployed in your kind cluster when following [these steps](../README.md#Local-Development).
+
+This enables you to locally test registries and replications.
+
+When using `kubectl get`, the following fields are exposed through the CRs status fields:
+
+```shell script
+kubectl get registries.registries.mittwald.de
+NAME                  STATUS   ID
+test-registry         Ready    1
+test-registry-local   Ready    2
+```
+
+[./registry-local.yaml](./registry-local.yaml)
+```yaml
+apiVersion: registries.mittwald.de/v1alpha1
+kind: Registry
+metadata:
+  name: test-registry-local
+  namespace: harbor-operator
+spec:
+  name: test-registry-local
+  parentInstance:
+    name: test-harbor
+  type: docker-registry
+  url: "http://registry-docker-registry:5000/"
+  insecure: true
 ```
 
 ### Replications
@@ -178,14 +228,22 @@ Using a [**source registry**](#Source-Registries) via `.spec.srcRegistry` equals
 
 Using a [**destination registry**](#Destination-Registries) via `.spec.destRegistry` equals using the **'Push-based'** option for **'Replication Mode'** in the harbor web UI.
 
+When using `kubectl get`, the following fields are exposed through the CRs status fields:
+
+```shell script
+kubectl get replications.registries.mittwald.de
+NAME                   STATUS   ID    ENABLED   SOURCE                DESTINATION
+test-replication-dst   Ready    1     true      harbor                docker-hub
+test-replication-src   Ready    2     true      docker-hub            harbor
+```
+
 #### Source Registries
-Specifying a source registry will trigger harbor to pull the specified resource from the remote registry to the local registry.
+Specifying a source registry will trigger harbor to _pull_ the specified resource from the remote registry to the
+ local registry.
 
 Filters and triggers are *optional* fields.
 
-The commented filters in this example will make harbor filter the provided registry for `alpine:latest`:
-
-[./replication_src.yaml](./replication_src.yaml)
+[./replication-src.yaml](./replication-src.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha1
 kind: Replication
@@ -193,16 +251,15 @@ metadata:
   name: test-replication-src
   namespace: harbor-operator
 spec:
-  id: 1
   name: test-replication-src
   parentInstance:
     name: test-harbor
-  deletion: false
-  override: true
+  replicateDeletion: false # do not replicate deletion operations
+  override: true # override the resources on the destination registry
   enabled: true
-  triggerAfterCreation: true
-  srcRegistry:
-    name: test-registry
+  triggerAfterCreation: true # trigger this replication after its creation
+  srcRegistry: # you have to create the srcRegistry via a registry custom resource first
+    name: test-registry-local
 #  filters:
 #    - type: name
 #      value: alpine
@@ -214,15 +271,15 @@ spec:
 #      cron: ""
 ```
 
+The commented `filters` section in this example will make harbor filter the provided registry for `alpine:latest`:
+
 #### Destination Registries
 
 Specifying a destination registry will trigger harbor to **push** the specified resource to the remote registry.
 
 Filters and triggers are *optional* fields.
 
-The commented filters would make harbor filter for `alpine:latest`. 
-
-[./replication_dst.yaml](./replication_dst.yaml)
+[./replication-dst.yaml](./replication-dst.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha1
 kind: Replication
@@ -230,16 +287,15 @@ metadata:
   name: test-replication-dst
   namespace: harbor-operator
 spec:
-  id: 2
   name: test-replication-dst
   parentInstance:
     name: test-harbor
-  deletion: false
-  override: true
+  replicateDeletion: false  # do not replicate deletion operations
+  override: true # override the resources on the destination registry
   enabled: true
   triggerAfterCreation: true
-  destRegistry:
-    name: test-registry
+  destRegistry: # you have to create the destRegistry via a registry custom resource first
+    name: test-registry-local
 #  filters:
 #    - type: name
 #      value: alpine
@@ -252,11 +308,10 @@ spec:
 ```
 
 ### Users
-
-Users can access individual harbor projects through project memberships (defined in the desired repository spec). 
+Users can access individual harbor projects through project memberships (defined in the desired [repository](#Repositories) spec). 
 The admin role grants full admin access over a harbor instance, toggleable via `.spec.adminRole`.
 
-If no user password is provided through an existing `.spec.userSecretRef`, the strength for a generated password can
+If `.spec.userSecretRef` specifies a non-existing secret, the strength for a generated secret password value can
  be defined via `.spec.passwordStrength`.
 
 [./user.yaml](./user.yaml)
@@ -279,16 +334,18 @@ spec:
 ```
 
 #### User Secrets
-A user CR must contain the name of a kubernetes secret (*LocalObjectReference*) specfied via `.spec.userSecretRef.name`.
+A user CR **must** contain the name of a kubernetes secret (*LocalObjectReference*) specfied via `.spec.userSecretRef
+.name`.
 
-**Note**: If a pre-existing (or manually created) secret is specified, **it is included for deletion** through reconciliation if the user is deleted.
+**Note**: When specifying a pre-existing (or manually created) secret, **it is included for deletion
+** through reconciliation when the user gets deleted.
 
-In case the secret with the specified name cannot be found, a new secret with the specified name `.spec.userSecretRef.name` will be created instead.
-The users password will then be randomly generated.
+In case the secret with the specified name cannot be found, a new secret with the name specified under `.spec.userSecretRef.name` will be created.
+The users' password then will get randomly generated.
 
 **Passwords must be longer than 8 characters, containing at least 1 uppercase letter, 1 lowercase letter and 1 number.**
 
-[./user_secret.yaml](./user_secret.yaml)
+[./user-secret.yaml](./user-secret.yaml)
 ```yaml
 apiVersion: v1
 data:

@@ -45,3 +45,9 @@ mock:
 	--name Client --structname MockClient --filename=runtime_client_mock.go \
 	--output "$(PWD)/pkg/internal/mocks"
 	rm $(PWD)/interfaces.go
+
+bootstrap-kind:
+	scripts/bootstrap-kind.sh
+
+teardown:
+	scripts/teardown-harbor.sh

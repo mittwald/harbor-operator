@@ -7,7 +7,7 @@ spec:
   memberRequests:
   - role: ProjectAdmin # one of "ProjectAdmin", "Developer", "Guest" or "Master"
     user:
-     name: "harbor-user" # reference to an user
+     name: "harbor-user" # reference to a user object
   name: repository-1
   parentInstance:
     name: test-harbor

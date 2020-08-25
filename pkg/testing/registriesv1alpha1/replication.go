@@ -14,9 +14,7 @@ func CreateReplication(name, namespace, instanceRef string) registriesv1alpha1.R
 			Namespace: namespace,
 		},
 		Spec: registriesv1alpha1.ReplicationSpec{
-			ID:            1,
 			Name:          name,
-			Deletion:      false,
 			Description:   "",
 			Creator:       "",
 			DestNamespace: "",
@@ -26,6 +24,7 @@ func CreateReplication(name, namespace, instanceRef string) registriesv1alpha1.R
 			ReplicateDeletion: false,
 			ParentInstance:    corev1.LocalObjectReference{Name: instanceRef},
 		},
+		Status: registriesv1alpha1.ReplicationStatus{ID: 1},
 	}
 
 	return r

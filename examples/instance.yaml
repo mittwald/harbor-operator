@@ -7,7 +7,7 @@ spec:
   name: test-harbor
   version: v1.3.1
   type: manual
-  instanceURL: https://core.harbor.domain/
+  instanceURL: http://core.harbor.domain:30002
   garbageCollection:
     cron: "0 * * * *"
     scheduleType: "Hourly"
@@ -18,16 +18,16 @@ spec:
       namespace: harbor-operator
       valuesYaml: |
         expose:
-          type: ingress
+          type: nodePort
           tls:
-            enabled: true
+            enabled: false
             secretName: ""
             notarySecretName: ""
             commonName: ""
           ingress:
             hosts:
-              core: core.harbor.domain
-              notary: core.harbor.domain
+              core: core.harbor.domain:30002
+              notary: core.harbor.domain:30002
             controller: default
             annotations:
               cert-manager.io/cluster-issuer: "letsencrypt-issuer"
@@ -62,7 +62,7 @@ spec:
               notaryPort: 4443
             annotations: {}
             sourceRanges: []
-        externalURL: https://core.harbor.domain/
+        externalURL: http://core.harbor.domain:30002
         persistence:
           enabled: true
           resourcePolicy: "keep"
@@ -136,7 +136,7 @@ spec:
         # If left empty, trigger password generation by the harbor instance itself
         # The admin password will then be saved under the key `HARBOR_ADMIN_PASSWORD`
         # in a secret named `HELM_RELEASE_NAME`-`harbor-core`
-        harborAdminPassword: ""
+        harborAdminPassword: "Harbor12345"
         secretKey: "not-a-secure-key"
         proxy:
           httpProxy:
@@ -149,7 +149,7 @@ spec:
         nginx:
           image:
             repository: goharbor/nginx-photon
-            tag: v1.10.1
+            tag: v1.10.2
           replicas: 1
           nodeSelector: {}
           tolerations: []
@@ -158,7 +158,7 @@ spec:
         portal:
           image:
             repository: goharbor/harbor-portal
-            tag: v1.10.1
+            tag: v1.10.2
           replicas: 1
           nodeSelector: {}
           tolerations: []
@@ -168,7 +168,7 @@ spec:
         core:
           image:
             repository: goharbor/harbor-core
-            tag: v1.10.1
+            tag: v1.10.2
           replicas: 1
           livenessProbe:
             initialDelaySeconds: 30
@@ -182,7 +182,7 @@ spec:
         jobservice:
           image:
             repository: goharbor/harbor-jobservice
-            tag: v1.10.1
+            tag: v1.10.2
           replicas: 1
           maxJobWorkers: 10
           jobLogger: file
@@ -195,11 +195,11 @@ spec:
           registry:
             image:
               repository: goharbor/registry-photon
-              tag: v1.10.1-dev
+              tag: v1.10.2-dev
           controller:
             image:
               repository: goharbor/harbor-registryctl
-              tag: v1.10.1
+              tag: v1.10.2
           replicas: 1
           nodeSelector: {}
           tolerations: []
@@ -225,7 +225,7 @@ spec:
           absoluteUrl: false
           image:
             repository: goharbor/chartmuseum-photon
-            tag: v1.10.1-dev
+            tag: v1.10.2-dev
           replicas: 1
           nodeSelector: {}
           tolerations: []
@@ -236,11 +236,11 @@ spec:
           clair:
             image:
               repository: goharbor/clair-photon
-              tag: v1.10.1-dev
+              tag: v1.10.2-dev
           adapter:
             image:
               repository: goharbor/clair-adapter-photon
-              tag: v1.0.1-v1.10.1
+              tag: v1.10.2
           replicas: 1
           updatersInterval: 12
           nodeSelector: {}
@@ -272,12 +272,12 @@ spec:
           server:
             image:
               repository: goharbor/notary-server-photon
-              tag: v0.6.1-v1.10.1
+              tag: v1.10.2
             replicas: 1
           signer:
             image:
               repository: goharbor/notary-signer-photon
-              tag: v0.6.1-v1.10.1
+              tag: v1.10.2
             replicas: 1
           nodeSelector: {}
           tolerations: []
@@ -290,7 +290,7 @@ spec:
           internal:
             image:
               repository: goharbor/harbor-db
-              tag: v1.10.1
+              tag: v1.10.2
             initContainerImage:
               repository: busybox
               tag: latest
@@ -316,7 +316,7 @@ spec:
           internal:
             image:
               repository: goharbor/redis-photon
-              tag: v1.10.1
+              tag: v1.10.2
             nodeSelector: {}
             tolerations: []
             affinity: {}

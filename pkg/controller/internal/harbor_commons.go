@@ -32,9 +32,6 @@ func (e ErrRegistryNotReady) Error() string {
 	return fmt.Sprintf("registry '%s' not ready", string(e))
 }
 
-// ErrUserNotFound is a custom error type describing the absence of a user.
-var ErrUserNotFound = errors.New("user not found")
-
 // ErrRegistryNotFound is a custom error type describing the absence of a registry.
 var ErrRegistryNotFound = errors.New("registry not found")
 
@@ -59,7 +56,7 @@ func FetchReadyHarborInstance(ctx context.Context, namespace, parentInstanceName
 	}
 
 	// Reconcile only if the corresponding harbor instance is in 'Ready' state
-	if harbor.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseReady {
+	if harbor.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseInstalled {
 		return nil, ErrInstanceNotReady(parentInstanceName)
 	}
 

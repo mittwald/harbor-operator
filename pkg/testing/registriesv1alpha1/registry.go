@@ -14,7 +14,6 @@ func CreateRegistry(name, namespace, instanceRef string) registriesv1alpha1.Regi
 			Namespace: namespace,
 		},
 		Spec: registriesv1alpha1.RegistrySpec{
-			ID:             1,
 			Name:           "test-registry",
 			Description:    "test registry",
 			Type:           "manual",
@@ -23,6 +22,7 @@ func CreateRegistry(name, namespace, instanceRef string) registriesv1alpha1.Regi
 			Insecure:       false,
 			ParentInstance: corev1.LocalObjectReference{Name: instanceRef},
 		},
+		Status: registriesv1alpha1.RegistryStatus{ID: 1},
 	}
 
 	return r

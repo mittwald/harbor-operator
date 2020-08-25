@@ -11,7 +11,7 @@ type InstanceStatusPhaseName string
 const (
 	InstanceStatusPhasePending     InstanceStatusPhaseName = "Pending"
 	InstanceStatusPhaseInstalling  InstanceStatusPhaseName = "Installing"
-	InstanceStatusPhaseReady       InstanceStatusPhaseName = "Ready"
+	InstanceStatusPhaseInstalled   InstanceStatusPhaseName = "Installed"
 	InstanceStatusPhaseTerminating InstanceStatusPhaseName = "Terminating"
 	InstanceStatusPhaseError       InstanceStatusPhaseName = "Error"
 )
@@ -31,8 +31,10 @@ const (
 
 // Instance is the Schema for the instances API
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=instances,scope=Namespaced,shortName=harborinstance;harbor;harb
+// +kubebuilder:resource:path=instances,scope=Namespaced,shortName=harborinstance;harbor
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase.name",description="phase"
+// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.version",description="instance version"
+// +kubebuilder:printcolumn:name="URL",type="string",JSONPath=".spec.instanceURL", description="harbor instance url"
 type Instance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -57,7 +59,7 @@ func init() {
 type InstanceSpec struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
-	// cant use the resulting string-type so this is a simple string and will be casted to an OperatorType in the resolver:
+	// can't use the resulting string-type so this is a simple string and will be casted to an OperatorType in the resolver:
 	// error: Hit an unsupported type invalid type for invalid type
 	Type string `json:"type"`
 
@@ -107,8 +109,10 @@ type InstanceHelmChartSecretValues struct {
 // InstanceStatus defines the observed state of Instance.
 type InstanceStatus struct {
 	Phase InstanceStatusPhase `json:"phase"`
+
 	// +optional
-	Version  string `json:"version"`
+	Version string `json:"version"`
+
 	SpecHash string `json:"specHash"`
 }
 

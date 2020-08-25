@@ -12,6 +12,14 @@ type (
 )
 
 const (
+	MemberRoleIDDefault MemberRoleID = iota
+	MemberRoleIDProjectAdmin
+	MemberRoleIDDeveloper
+	MemberRoleIDGuest
+	MemberRoleIDMaster
+)
+
+const (
 	RepositoryStatusPhaseUnknown     RepositoryStatusPhaseName = ""
 	RepositoryStatusPhaseCreating    RepositoryStatusPhaseName = "Creating"
 	RepositoryStatusPhaseReady       RepositoryStatusPhaseName = "Ready"
@@ -21,12 +29,6 @@ const (
 	MemberRoleDeveloper    MemberRole = "Developer"
 	MemberRoleGuest        MemberRole = "Guest"
 	MemberRoleMaster       MemberRole = "Master"
-
-	MemberRoleIDDefault MemberRoleID = iota
-	MemberRoleIDProjectAdmin
-	MemberRoleIDDeveloper
-	MemberRoleIDGuest
-	MemberRoleIDMaster
 )
 
 type RepositorySpec struct {
@@ -78,6 +80,8 @@ type MemberRequest struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=repository,scope=Namespaced,shortName=repo;repos;harborrepos
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="phase"
+// +kubebuilder:printcolumn:name="ID",type="integer",JSONPath=".status.id",description="harbor replication id"
+// +kubebuilder:printcolumn:name="Public",type="boolean",JSONPath=".spec.metadata.public",description="harbor replication id"
 type Repository struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -102,6 +106,9 @@ type RepositoryStatus struct {
 	// Time of last observed transition into this state
 	// +optional
 	LastTransition *metav1.Time `json:"lastTransition,omitempty"`
+
+	// The repository ID is written back from the held project ID.
+	ID int32 `json:"id,omitempty"`
 }
 
 func init() {

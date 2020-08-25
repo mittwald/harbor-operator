@@ -28,8 +28,6 @@ const (
 
 // ReplicationSpec defines the desired state of Replication
 type ReplicationSpec struct {
-	Deletion bool `json:"deletion"`
-
 	// Whether to override the resources on the destination registry or not
 	Override bool `json:"override"`
 
@@ -41,9 +39,6 @@ type ReplicationSpec struct {
 	// Whether to replicate the deletion operation
 	// +optional
 	ReplicateDeletion bool `json:"replicateDeletion,omitempty"`
-
-	// +optional
-	ID int64 `json:"id"`
 
 	// The name of the replication
 	Name string `json:"name"`
@@ -90,6 +85,12 @@ type ReplicationStatus struct {
 	// Time of last observed transition into this state
 	// +optional
 	LastTransition *metav1.Time `json:"lastTransition,omitempty"`
+
+	// The replication ID is written back from the held replication ID.
+	ID int64 `json:"id,omitempty"`
+	// The respective source and destination registries
+	Source      string `json:"source,omitempty"`
+	Destination string `json:"destination,omitempty"`
 }
 
 // Have to use our custom type here, because we cannot DeepCopy the pointer of *h.Trigger
@@ -119,11 +120,14 @@ type TriggerSettings struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // Replication is the Schema for the replications API
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=replications,scope=Namespaced
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="phase"
+// +kubebuilder:printcolumn:name="ID",type="integer",JSONPath=".status.id",description="harbor replication id"
+// +kubebuilder:printcolumn:name="Enabled",type="boolean",JSONPath=".spec.enabled",description="harbor replication id"
+// +kubebuilder:printcolumn:name="Source",type="string",JSONPath=".status.source",description="source registry"
+// +kubebuilder:printcolumn:name="Destination",type="string",JSONPath=".status.destination",description="destination registry"
 type Replication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

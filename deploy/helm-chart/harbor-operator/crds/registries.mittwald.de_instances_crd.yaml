@@ -8,6 +8,14 @@ spec:
     description: phase
     name: Status
     type: string
+  - JSONPath: .spec.version
+    description: instance version
+    name: Version
+    type: string
+  - JSONPath: .spec.instanceURL
+    description: harbor instance url
+    name: URL
+    type: string
   group: registries.mittwald.de
   names:
     kind: Instance
@@ -16,7 +24,6 @@ spec:
     shortNames:
     - harborinstance
     - harbor
-    - harb
     singular: instance
   scope: Namespaced
   subresources:
@@ -149,7 +156,7 @@ spec:
                   type: object
               type: object
             type:
-              description: 'cant use the resulting string-type so this is a simple
+              description: 'can''t use the resulting string-type so this is a simple
                 string and will be casted to an OperatorType in the resolver: error:
                 Hit an unsupported type invalid type for invalid type'
               type: string
