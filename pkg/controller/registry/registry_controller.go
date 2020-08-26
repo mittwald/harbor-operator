@@ -331,10 +331,7 @@ func (r *ReconcileRegistry) buildRegistryFromCR(originalRegistry *registriesv1al
 func (r *ReconcileRegistry) assertDeletedRegistry(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
 	registry *registriesv1alpha1.Registry) error {
 	reg, err := harborClient.GetRegistry(ctx, registry.Name)
-
-	if err != nil && err.Error() == registryClient.ErrRegistryNotFoundMsg {
-		return err
-	} else if err != nil {
+	if err != nil {
 		return err
 	}
 

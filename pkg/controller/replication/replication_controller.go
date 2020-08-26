@@ -428,13 +428,7 @@ func (r *ReconcileReplication) getHarborRegistryFromRef(ctx context.Context, reg
 		return nil, internal.ErrRegistryNotReady(registry.Name)
 	}
 
-	var registryID int64
-
-	if registry.Status.ID != 0 {
-		registryID = registry.Status.ID
-	}
-
-	return registry.Spec.ToHarborRegistry(registryID), nil
+	return registry.Spec.ToHarborRegistry(registry.Status.ID), nil
 }
 
 // assertDeletedReplication deletes a replication, first ensuring its existence
@@ -443,11 +437,11 @@ func (r *ReconcileReplication) assertDeletedReplication(ctx context.Context, log
 	receivedReplicationPolicy, err := harborClient.GetReplicationPolicy(ctx, replication.Name)
 	if err != nil {
 		return err
-	} else {
-		err = harborClient.DeleteReplicationPolicy(ctx, receivedReplicationPolicy)
-		if err != nil {
-			return err
-		}
+	}
+
+	err = harborClient.DeleteReplicationPolicy(ctx, receivedReplicationPolicy)
+	if err != nil {
+		return err
 	}
 
 	log.Info("pulling finalizers")
