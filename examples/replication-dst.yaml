@@ -11,7 +11,7 @@ spec:
   name: test-replication-dst
   parentInstance:
     name: test-harbor
-  deletion: false
+  replicateDeletion: false
   override: true
   enabled: true
   triggerAfterCreation: true
