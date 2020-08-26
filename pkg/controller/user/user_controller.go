@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/go-logr/logr"
 	h "github.com/mittwald/goharbor-client"
+	user "github.com/mittwald/goharbor-client/user"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/controller/internal"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
@@ -227,8 +227,8 @@ func (r *ReconcileUser) updateUserCR(ctx context.Context, parentInstance *regist
 
 // assertExistingUser ensures the specified user's existence.
 func (r *ReconcileUser) assertExistingUser(ctx context.Context, harborClient *h.RESTClient,
-	user *registriesv1alpha1.User) error {
-	sec, err := r.getOrCreateSecretForUser(ctx, user)
+	usr *registriesv1alpha1.User) error {
+	sec, err := r.getOrCreateSecretForUser(ctx, usr)
 	if err != nil {
 		return err
 	}
@@ -243,18 +243,19 @@ func (r *ReconcileUser) assertExistingUser(ctx context.Context, harborClient *h.
 		return err
 	}
 
-	heldUser, err := harborClient.GetUser(ctx, user.Spec.Name)
-	if errors.Is(internal.ErrUserNotFound, err) {
-		return err
+	heldUser, err := harborClient.GetUser(ctx, usr.Spec.Name)
+	if err != nil {
+		switch err.Error() {
+		case user.ErrUserNotFoundMsg:
+			usr.Status.PasswordHash = pwHash.Short()
+			return r.createUser(ctx, harborClient, usr, pw)
+		default:
+			return err
+		}
 	}
 
-	if errors.Is(internal.ErrUserNotFound, err) {
-		user.Status.PasswordHash = pwHash.Short()
-		return r.createUser(ctx, harborClient, user, pw)
-	}
-
-	if user.Status.PasswordHash != pwHash.Short() {
-		user.Status.PasswordHash = pwHash.Short()
+	if usr.Status.PasswordHash != pwHash.Short() {
+		usr.Status.PasswordHash = pwHash.Short()
 
 		if err = harborClient.UpdateUserPassword(ctx, heldUser.UserID,
 			&modelv1.Password{
@@ -264,7 +265,7 @@ func (r *ReconcileUser) assertExistingUser(ctx context.Context, harborClient *h.
 		}
 	}
 
-	return r.ensureUser(ctx, harborClient, heldUser, user)
+	return r.ensureUser(ctx, harborClient, heldUser, usr)
 }
 
 // createUser constructs a user request and triggers the Harbor API to create that user.

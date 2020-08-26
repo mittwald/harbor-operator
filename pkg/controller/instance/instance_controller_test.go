@@ -213,9 +213,9 @@ func TestInstanceController_Instance_Installation(t *testing.T) {
 		t.Errorf("spec hash has not been set on the instance")
 	}
 
-	if fetched.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseReady {
+	if fetched.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseInstalled {
 		t.Errorf("wrong phase of received instance, want: %s, got: %s",
-			registriesv1alpha1.InstanceStatusPhaseReady, i.Status.Phase.Name)
+			registriesv1alpha1.InstanceStatusPhaseInstalled, i.Status.Phase.Name)
 	}
 
 	if fetched.Status.Version != i.Spec.Version {
@@ -277,7 +277,7 @@ func TestInstanceController_Instance_Deletion(t *testing.T) {
 // TestInstanceController_Instance_Ready_Deletion
 func TestInstanceController_Instance_Ready_Deletion(t *testing.T) {
 	i := testingregistriesv1alpha1.CreateInstance("harbor", "foobar")
-	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
 	chartSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", "foobar")
 
 	i.DeletionTimestamp = &metav1.Time{Time: time.Now()}
@@ -343,7 +343,7 @@ func TestInstanceController_Instance_Ready_Deletion(t *testing.T) {
 // by comparing a manually generated specHash to the specHash created by reconciliation
 func TestInstanceController_Instance_Ready_Ensure_Chart_Spec(t *testing.T) {
 	i := testingregistriesv1alpha1.CreateInstance("harbor", "foobar")
-	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
 	i.Spec.GarbageCollection = nil
 	chartSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", "foobar")
 

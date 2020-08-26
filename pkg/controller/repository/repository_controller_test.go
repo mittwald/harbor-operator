@@ -90,7 +90,7 @@ func TestRepositoryController_Existing_Instance(t *testing.T) {
 
 	// Create mock instance
 	instance := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
-	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
 
 	repo := registriesv1alpha1.Repository{}
 
@@ -118,7 +118,7 @@ func TestRepositoryController_Repository_Deletion(t *testing.T) {
 	ns := "test-namespace"
 
 	instance := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
-	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
 
 	user := testingregistriesv1alpha1.CreateUser("test-user", ns)
 	user.Spec.ParentInstance.Name = instance.Spec.Name

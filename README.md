@@ -17,8 +17,7 @@ A Kubernetes operator for managing [Goharbor](https://github.com/goharbor/harbor
 The operator utilizes a [helm client](https://github.com/mittwald/go-helm-client) library for the management of these instances
 
 - **Custom chart repositories**: If you need to install a customized or private Harbor helm chart, the
- `instancechartrepo` resource allows you to do so. The official Harbor Helm chart can be found [here](https://github
- .com/goharbor/harbor-helm)
+ `instancechartrepo` resource allows you to do so. The official Harbor Helm chart can be found [here](https://github.com/goharbor/harbor-helm)
 
 - **Harbor resource reconciliation**: This operator automatically manages Harbor components by utilizing
  a custom [harbor client](https:/github.com/mittwald/goharbor-client).
@@ -32,14 +31,15 @@ The operator utilizes a [helm client](https://github.com/mittwald/go-helm-client
     - replications.registries.mittwald.de
     - registries.registries.mittwald.de
     
-To get an overview of the individual resources that come this operator, take a look at the [examples directory](./examples).
+To get an overview of the individual resources that come with this operator, take a look at the [examples directory
+](./examples).
 
 ## Installation
 ### Helm
 The helm chart of this operator can be found under [./deploy/helm-chart/harbor-operator](./deploy/helm-chart/harbor-operator).
 
 Alternatively, you can use the the [Mittwald Kubernetes Helm Charts](https://github.com/mittwald/helm-charts) repository:
-```bash
+```shell script
 helm repo add mittwald https://helm.mittwald.de
 helm repo update
 helm install harbor-operator mittwald/harbor-operator --namespace my-namespace
@@ -59,3 +59,45 @@ ingress annotations:
 Example annotation, using cert-manager as the cluster-issuer: 
 
 `cert-manager.io/cluster-issuer: "letsencrypt-issuer"`
+
+### Local Development
+
+#### Installing
+Create a local kind cluster containing all needed resources via:
+
+```shell script
+make bootstrap-kind
+```
+
+To start the operator locally, use:
+
+```shell script
+operator-sdk run --local --namespace harbor-operator
+```
+
+#### Deploying example resources
+
+Note: When using the provided examples and running the operator locally, an entry to your `/etc/hosts` is
+ needed:
+```shell script
+127.0.0.1 core.harbor.domain 
+```
+
+Example resources can be deployed using the files provided in the [examples directory](./examples).
+To start testing, simply apply these after starting the operator:
+
+```
+kubectl create -f examples/instancechartrepo.yaml
+kubectl create -f examples/instance.yaml
+[...]
+```
+
+After a successful installation, the Harbor portal
+may be accessed either by `localhost:30002` or `core.harbor.domain:30002`. 
+
+#### Uninstalling
+
+Uninstall all dependencies via:
+```shell script
+make teardown
+```

@@ -51,8 +51,6 @@ func CreateSecret(name, namespace string) corev1.Secret {
 		Data: map[string][]byte{
 			"HARBOR_ADMIN_PASSWORD": []byte("test"),
 		},
-		StringData: nil,
-		Type:       "",
 	}
 
 	return sec

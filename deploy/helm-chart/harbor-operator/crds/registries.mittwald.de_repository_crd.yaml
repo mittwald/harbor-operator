@@ -8,6 +8,14 @@ spec:
     description: phase
     name: Status
     type: string
+  - JSONPath: .status.id
+    description: harbor replication id
+    name: ID
+    type: integer
+  - JSONPath: .spec.metadata.public
+    description: harbor replication id
+    name: Public
+    type: boolean
   group: registries.mittwald.de
   names:
     kind: Repository
@@ -118,6 +126,11 @@ spec:
         status:
           description: RepositoryStatus defines the state of a single repository
           properties:
+            id:
+              description: The repository ID is written back from the held project
+                ID.
+              format: int32
+              type: integer
             lastTransition:
               description: Time of last observed transition into this state
               format: date-time

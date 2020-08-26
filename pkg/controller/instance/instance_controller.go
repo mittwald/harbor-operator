@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -136,7 +137,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
 
 	case registriesv1alpha1.InstanceStatusPhaseInstalling:
-		reqLogger.Info("installing helm-chart")
+		reqLogger.Info("Installing Helm chart")
 
 		err := r.updateHelmRepos()
 		if err != nil {
@@ -152,14 +153,14 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 		err = r.installOrUpgradeHelmChart(chartSpec)
 		if err != nil {
-			return reconcile.Result{}, err
+			return reconcile.Result{RequeueAfter: 60 * time.Second}, err
 		}
 
-		harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseReady
+		harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
 		harbor.Status.Version = harbor.Spec.Version
 
 		// Creating a spec hash of the chart spec pre-installation
-		// ensures that it is set in "InstanceStatusPhaseReady", preventing the controller
+		// ensures that it is set in "InstanceStatusPhaseInstalled", preventing the controller
 		// to jump right back into "InstanceStatusPhaseInstalling"
 		if specHash, err := helper.CreateSpecHash(chartSpec); err != nil {
 			return reconcile.Result{}, err
@@ -168,10 +169,10 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 			return r.updateInstanceCR(ctx, originalInstance, harbor)
 		}
 
-	case registriesv1alpha1.InstanceStatusPhaseReady:
+	case registriesv1alpha1.InstanceStatusPhaseInstalled:
 		if harbor.Spec.GarbageCollection != nil {
 			if err := r.reconcileGarbageCollection(ctx, harbor); err != nil {
-				return reconcile.Result{}, err
+				return reconcile.Result{RequeueAfter: 60 * time.Second}, err
 			}
 		}
 

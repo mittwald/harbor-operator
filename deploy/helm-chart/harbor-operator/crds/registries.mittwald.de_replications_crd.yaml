@@ -8,6 +8,22 @@ spec:
     description: phase
     name: Status
     type: string
+  - JSONPath: .status.id
+    description: harbor replication id
+    name: ID
+    type: integer
+  - JSONPath: .spec.enabled
+    description: harbor replication id
+    name: Enabled
+    type: boolean
+  - JSONPath: .status.source
+    description: source registry
+    name: Source
+    type: string
+  - JSONPath: .status.destination
+    description: destination registry
+    name: Destination
+    type: string
   group: registries.mittwald.de
   names:
     kind: Replication
@@ -38,8 +54,6 @@ spec:
           properties:
             creator:
               type: string
-            deletion:
-              type: boolean
             description:
               type: string
             destNamespace:
@@ -71,9 +85,6 @@ spec:
                     type: string
                 type: object
               type: array
-            id:
-              format: int64
-              type: integer
             name:
               description: The name of the replication
               type: string
@@ -118,7 +129,6 @@ spec:
             triggerAfterCreation:
               type: boolean
           required:
-          - deletion
           - name
           - override
           - parentInstance
@@ -126,6 +136,13 @@ spec:
         status:
           description: ReplicationStatus defines the observed state of Replication
           properties:
+            destination:
+              type: string
+            id:
+              description: The replication ID is written back from the held replication
+                ID.
+              format: int64
+              type: integer
             lastTransition:
               description: Time of last observed transition into this state
               format: date-time
@@ -135,6 +152,9 @@ spec:
             name:
               type: string
             phase:
+              type: string
+            source:
+              description: The respective source and destination registries
               type: string
           required:
           - message

@@ -5,9 +5,9 @@ import (
 )
 
 // ToHarborRegistry returns a Harbor registry constructed from the provided spec.
-func (spec *RegistrySpec) ToHarborRegistry() *modelv1.Registry {
+func (spec *RegistrySpec) ToHarborRegistry(id int64) *modelv1.Registry {
 	return &modelv1.Registry{
-		ID:          spec.ID,
+		ID:          id,
 		Name:        spec.Name,
 		Description: spec.Description,
 		Type:        string(spec.Type),

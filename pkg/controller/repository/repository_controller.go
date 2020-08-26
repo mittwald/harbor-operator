@@ -129,7 +129,6 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
 			helper.PullFinalizer(repository, FinalizerName)
-
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
 			return reconcile.Result{RequeueAfter: 30 * time.Second}, err
 		} else {
@@ -175,9 +174,7 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-
 	}
-
 	return r.updateRepositoryCR(ctx, harbor, originalRepository, repository)
 }
 
@@ -337,23 +334,30 @@ func getMemberUserFromList(members []*modelv1.ProjectMemberEntity,
 // ensureRepository triggers reconciliation of project members
 // and compares the state of the CR object with the project held by Harbor
 func (r *ReconcileRepository) ensureRepository(ctx context.Context, heldRepository *modelv1.Project,
-	harborClient *h.RESTClient, repository *registriesv1alpha1.Repository) error {
-	updatedProject := &modelv1.Project{}
+	harborClient *h.RESTClient, originalRepository *registriesv1alpha1.Repository) error {
+	newProject := &modelv1.Project{}
 	// Copy the spec of the project held by Harbor into a new object of the same type *harbor.Repository
-	err := copier.Copy(&updatedProject, &heldRepository)
+	err := copier.Copy(&newProject, &heldRepository)
 	if err != nil {
 		return err
 	}
 
-	err = r.reconcileRepositoryMembers(ctx, repository, harborClient, heldRepository)
+	err = r.reconcileRepositoryMembers(ctx, originalRepository, harborClient, heldRepository)
 	if err != nil {
 		return err
 	}
 
-	updatedProject.Metadata = r.generateRepositoryMetadata(&repository.Spec.Metadata)
+	if originalRepository.Status.ID != heldRepository.ProjectID {
+		originalRepository.Status.ID = heldRepository.ProjectID
+		if err := r.client.Status().Update(ctx, originalRepository); err != nil {
+			return err
+		}
+	}
 
-	if updatedProject != heldRepository {
-		return harborClient.UpdateProject(ctx, heldRepository, repository.Spec.StorageLimit, repository.Spec.CountLimit)
+	newProject.Metadata = r.generateRepositoryMetadata(&originalRepository.Spec.Metadata)
+
+	if newProject != heldRepository {
+		return harborClient.UpdateProject(ctx, heldRepository, originalRepository.Spec.StorageLimit, originalRepository.Spec.CountLimit)
 	}
 
 	return nil

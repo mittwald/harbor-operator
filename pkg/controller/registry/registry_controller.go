@@ -2,14 +2,13 @@ package registry
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"reflect"
 	"time"
 
 	modelv1 "github.com/mittwald/goharbor-client/model/v1_10_0"
-
+	registryClient "github.com/mittwald/goharbor-client/registry"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 
 	"github.com/go-logr/logr"
@@ -114,7 +113,6 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
 			helper.PullFinalizer(registry, FinalizerName)
-
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
 			return reconcile.Result{RequeueAfter: 30 * time.Second}, err
 		} else {
@@ -203,27 +201,29 @@ func (r *ReconcileRegistry) updateRegistryCR(ctx context.Context, parentInstance
 func (r *ReconcileRegistry) assertExistingRegistry(ctx context.Context, harborClient *h.RESTClient,
 	originalRegistry *registriesv1alpha1.Registry) error {
 	_, err := harborClient.GetRegistry(ctx, originalRegistry.Name)
+	if err != nil {
+		switch err.Error() {
+		case registryClient.ErrRegistryNotFoundMsg:
+			rReq, err := r.buildRegistryFromCR(originalRegistry)
+			if err != nil {
+				return err
+			}
 
-	if errors.Is(err, internal.ErrRegistryNotFound) {
-		rReq, err := r.buildRegistryFromSpec(originalRegistry)
-		if err != nil {
+			_, err = harborClient.NewRegistry(
+				ctx,
+				rReq.Name,
+				rReq.Type,
+				rReq.URL,
+				rReq.Credential,
+				rReq.Insecure,
+			)
+
+			if err != nil {
+				return err
+			}
+		default:
 			return err
 		}
-
-		_, err = harborClient.NewRegistry(
-			ctx,
-			rReq.Name,
-			rReq.Type,
-			rReq.URL,
-			rReq.Credential,
-			rReq.Insecure,
-		)
-
-		if err != nil {
-			return err
-		}
-	} else if err != nil {
-		return err
 	}
 
 	return r.ensureRegistry(ctx, harborClient, originalRegistry)
@@ -272,17 +272,16 @@ func (r *ReconcileRegistry) ensureRegistry(ctx context.Context, harborClient *h.
 	}
 
 	// Construct a registry from the CR spec
-	newReg, err := r.buildRegistryFromSpec(originalRegistry)
+	newReg, err := r.buildRegistryFromCR(originalRegistry)
 	if err != nil {
 		return err
 	}
 
-	// use id from harbor instance
-	if originalRegistry.Spec.ID != heldRegistry.ID {
-		originalRegistry.Spec.ID = heldRegistry.ID
+	// Use the registry's ID from the Harbor instance and write it back to the the CR's status field
+	if originalRegistry.Status.ID != heldRegistry.ID {
+		originalRegistry.Status.ID = heldRegistry.ID
 
-		patch := client.MergeFrom(originalRegistry.DeepCopy())
-		if err := r.client.Patch(ctx, originalRegistry, patch); err != nil {
+		if err := r.client.Status().Update(ctx, originalRegistry); err != nil {
 			return err
 		}
 	}
@@ -304,8 +303,8 @@ func (r *ReconcileRegistry) updateRegistry(ctx context.Context, harborClient *h.
 	return harborClient.UpdateRegistry(ctx, reg)
 }
 
-// buildRegistryFromSpec constructs and returns a Harbor registry object from the CR object's spec.
-func (r *ReconcileRegistry) buildRegistryFromSpec(originalRegistry *registriesv1alpha1.Registry) (*modelv1.Registry,
+// buildRegistryFromCR constructs and returns a Harbor registry object from the CR object's spec.
+func (r *ReconcileRegistry) buildRegistryFromCR(originalRegistry *registriesv1alpha1.Registry) (*modelv1.Registry,
 	error) {
 	parsedURL, err := parseURL(originalRegistry.Spec.URL)
 	if err != nil {
@@ -318,7 +317,7 @@ func (r *ReconcileRegistry) buildRegistryFromSpec(originalRegistry *registriesv1
 	}
 
 	return &modelv1.Registry{
-		ID:          originalRegistry.Spec.ID,
+		ID:          originalRegistry.Status.ID,
 		Name:        originalRegistry.Spec.Name,
 		Description: originalRegistry.Spec.Description,
 		Type:        string(registryType),
@@ -332,17 +331,18 @@ func (r *ReconcileRegistry) buildRegistryFromSpec(originalRegistry *registriesv1
 func (r *ReconcileRegistry) assertDeletedRegistry(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
 	registry *registriesv1alpha1.Registry) error {
 	reg, err := harborClient.GetRegistry(ctx, registry.Name)
-	if err == nil {
-		err = harborClient.DeleteRegistry(ctx, reg)
-		if err != nil {
-			return err
-		}
-	} else if err != internal.ErrRegistryNotFound {
+	if err != nil {
 		return err
 	}
 
-	log.Info("pulling finalizers")
-	helper.PullFinalizer(registry, FinalizerName)
+	if reg != nil {
+		err := harborClient.DeleteRegistry(ctx, reg)
+		if err != nil {
+			return err
+		}
+		log.Info("pulling finalizers")
+		helper.PullFinalizer(registry, FinalizerName)
+	}
 
 	return nil
 }
