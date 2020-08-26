@@ -151,7 +151,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 		helper.PushFinalizer(harbor, FinalizerName)
 
-		err = r.installOrUpgradeHelmChart(chartSpec)
+		err = r.installOrUpgradeHelmChart(ctx, chartSpec)
 		if err != nil {
 			return reconcile.Result{RequeueAfter: 60 * time.Second}, err
 		}
@@ -268,14 +268,14 @@ func (r *ReconcileInstance) updateHelmRepos() error {
 }
 
 // installOrUpgradeHelmChart installs and upgrades a helm chart.
-func (r *ReconcileInstance) installOrUpgradeHelmChart(helmChart *helmclient.ChartSpec) error {
+func (r *ReconcileInstance) installOrUpgradeHelmChart(ctx context.Context, helmChart *helmclient.ChartSpec) error {
 	helmClient, err := r.helmClientReceiver(config.Config.HelmClientRepositoryCachePath,
 		config.Config.HelmClientRepositoryConfigPath, helmChart.Namespace)
 	if err != nil {
 		return err
 	}
 
-	return helmClient.InstallOrUpgradeChart(helmChart)
+	return helmClient.InstallOrUpgradeChart(ctx, helmChart)
 }
 
 // uninstallHelmRelease uninstalls a helm release.

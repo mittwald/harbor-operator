@@ -12,7 +12,7 @@ require (
 	github.com/imdario/mergo v0.3.8
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/mattn/go-colorable v0.1.6 // indirect
-	github.com/mittwald/go-helm-client v0.2.0
+	github.com/mittwald/go-helm-client v0.3.0
 	github.com/mittwald/goharbor-client v1.0.4
 	github.com/operator-framework/operator-sdk v0.18.2
 	github.com/spf13/pflag v1.0.5
@@ -22,7 +22,7 @@ require (
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
 	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f // indirect
 	gopkg.in/yaml.v2 v2.3.0
-	helm.sh/helm/v3 v3.2.0
+	helm.sh/helm/v3 v3.2.4
 	k8s.io/api v0.18.2
 	k8s.io/apimachinery v0.18.2
 	k8s.io/client-go v12.0.0+incompatible
