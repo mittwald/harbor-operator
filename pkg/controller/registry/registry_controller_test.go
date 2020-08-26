@@ -37,10 +37,16 @@ func buildReconcileWithFakeClientWithMocks(objs []runtime.Object) *ReconcileRegi
 // Test reconciliation with a non existent instance object which is expected to be requeued
 // + Test reconciliation with an Instance with error status in loop.
 func TestRegistryController_Instance_Phase(t *testing.T) {
-	reg := registriesv1alpha1.Registry{}
-
 	// Test reconciliation with a non existent instance object
 	// Expect: Result without requeue + no error.
+
+	ns := "test-namespace"
+
+	instance := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
+	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
+
+	reg := testingregistriesv1alpha1.CreateRegistry("test-registry", ns, instance.Spec.Name)
+
 	t.Run("NonExistentInstance", func(t *testing.T) {
 		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&reg})
 		req := reconcile.Request{
@@ -60,13 +66,12 @@ func TestRegistryController_Instance_Phase(t *testing.T) {
 		}
 	})
 
-	i := registriesv1alpha1.Instance{}
-	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseError
+	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseError
 
 	// Test with an Instance in error status in loop.
 	// Expect: Result without requeue + no error.
 	t.Run("UnreadyInstance", func(t *testing.T) {
-		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&reg, &i})
+		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&reg, &instance})
 		req := reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      reg.Name,

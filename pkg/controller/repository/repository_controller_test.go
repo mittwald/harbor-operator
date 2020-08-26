@@ -37,7 +37,15 @@ func buildReconcileWithFakeClientWithMocks(objs []runtime.Object) *ReconcileRepo
 // TestRepositoryController_NonExistent_Instance
 // Test reconciliation with a non existent instance object
 func TestRepositoryController_NonExistent_Instance(t *testing.T) {
-	repo := registriesv1alpha1.Repository{}
+	ns := "test-namespace"
+
+	instance := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
+	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
+
+	user := testingregistriesv1alpha1.CreateUser("test-user", ns, instance.Name)
+	user.Spec.ParentInstance.Name = instance.Spec.Name
+
+	repo := testingregistriesv1alpha1.CreateRepository("test-repository", ns, instance.Spec.Name)
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&repo})
 
@@ -120,7 +128,7 @@ func TestRepositoryController_Repository_Deletion(t *testing.T) {
 	instance := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
 	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
 
-	user := testingregistriesv1alpha1.CreateUser("test-user", ns)
+	user := testingregistriesv1alpha1.CreateUser("test-user", ns, instance.Name)
 	user.Spec.ParentInstance.Name = instance.Spec.Name
 
 	repo := testingregistriesv1alpha1.CreateRepository("test-repository", ns, instance.Spec.Name)

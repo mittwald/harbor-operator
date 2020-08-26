@@ -7,19 +7,21 @@ import (
 )
 
 // CreateUser returns a user object with sample values.
-func CreateUser(name, namespace string) registriesv1alpha1.User {
+func CreateUser(name, namespace, instanceRef string) registriesv1alpha1.User {
 	u := registriesv1alpha1.User{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
 		Spec: registriesv1alpha1.UserSpec{
-			Name:           name,
-			ParentInstance: corev1.LocalObjectReference{},
-			RealName:       "harbor user",
-			Email:          "test@example.com",
-			UserSecretRef:  corev1.LocalObjectReference{},
-			AdminRole:      false,
+			Name: name,
+			ParentInstance: corev1.LocalObjectReference{
+				Name: instanceRef,
+			},
+			RealName:      "harbor user",
+			Email:         "test@example.com",
+			UserSecretRef: corev1.LocalObjectReference{},
+			AdminRole:     false,
 		},
 	}
 
