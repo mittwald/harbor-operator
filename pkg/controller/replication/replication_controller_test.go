@@ -13,7 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
 // buildReconcileWithFakeClientWithMocks
 // returns a reconcile with fake client, schemes and mock objects
 // reference: https://github.com/aerogear/mobile-security-service-operator/blob/e74272a6c7addebdc77b18eeffb5e888b35f4dfd/pkg/controller/mobilesecurityservice/fakeclient_test.go#L14
@@ -35,10 +34,15 @@ func buildReconcileWithFakeClientWithMocks(objs []runtime.Object) *ReconcileRepl
 }
 
 func TestReplicationController_Instance_Phase(t *testing.T) {
-	rep := registriesv1alpha1.Replication{}
-
 	// Test reconciliation with a non existent instance object
 	// Expect: Result without requeue + no error.
+	ns := "test-namespace"
+
+	instance := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
+	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
+
+	rep := testingregistriesv1alpha1.CreateReplication("test-replication", ns, instance.Spec.Name)
+
 	t.Run("NonExistentInstance", func(t *testing.T) {
 		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&rep})
 		req := reconcile.Request{
@@ -58,13 +62,12 @@ func TestReplicationController_Instance_Phase(t *testing.T) {
 		}
 	})
 
-	i := registriesv1alpha1.Instance{}
-	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseError
+	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseError
 
 	// Test with an Instance in error status in loop.
 	// Expect: Result without requeue + no error.
 	t.Run("UnreadyInstance", func(t *testing.T) {
-		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&rep, &i})
+		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&rep, &instance})
 		req := reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      rep.Name,
@@ -89,20 +92,20 @@ func TestReplicationController_Replication_Deletion(t *testing.T) {
 	instance := testingregistriesv1alpha1.CreateInstance("test-instance", ns)
 	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
 
-	repo := testingregistriesv1alpha1.CreateReplication("test-replication", ns, instance.Spec.Name)
-	repo.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseReady
+	rep := testingregistriesv1alpha1.CreateReplication("test-replication", ns, instance.Spec.Name)
+	rep.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseReady
 
-	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&repo, &instance})
+	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&rep, &instance})
 
-	err := r.client.Delete(context.TODO(), &repo)
+	err := r.client.Delete(context.TODO(), &rep)
 	if err != nil {
 		t.Error("could not delete replication")
 	}
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
-			Name:      repo.Name,
-			Namespace: repo.Namespace,
+			Name:      rep.Name,
+			Namespace: rep.Namespace,
 		},
 	}
 

@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	testingregistriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/testing/registriesv1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,6 +15,7 @@ import (
 )
 
 const (
+	username     string = "test-user"
 	ns           string = "test-namespace"
 	instanceName string = "test-instance"
 )
@@ -47,12 +46,7 @@ func TestUserController_Empty_User_Spec(t *testing.T) {
 
 	instanceSecret := testingregistriesv1alpha1.CreateSecret(instance.Name+"-harbor-core", ns)
 
-	u := registriesv1alpha1.User{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-user",
-			Namespace: ns,
-		},
-	}
+	u := testingregistriesv1alpha1.CreateUser(username, ns, instanceName)
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&u, &instance, &instanceSecret})
 
@@ -74,7 +68,7 @@ func TestUserController_Empty_User_Spec(t *testing.T) {
 }
 
 func TestUserController_Instance_Phase(t *testing.T) {
-	u := registriesv1alpha1.User{}
+	u := testingregistriesv1alpha1.CreateUser(username, ns, instanceName)
 	// Test reconciliation with a non existent instance object which is expected to be requeued
 	// Expect: Result without requeue + no error.
 	t.Run("NonExistentInstance", func(t *testing.T) {
@@ -97,7 +91,7 @@ func TestUserController_Instance_Phase(t *testing.T) {
 		}
 	})
 
-	i := registriesv1alpha1.Instance{}
+	i := testingregistriesv1alpha1.CreateInstance(instanceName, ns)
 	i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseError
 
 	// Test with an Instance in error status in loop.
@@ -116,18 +110,16 @@ func TestUserController_Instance_Phase(t *testing.T) {
 		if err == nil {
 			t.Error("reconciliation did not return error as expected")
 		}
+
 		if res.RequeueAfter != 30*time.Second {
 			t.Error("reconciliation did not requeue as expected")
 		}
 	})
 
 	t.Run("ExistingInstance", func(t *testing.T) {
-		instance := testingregistriesv1alpha1.CreateInstance(instanceName, ns)
-		instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
+		i.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
 
-		u := registriesv1alpha1.User{}
-
-		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&u, &instance})
+		r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&u, &i})
 
 		req := reconcile.Request{
 			NamespacedName: types.NamespacedName{
@@ -151,7 +143,7 @@ func TestUserController_User_Deletion(t *testing.T) {
 	instance := testingregistriesv1alpha1.CreateInstance(instanceName, ns)
 	instance.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
 
-	u := testingregistriesv1alpha1.CreateUser("test-user", ns)
+	u := testingregistriesv1alpha1.CreateUser(username, ns, instanceName)
 	u.Spec.ParentInstance.Name = instance.Spec.Name
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&u, &instance})

@@ -173,12 +173,14 @@ func TestInstanceController_Instance_Installation(t *testing.T) {
 	chartSecret := testingregistriesv1alpha1.CreateSecret(i.Name+"-harbor-core", "foobar")
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &chartSecret})
 
+	ctx := context.TODO()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockClient := helmclientmock.NewMockClient(ctrl)
 	gomock.InOrder(
 		mockClient.EXPECT().UpdateChartRepos(),
-		mockClient.EXPECT().InstallOrUpgradeChart(&helmclient.ChartSpec{
+		mockClient.EXPECT().InstallOrUpgradeChart(ctx, &helmclient.ChartSpec{
 			ReleaseName: i.Spec.HelmChart.ReleaseName,
 			ChartName:   i.Spec.HelmChart.ChartName,
 			Namespace:   i.Spec.HelmChart.Namespace,
@@ -410,12 +412,14 @@ func TestInstanceController_Add_Finalizer(t *testing.T) {
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &instanceSecret})
 
+	ctx := context.TODO()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockClient := helmclientmock.NewMockClient(ctrl)
 	gomock.InOrder(
 		mockClient.EXPECT().UpdateChartRepos(),
-		mockClient.EXPECT().InstallOrUpgradeChart(&helmclient.ChartSpec{
+		mockClient.EXPECT().InstallOrUpgradeChart(ctx, &helmclient.ChartSpec{
 			ReleaseName: i.Spec.HelmChart.ReleaseName,
 			ChartName:   i.Spec.HelmChart.ChartName,
 			Namespace:   i.Spec.HelmChart.Namespace,
@@ -472,12 +476,14 @@ func TestInstanceController_Existing_Finalizer(t *testing.T) {
 
 	r := buildReconcileWithFakeClientWithMocks([]runtime.Object{&i, &instanceSecret})
 
+	ctx := context.TODO()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockClient := helmclientmock.NewMockClient(ctrl)
 	gomock.InOrder(
 		mockClient.EXPECT().UpdateChartRepos(),
-		mockClient.EXPECT().InstallOrUpgradeChart(&helmclient.ChartSpec{
+		mockClient.EXPECT().InstallOrUpgradeChart(ctx, &helmclient.ChartSpec{
 			ReleaseName: i.Spec.HelmChart.ReleaseName,
 			ChartName:   i.Spec.HelmChart.ChartName,
 			Namespace:   i.Spec.HelmChart.Namespace,
