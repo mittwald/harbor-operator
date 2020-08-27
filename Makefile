@@ -48,6 +48,3 @@ mock:
 
 bootstrap-kind:
 	scripts/bootstrap-kind.sh
-
-teardown:
-	scripts/teardown-harbor.sh

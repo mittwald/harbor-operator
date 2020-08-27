@@ -62,7 +62,7 @@ Example annotation, using cert-manager as the cluster-issuer:
 
 ### Local Development
 
-#### Installing
+#### Installation
 Create a local kind cluster containing all needed resources via:
 
 ```shell script
@@ -94,10 +94,3 @@ kubectl create -f examples/instance.yaml
 
 After a successful installation, the Harbor portal
 may be accessed either by `localhost:30002` or `core.harbor.domain:30002`. 
-
-#### Uninstalling
-
-Uninstall all dependencies via:
-```shell script
-make teardown
-```
