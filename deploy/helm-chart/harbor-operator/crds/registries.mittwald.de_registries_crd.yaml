@@ -40,7 +40,7 @@ spec:
           spec:
             description: RegistrySpec defines the desired state of a Registry.
             properties:
-              credentialRef:
+              credential:
                 properties:
                   secretKeyAccessKey:
                     description: Key for the "AccessKey" field of the secret referenced

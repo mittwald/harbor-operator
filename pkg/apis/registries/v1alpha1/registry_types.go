@@ -45,7 +45,7 @@ type RegistrySpec struct {
 	URL string `json:"url"`
 
 	// +optional
-	Credential *RegistryCredential `json:"credentialRef,omitempty"`
+	Credential *RegistryCredential `json:"credential,omitempty"`
 
 	// Whether or not the TLS certificate will be verified when Harbor tries to access the registry
 	// +optional
