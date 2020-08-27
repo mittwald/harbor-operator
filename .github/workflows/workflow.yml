@@ -144,7 +144,6 @@ jobs:
 
       - name: Run chart version bump
         uses: mittwald/bump-app-version-action@v0.1.1
-        uses: mittwald/bump-app-version-action@v0.1.1
         with:
           mode: 'publish'
           version: "${GITHUB_REF##*/}"
