@@ -204,7 +204,7 @@ func (r *ReconcileRegistry) assertExistingRegistry(ctx context.Context, harborCl
 	if err != nil {
 		switch err.Error() {
 		case registryClient.ErrRegistryNotFoundMsg:
-			rReq, err := r.buildRegistryFromCR(originalRegistry)
+			rReq, err := r.buildRegistryFromCR(ctx, originalRegistry)
 			if err != nil {
 				return err
 			}
@@ -272,7 +272,7 @@ func (r *ReconcileRegistry) ensureRegistry(ctx context.Context, harborClient *h.
 	}
 
 	// Construct a registry from the CR spec
-	newReg, err := r.buildRegistryFromCR(originalRegistry)
+	newReg, err := r.buildRegistryFromCR(ctx, originalRegistry)
 	if err != nil {
 		return err
 	}
@@ -304,7 +304,7 @@ func (r *ReconcileRegistry) updateRegistry(ctx context.Context, harborClient *h.
 }
 
 // buildRegistryFromCR constructs and returns a Harbor registry object from the CR object's spec.
-func (r *ReconcileRegistry) buildRegistryFromCR(originalRegistry *registriesv1alpha1.Registry) (*modelv1.Registry,
+func (r *ReconcileRegistry) buildRegistryFromCR(ctx context.Context, originalRegistry *registriesv1alpha1.Registry) (*modelv1.Registry,
 	error) {
 	parsedURL, err := parseURL(originalRegistry.Spec.URL)
 	if err != nil {
@@ -316,13 +316,18 @@ func (r *ReconcileRegistry) buildRegistryFromCR(originalRegistry *registriesv1al
 		return nil, err
 	}
 
+	credential, err := originalRegistry.Spec.Credential.ToHarborRegistryCredential(ctx, r.client, originalRegistry.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
 	return &modelv1.Registry{
 		ID:          originalRegistry.Status.ID,
 		Name:        originalRegistry.Spec.Name,
 		Description: originalRegistry.Spec.Description,
 		Type:        string(registryType),
 		URL:         parsedURL,
-		Credential:  originalRegistry.Spec.Credential,
+		Credential:  credential,
 		Insecure:    originalRegistry.Spec.Insecure,
 	}, nil
 }

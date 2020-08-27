@@ -1,17 +1,8 @@
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: registries.registries.mittwald.de
 spec:
-  additionalPrinterColumns:
-  - JSONPath: .status.phase
-    description: phase
-    name: Status
-    type: string
-  - JSONPath: .status.id
-    description: harbor registry id
-    name: ID
-    type: integer
   group: registries.mittwald.de
   names:
     kind: Registry
@@ -19,97 +10,116 @@ spec:
     plural: registries
     singular: registry
   scope: Namespaced
-  subresources:
-    status: {}
-  validation:
-    openAPIV3Schema:
-      description: Registry is the Schema for the registries API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: RegistrySpec defines the desired state of a Registry.
-          properties:
-            credential:
-              description: "RegistryCredential registry credential \n swagger:model
-                RegistryCredential"
-              properties:
-                access_key:
-                  description: Access key, e.g. user name when credential type is
-                    'basic'.
-                  type: string
-                access_secret:
-                  description: Access secret, e.g. password when credential type is
-                    'basic'.
-                  type: string
-                type:
-                  description: Credential type, such as 'basic', 'oauth'.
-                  type: string
-              type: object
-            description:
-              type: string
-            insecure:
-              description: Whether or not the TLS certificate will be verified when
-                Harbor tries to access the registry
-              type: boolean
-            name:
-              type: string
-            parentInstance:
-              description: ParentInstance is a LocalObjectReference to the name of
-                the harbor instance the registry is created for
-              properties:
-                name:
-                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                    TODO: Add other useful fields. apiVersion, kind, uid?'
-                  type: string
-              type: object
-            type:
-              type: string
-            url:
-              description: Target URL of the registry
-              type: string
-          required:
-          - name
-          - parentInstance
-          - type
-          - url
-          type: object
-        status:
-          description: RegistryStatus defines the observed state of Registry.
-          properties:
-            id:
-              description: The registry ID is written back from the held registry
-                ID.
-              format: int64
-              type: integer
-            lastTransition:
-              description: Time of last observed transition into this state
-              format: date-time
-              type: string
-            message:
-              type: string
-            name:
-              type: string
-            phase:
-              type: string
-          required:
-          - message
-          - name
-          - phase
-          type: object
-      type: object
-  version: v1alpha1
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: phase
+      jsonPath: .status.phase
+      name: Status
+      type: string
+    - description: harbor registry id
+      jsonPath: .status.id
+      name: ID
+      type: integer
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Registry is the Schema for the registries API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RegistrySpec defines the desired state of a Registry.
+            properties:
+              credential:
+                properties:
+                  secretKeyAccessKey:
+                    description: Key for the "AccessKey" field of the secret referenced
+                      in SecretRef
+                    type: string
+                  secretKeyAccessSecret:
+                    description: Key for the "AccessSecret" field of the secret referenced
+                      in SecretRef
+                    type: string
+                  secretRef:
+                    description: Secret reference to the credentials
+                    properties:
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                    type: object
+                  type:
+                    description: Credential type, such as 'basic', 'oauth'.
+                    type: string
+                required:
+                - secretKeyAccessKey
+                - secretKeyAccessSecret
+                - secretRef
+                - type
+                type: object
+              description:
+                type: string
+              insecure:
+                description: Whether or not the TLS certificate will be verified when
+                  Harbor tries to access the registry
+                type: boolean
+              name:
+                type: string
+              parentInstance:
+                description: ParentInstance is a LocalObjectReference to the name
+                  of the harbor instance the registry is created for
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+              type:
+                type: string
+              url:
+                description: Target URL of the registry
+                type: string
+            required:
+            - name
+            - parentInstance
+            - type
+            - url
+            type: object
+          status:
+            description: RegistryStatus defines the observed state of Registry.
+            properties:
+              id:
+                description: The registry ID is written back from the held registry
+                  ID.
+                format: int64
+                type: integer
+              lastTransition:
+                description: Time of last observed transition into this state
+                format: date-time
+                type: string
+              message:
+                type: string
+              name:
+                type: string
+              phase:
+                type: string
+            required:
+            - message
+            - name
+            - phase
+            type: object
+        type: object
     served: true
     storage: true
+    subresources:
+      status: {}
