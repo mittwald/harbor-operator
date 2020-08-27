@@ -10,7 +10,7 @@ on:
   pull_request:
 
 env:
-  OPERATOR_SDK_VERSION: v0.18.1
+  OPERATOR_SDK_VERSION: v0.18.2
   KUBECONFIG: /tmp/kubeconfig
   IMAGE_NAME: quay.io/mittwald/harbor-operator
   REGISTRY_URL: quay.io/mittwald

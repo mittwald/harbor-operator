@@ -3,7 +3,7 @@ name: Verify code generation integrity
 on: pull_request
 
 env:
-  OPERATOR_SDK_VERSION: v0.18.1
+  OPERATOR_SDK_VERSION: v0.18.2
 
 jobs:
   verify-operator-sdk:
