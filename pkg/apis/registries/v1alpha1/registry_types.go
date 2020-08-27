@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	modelv1 "github.com/mittwald/goharbor-client/model/v1_10_0"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -46,7 +45,7 @@ type RegistrySpec struct {
 	URL string `json:"url"`
 
 	// +optional
-	Credential *modelv1.RegistryCredential `json:"credential,omitempty"`
+	Credential *RegistryCredential `json:"credentialRef,omitempty"`
 
 	// Whether or not the TLS certificate will be verified when Harbor tries to access the registry
 	// +optional
@@ -55,6 +54,20 @@ type RegistrySpec struct {
 	// ParentInstance is a LocalObjectReference to the
 	// name of the harbor instance the registry is created for
 	ParentInstance corev1.LocalObjectReference `json:"parentInstance"`
+}
+
+type RegistryCredential struct {
+	// Secret reference to the credentials
+	SecretRef corev1.LocalObjectReference `json:"secretRef"`
+
+	// Key for the "AccessKey" field of the secret referenced in SecretRef
+	SecretKeyAccessKey string `json:"secretKeyAccessKey"`
+
+	// Key for the "AccessSecret" field of the secret referenced in SecretRef
+	SecretKeyAccessSecret string `json:"secretKeyAccessSecret"`
+
+	// Credential type, such as 'basic', 'oauth'.
+	Type string `json:"type"`
 }
 
 // RegistryStatus defines the observed state of Registry.

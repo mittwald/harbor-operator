@@ -1,21 +1,8 @@
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: repository.registries.mittwald.de
 spec:
-  additionalPrinterColumns:
-  - JSONPath: .status.phase
-    description: phase
-    name: Status
-    type: string
-  - JSONPath: .status.id
-    description: harbor replication id
-    name: ID
-    type: integer
-  - JSONPath: .spec.metadata.public
-    description: harbor replication id
-    name: Public
-    type: boolean
   group: registries.mittwald.de
   names:
     kind: Repository
@@ -27,128 +14,140 @@ spec:
     - harborrepos
     singular: repository
   scope: Namespaced
-  subresources:
-    status: {}
-  validation:
-    openAPIV3Schema:
-      description: Repository is the Schema for the projects API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          properties:
-            countLimit:
-              type: integer
-            memberRequests:
-              description: Ref to the name of a 'User' resource
-              items:
-                properties:
-                  role:
-                    type: string
-                  user:
-                    description: LocalObjectReference contains enough information
-                      to let you locate the referenced object inside the same namespace.
-                    properties:
-                      name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                          TODO: Add other useful fields. apiVersion, kind, uid?'
-                        type: string
-                    type: object
-                required:
-                - role
-                - user
-                type: object
-              type: array
-            metadata:
-              properties:
-                autoScan:
-                  description: Whether to scan images automatically when pushing or
-                    not
-                  type: boolean
-                enableContentTrust:
-                  description: Whether content trust is enabled or not If it is, users
-                    can not pull unsigned images from this repository
-                  type: boolean
-                preventVul:
-                  description: Whether to prevent the vulnerable images from running
-                    or not. The valid values are "true", "false".
-                  type: boolean
-                public:
-                  description: Public status of the Repository
-                  type: boolean
-                reuseSysSVEWhitelist:
-                  description: Whether this repository reuses the system level CVE
-                    whitelist as the whitelist of its own. The valid values are "true",
-                    "false". If set to "true", the actual whitelist associated with
-                    this repository, if any, will be ignored.
-                  type: boolean
-                severity:
-                  description: If a vulnerability's severity is higher than the severity
-                    defined here, images can't be pulled. Valid values are "none",
-                    "low", "medium", "high", "critical".
-                  type: string
-              required:
-              - autoScan
-              - enableContentTrust
-              - preventVul
-              - public
-              - reuseSysSVEWhitelist
-              - severity
-              type: object
-            name:
-              type: string
-            parentInstance:
-              description: ParentInstance is a LocalObjectReference to the name of
-                the harbor instance the repository is created for
-              properties:
-                name:
-                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                    TODO: Add other useful fields. apiVersion, kind, uid?'
-                  type: string
-              type: object
-            storageLimit:
-              type: integer
-          required:
-          - metadata
-          - name
-          - parentInstance
-          type: object
-        status:
-          description: RepositoryStatus defines the state of a single repository
-          properties:
-            id:
-              description: The repository ID is written back from the held project
-                ID.
-              format: int32
-              type: integer
-            lastTransition:
-              description: Time of last observed transition into this state
-              format: date-time
-              type: string
-            message:
-              type: string
-            name:
-              type: string
-            phase:
-              type: string
-          required:
-          - message
-          - name
-          - phase
-          type: object
-      type: object
-  version: v1alpha1
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: phase
+      jsonPath: .status.phase
+      name: Status
+      type: string
+    - description: harbor replication id
+      jsonPath: .status.id
+      name: ID
+      type: integer
+    - description: harbor replication id
+      jsonPath: .spec.metadata.public
+      name: Public
+      type: boolean
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Repository is the Schema for the projects API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              countLimit:
+                type: integer
+              memberRequests:
+                description: Ref to the name of a 'User' resource
+                items:
+                  properties:
+                    role:
+                      type: string
+                    user:
+                      description: LocalObjectReference contains enough information
+                        to let you locate the referenced object inside the same namespace.
+                      properties:
+                        name:
+                          description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            TODO: Add other useful fields. apiVersion, kind, uid?'
+                          type: string
+                      type: object
+                  required:
+                  - role
+                  - user
+                  type: object
+                type: array
+              metadata:
+                properties:
+                  autoScan:
+                    description: Whether to scan images automatically when pushing
+                      or not
+                    type: boolean
+                  enableContentTrust:
+                    description: Whether content trust is enabled or not If it is,
+                      users can not pull unsigned images from this repository
+                    type: boolean
+                  preventVul:
+                    description: Whether to prevent the vulnerable images from running
+                      or not. The valid values are "true", "false".
+                    type: boolean
+                  public:
+                    description: Public status of the Repository
+                    type: boolean
+                  reuseSysSVEWhitelist:
+                    description: Whether this repository reuses the system level CVE
+                      whitelist as the whitelist of its own. The valid values are
+                      "true", "false". If set to "true", the actual whitelist associated
+                      with this repository, if any, will be ignored.
+                    type: boolean
+                  severity:
+                    description: If a vulnerability's severity is higher than the
+                      severity defined here, images can't be pulled. Valid values
+                      are "none", "low", "medium", "high", "critical".
+                    type: string
+                required:
+                - autoScan
+                - enableContentTrust
+                - preventVul
+                - public
+                - reuseSysSVEWhitelist
+                - severity
+                type: object
+              name:
+                type: string
+              parentInstance:
+                description: ParentInstance is a LocalObjectReference to the name
+                  of the harbor instance the repository is created for
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+              storageLimit:
+                type: integer
+            required:
+            - metadata
+            - name
+            - parentInstance
+            type: object
+          status:
+            description: RepositoryStatus defines the state of a single repository
+            properties:
+              id:
+                description: The repository ID is written back from the held project
+                  ID.
+                format: int32
+                type: integer
+              lastTransition:
+                description: Time of last observed transition into this state
+                format: date-time
+                type: string
+              message:
+                type: string
+              name:
+                type: string
+              phase:
+                type: string
+            required:
+            - message
+            - name
+            - phase
+            type: object
+        type: object
     served: true
     storage: true
+    subresources:
+      status: {}

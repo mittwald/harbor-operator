@@ -57,6 +57,11 @@ instances: ~
 #        type: docker-hub
 #        url: https://hub.docker.com
 #        insecure: false
+#        credential:
+#          secretRef: test-harbor-test-registry-creds
+#          secretKeyAccessKey: accessKey
+#          secretKeyAccessSecret: accessSecret
+#          type: basic
 #
 #    replications:
 #      - id: 1

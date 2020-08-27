@@ -428,7 +428,12 @@ func (r *ReconcileReplication) getHarborRegistryFromRef(ctx context.Context, reg
 		return nil, internal.ErrRegistryNotReady(registry.Name)
 	}
 
-	return registry.Spec.ToHarborRegistry(registry.Status.ID), nil
+	credential, err := registry.Spec.Credential.ToHarborRegistryCredential(ctx, r.client, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	return registry.Spec.ToHarborRegistry(registry.Status.ID, credential), nil
 }
 
 // assertDeletedReplication deletes a replication, first ensuring its existence
