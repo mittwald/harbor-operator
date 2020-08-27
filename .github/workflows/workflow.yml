@@ -143,10 +143,9 @@ jobs:
         run: docker push "$IMAGE_NAME:latest" && docker push "$IMAGE_NAME:${GITHUB_REF##*/}"
 
       - name: Run chart version bump
-        uses: mittwald/bump-app-version-action@v0.1.2
+        uses: mittwald/bump-app-version-action@v0.1.3
         with:
           mode: 'publish'
-          version: "${GITHUB_REF##*/}"
           chartYaml: './deploy/helm-chart/harbor-operator/Chart.yaml'
         env:
           GITHUB_TOKEN: "${{ secrets.githubToken }}"
