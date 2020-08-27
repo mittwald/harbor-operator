@@ -21,10 +21,6 @@ spec:
   description: {{ $registry.description }}
   {{- end }}
 
-  {{- if $registry.tokenServiceUrl }}
-  tokenServiceUrl: {{ $registry.tokenServiceUrl }}
-  {{- end }}
-
   {{- with $registry.credential }}
   credential:
     {{- toYaml . | nindent 4 }}

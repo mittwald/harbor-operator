@@ -63,7 +63,7 @@ instances: ~
 #        name: test-replication-src
 #        parentInstance:
 #          name: test-harbor
-#        deletion: false
+#        replicateDeletion: false
 #        override: true
 #        enabled: true
 #        srcRegistryName: test-registry

@@ -10,7 +10,6 @@ spec:
   parentInstance:
     name: {{ $instance.name }}
   name: {{ $repl.name }}
-  deletion: {{ $repl.deletion }}
   override: {{ $repl.override }}
   triggerAfterCreation: {{ $repl.triggerAfterCreation }}
 
