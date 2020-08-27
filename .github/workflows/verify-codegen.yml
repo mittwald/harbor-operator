@@ -3,17 +3,17 @@ name: Verify code generation integrity
 on: pull_request
 
 env:
-  OPERATOR_SDK_VERSION: v0.16.0
+  OPERATOR_SDK_VERSION: v0.18.2
 
 jobs:
   verify-operator-sdk:
     name: Verify Operator-SDK Codegen
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.13
+      - name: Set up Go 1.15
         uses: actions/setup-go@v1
         with:
-          go-version: 1.13
+          go-version: 1.15
         id: go
 
       - name: Check out code into the Go module directory
