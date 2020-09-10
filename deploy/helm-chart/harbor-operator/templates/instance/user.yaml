@@ -26,6 +26,11 @@ spec:
   realname: {{ $user.realname }}
   email: {{ $user.email }}
   adminRole: {{ $user.adminRole }}
+  {{- if $user.passwordStrength }}
+  passwordStrength: {{ $user.passwordStrength }}
+  {{- else }}
+  passwordStrength: 16
+  {{- end }}
 ---
   {{- end }}
 {{- end }}
