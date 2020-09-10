@@ -65,9 +65,6 @@ type InstanceSpec struct {
 
 	InstanceURL string `json:"instanceURL"`
 
-	// +optional
-	Options *InstanceDeployOptions `json:"options,omitempty"`
-
 	HelmChart *InstanceHelmChartSpec `json:"helmChart"`
 
 	// +optional
@@ -81,16 +78,6 @@ type GarbageCollection struct {
 
 	// +optional
 	ScheduleType ScheduleType `json:"scheduleType,omitempty"`
-}
-
-type InstanceDeployOptions struct {
-	// +optional
-	KubeconfigSecret *KubeconfigSecret `json:"kubeconfigSecret"`
-}
-
-type KubeconfigSecret struct {
-	SecretRef     *corev1.LocalObjectReference `json:"secretRef"`
-	KubeconfigKey string                       `json:"kubeconfigKey"`
 }
 
 type InstanceHelmChartSpec struct {

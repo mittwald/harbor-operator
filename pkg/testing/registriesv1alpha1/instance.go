@@ -23,7 +23,6 @@ func CreateInstance(name, namespace string) registriesv1alpha1.Instance {
 				Cron:         "0 * * * *",
 				ScheduleType: "Hourly",
 			},
-			Options: &registriesv1alpha1.InstanceDeployOptions{},
 			HelmChart: &registriesv1alpha1.InstanceHelmChartSpec{
 				ChartSpec: helmclient.ChartSpec{
 					ReleaseName: name,
