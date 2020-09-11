@@ -10,6 +10,10 @@ import (
 )
 
 func (creds *RegistryCredential) ToHarborRegistryCredential(ctx context.Context, c client.Client, namespace string) (*modelv1.RegistryCredential, error) {
+	if creds == nil {
+		return nil, nil
+	}
+
 	var secret v1.Secret
 	if err := c.Get(ctx, client.ObjectKey{Name: creds.SecretRef.Name, Namespace: namespace}, &secret); err != nil {
 		return nil, err
