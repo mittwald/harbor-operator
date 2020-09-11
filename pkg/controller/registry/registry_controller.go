@@ -316,9 +316,12 @@ func (r *ReconcileRegistry) buildRegistryFromCR(ctx context.Context, originalReg
 		return nil, err
 	}
 
-	credential, err := originalRegistry.Spec.Credential.ToHarborRegistryCredential(ctx, r.client, originalRegistry.Namespace)
-	if err != nil {
-		return nil, err
+	var credential *modelv1.RegistryCredential
+	if originalRegistry.Spec.Credential != nil {
+		credential, err = originalRegistry.Spec.Credential.ToHarborRegistryCredential(ctx, r.client, originalRegistry.Namespace)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &modelv1.Registry{

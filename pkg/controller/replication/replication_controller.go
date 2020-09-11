@@ -428,9 +428,12 @@ func (r *ReconcileReplication) getHarborRegistryFromRef(ctx context.Context, reg
 		return nil, internal.ErrRegistryNotReady(registry.Name)
 	}
 
-	credential, err := registry.Spec.Credential.ToHarborRegistryCredential(ctx, r.client, namespace)
-	if err != nil {
-		return nil, err
+	var credential *modelv1.RegistryCredential
+	if registry.Spec.Credential != nil {
+		credential, err = registry.Spec.Credential.ToHarborRegistryCredential(ctx, r.client, namespace)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return registry.Spec.ToHarborRegistry(registry.Status.ID, credential), nil
