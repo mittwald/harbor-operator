@@ -76,13 +76,12 @@ func (r *ReconcileUser) getOrCreateSecretForUser(ctx context.Context,
 	user *registriesv1alpha1.User) (*corev1.Secret, error) {
 	sec, err := r.getSecretForUser(ctx, user)
 	if errors.IsNotFound(err) {
-		sec, eerr := r.newSecretForUser(ctx, user)
-		if eerr != nil {
-			return nil, eerr
+		sec, err = r.newSecretForUser(ctx, user)
+		if err != nil {
+			return nil, err
 		}
 
-		err := r.client.Create(ctx, sec)
-		if err != nil {
+		if err := r.client.Create(ctx, sec); err != nil {
 			return &corev1.Secret{}, err
 		}
 	} else if err != nil {
