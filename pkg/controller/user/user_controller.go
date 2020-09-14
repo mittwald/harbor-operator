@@ -207,8 +207,8 @@ func (r *ReconcileUser) updateUserCR(ctx context.Context, parentInstance *regist
 	}
 
 	// set owner
-	if len(originalUser.OwnerReferences) == 0 && parentInstance != nil {
-		if err := controllerruntime.SetControllerReference(parentInstance, originalUser, r.scheme); err != nil {
+	if len(user.OwnerReferences) == 0 && parentInstance != nil {
+		if err := controllerruntime.SetControllerReference(parentInstance, user, r.scheme); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
