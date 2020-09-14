@@ -152,13 +152,11 @@ func (r *ReconcileRepository) Reconcile(request reconcile.Request) (reconcile.Re
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseCreating}
 
 	case registriesv1alpha1.RepositoryStatusPhaseCreating:
-		helper.PushFinalizer(repository, FinalizerName)
-
-		// Install the repository
-		err = r.assertExistingRepository(ctx, harborClient, repository)
-		if err != nil {
+		if err := r.assertExistingRepository(ctx, harborClient, repository); err != nil {
 			return reconcile.Result{}, err
 		}
+
+		helper.PushFinalizer(repository, FinalizerName)
 
 		repository.Status = registriesv1alpha1.RepositoryStatus{Phase: registriesv1alpha1.RepositoryStatusPhaseReady}
 
@@ -234,7 +232,7 @@ func (r *ReconcileRepository) assertDeletedRepository(ctx context.Context, log l
 // create and delete either of those to match the specification.
 func (r *ReconcileRepository) assertExistingRepository(ctx context.Context, harborClient *h.RESTClient,
 	repository *registriesv1alpha1.Repository) error {
-	heldRepo, err := harborClient.GetProject(ctx, repository.Name)
+	heldRepo, err := harborClient.GetProject(ctx, repository.Spec.Name)
 
 	if errors.Is(err, &project.ErrProjectNotFound{}) {
 		_, err := harborClient.NewProject(ctx, repository.Spec.Name, repository.Spec.CountLimit,

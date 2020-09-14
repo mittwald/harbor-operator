@@ -136,13 +136,10 @@ func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Resu
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseCreating}
 
 	case registriesv1alpha1.RegistryStatusPhaseCreating:
-		helper.PushFinalizer(registry, FinalizerName)
-
-		// Install the registry
-		err = r.assertExistingRegistry(ctx, harborClient, registry)
-		if err != nil {
+		if err := r.assertExistingRegistry(ctx, harborClient, registry); err != nil {
 			return reconcile.Result{}, err
 		}
+		helper.PushFinalizer(registry, FinalizerName)
 
 		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseReady}
 	case registriesv1alpha1.RegistryStatusPhaseReady:
@@ -200,7 +197,7 @@ func (r *ReconcileRegistry) updateRegistryCR(ctx context.Context, parentInstance
 // assertExistingRegistry checks a harbor registry for existence and creates it accordingly.
 func (r *ReconcileRegistry) assertExistingRegistry(ctx context.Context, harborClient *h.RESTClient,
 	originalRegistry *registriesv1alpha1.Registry) error {
-	_, err := harborClient.GetRegistry(ctx, originalRegistry.Name)
+	_, err := harborClient.GetRegistry(ctx, originalRegistry.Spec.Name)
 	if err != nil {
 		switch err.Error() {
 		case registryClient.ErrRegistryNotFoundMsg:

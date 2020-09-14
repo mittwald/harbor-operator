@@ -146,13 +146,11 @@ func (r *ReconcileReplication) Reconcile(request reconcile.Request) (reconcile.R
 		}
 
 	case registriesv1alpha1.ReplicationStatusPhaseCreating:
-		helper.PushFinalizer(replication, FinalizerName)
-
-		// Install the replication
-		err = r.assertExistingReplication(ctx, harborClient, replication)
-		if err != nil {
+		if err := r.assertExistingReplication(ctx, harborClient, replication); err != nil {
 			return reconcile.Result{}, err
 		}
+
+		helper.PushFinalizer(replication, FinalizerName)
 
 		if replication.Spec.TriggerAfterCreation {
 			replExec := &modelv1.ReplicationExecution{
@@ -224,7 +222,7 @@ func (r *ReconcileReplication) updateReplicationCR(ctx context.Context, parentIn
 // assertExistingReplication checks a harbor replication for existence and creates it accordingly.
 func (r *ReconcileReplication) assertExistingReplication(ctx context.Context, harborClient *h.RESTClient,
 	originalReplication *registriesv1alpha1.Replication) error {
-	_, err := harborClient.GetReplicationPolicy(ctx, originalReplication.Name)
+	_, err := harborClient.GetReplicationPolicy(ctx, originalReplication.Spec.Name)
 	if err != nil {
 		switch err.Error() {
 		case replicationClient.ErrReplicationNotFoundMsg:
@@ -289,7 +287,7 @@ func enumReplicationFilterType(filterType string) (string, error) {
 func (r *ReconcileReplication) ensureReplication(ctx context.Context, harborClient *h.RESTClient,
 	originalReplication *registriesv1alpha1.Replication) error {
 	// Get the replication held by harbor
-	heldReplication, err := harborClient.GetReplicationPolicy(ctx, originalReplication.Name)
+	heldReplication, err := harborClient.GetReplicationPolicy(ctx, originalReplication.Spec.Name)
 	if err != nil {
 		return err
 	}
