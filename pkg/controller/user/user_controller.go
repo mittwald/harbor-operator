@@ -12,7 +12,7 @@ import (
 
 	"github.com/go-logr/logr"
 	h "github.com/mittwald/goharbor-client"
-	user "github.com/mittwald/goharbor-client/user"
+	harborClientUser "github.com/mittwald/goharbor-client/user"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/pkg/apis/registries/v1alpha1"
 	"github.com/mittwald/harbor-operator/pkg/controller/internal"
 	"github.com/mittwald/harbor-operator/pkg/internal/helper"
@@ -156,15 +156,17 @@ func (r *ReconcileUser) Reconcile(request reconcile.Request) (result reconcile.R
 
 	case registriesv1alpha1.UserStatusPhaseUnknown:
 		user.Status.Phase = registriesv1alpha1.UserStatusPhaseCreating
-		result = reconcile.Result{Requeue: true}
-
-	case registriesv1alpha1.UserStatusPhaseCreating:
-		helper.PushFinalizer(user, FinalizerName)
-
-		err = r.assertExistingUser(ctx, harborClient, user)
-		if err != nil {
+		if err := r.client.Status().Update(ctx, user); err != nil {
 			return reconcile.Result{}, err
 		}
+		return reconcile.Result{Requeue: true}, nil
+
+	case registriesv1alpha1.UserStatusPhaseCreating:
+		if err := r.assertExistingUser(ctx, harborClient, user); err != nil {
+			return reconcile.Result{}, err
+		}
+
+		helper.PushFinalizer(user, FinalizerName)
 
 		user.Status.Phase = registriesv1alpha1.UserStatusPhaseReady
 		result = reconcile.Result{Requeue: true}
@@ -194,32 +196,27 @@ func (r *ReconcileUser) updateUserCR(ctx context.Context, parentInstance *regist
 	user *registriesv1alpha1.User, result reconcile.Result) (reconcile.Result, error) {
 	if originalUser == nil || user == nil {
 		return reconcile.Result{},
-			fmt.Errorf("cannot update user '%s' because the original user is nil", user.Spec.Name)
+			fmt.Errorf("cannot update user because the original user has not been set")
 	}
 
 	// Update Status
 	if !reflect.DeepEqual(originalUser.Status, user.Status) {
-		originalUser.Status = user.Status
-		if err := r.client.Status().Update(ctx, originalUser); err != nil {
+		if err := r.client.Status().Update(ctx, user); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
 
 	// set owner
-	if (originalUser.OwnerReferences == nil || len(originalUser.OwnerReferences) == 0) && parentInstance != nil {
-		err := controllerruntime.SetControllerReference(parentInstance, originalUser, r.scheme)
-		if err != nil {
+	if len(user.OwnerReferences) == 0 && parentInstance != nil {
+		if err := controllerruntime.SetControllerReference(parentInstance, user, r.scheme); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
 
-	// Update Finalizer
-	if !reflect.DeepEqual(originalUser.Finalizers, user.Finalizers) {
-		originalUser.SetFinalizers(user.Finalizers)
-	}
-
-	if err := r.client.Update(ctx, originalUser); err != nil {
-		return reconcile.Result{}, err
+	if !reflect.DeepEqual(originalUser, user) {
+		if err := r.client.Update(ctx, user); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	return result, nil
@@ -246,7 +243,7 @@ func (r *ReconcileUser) assertExistingUser(ctx context.Context, harborClient *h.
 	heldUser, err := harborClient.GetUser(ctx, usr.Spec.Name)
 	if err != nil {
 		switch err.Error() {
-		case user.ErrUserNotFoundMsg:
+		case harborClientUser.ErrUserNotFoundMsg:
 			usr.Status.PasswordHash = pwHash.Short()
 			return r.createUser(ctx, harborClient, usr, pw)
 		default:
@@ -343,8 +340,7 @@ func (r *ReconcileUser) assertDeletedUser(ctx context.Context, log logr.Logger, 
 		UserID:   harborUser.UserID,
 	}
 
-	err = harborClient.DeleteUser(ctx, uReq)
-	if err != nil {
+	if err := harborClient.DeleteUser(ctx, uReq); err != nil {
 		return err
 	}
 

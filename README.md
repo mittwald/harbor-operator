@@ -72,7 +72,7 @@ make bootstrap-kind
 To start the operator locally, use:
 
 ```shell script
-operator-sdk run --local --namespace harbor-operator
+operator-sdk run local --watch-namespace harbor-operator
 ```
 
 #### Deploying example resources

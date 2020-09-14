@@ -42,7 +42,7 @@ function createCluster() {
         exit 1
     fi
 
-    KUBECONFIG=/tmp/"${CLUSTER_NAME}".kubeconfig
+    export KUBECONFIG=/tmp/"${CLUSTER_NAME}".kubeconfig
 
     echo "Saving temporary kubeconfig for kind cluster to ${KUBECONFIG}"
     kind get kubeconfig --name "${CLUSTER_NAME}" > "${KUBECONFIG}"
