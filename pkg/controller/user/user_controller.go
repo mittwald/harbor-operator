@@ -196,7 +196,7 @@ func (r *ReconcileUser) updateUserCR(ctx context.Context, parentInstance *regist
 	user *registriesv1alpha1.User, result reconcile.Result) (reconcile.Result, error) {
 	if originalUser == nil || user == nil {
 		return reconcile.Result{},
-			fmt.Errorf("cannot update user because the original user is nil")
+			fmt.Errorf("cannot update user because the original user has not been set")
 	}
 
 	// Update Status
