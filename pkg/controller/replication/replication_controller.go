@@ -360,10 +360,13 @@ func (r *ReconcileReplication) buildReplicationFromCR(originalReplication *regis
 		}
 
 		newRep.Trigger = &modelv1.ReplicationTrigger{
-			TriggerSettings: &modelv1.TriggerSettings{
-				Cron: originalReplication.Spec.Trigger.Settings.Cron,
-			},
 			Type: triggerType,
+		}
+
+		if originalReplication.Spec.Trigger.Settings != nil {
+			newRep.Trigger.TriggerSettings = &modelv1.TriggerSettings{
+				Cron: originalReplication.Spec.Trigger.Settings.Cron,
+			}
 		}
 	}
 
