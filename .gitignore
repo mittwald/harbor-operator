@@ -78,3 +78,5 @@ tags
 
 .idea
 
+# Operator SDK
+bin

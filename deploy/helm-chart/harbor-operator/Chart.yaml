@@ -1,6 +1,0 @@
-apiVersion: v2
-name: harbor-operator
-description: A Kubernetes operator for managing goharbor instances
-type: application
-version: 1.1.11
-appVersion: v1.1.11
