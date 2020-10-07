@@ -7,7 +7,7 @@ This page covers example usage of all resources supported by this operator.
     
    - [Secrets](#InstanceChartRepository-Secrets) (_Optional_ secret values for the above)
 
-[Repositories](#Repositories) (Harbor Projects)
+[Projects](#Projects)
 
 [Registries](#Registries)
 
@@ -25,7 +25,7 @@ This page covers example usage of all resources supported by this operator.
 ### Instances
 The`Instance`-resource specifies the desired Harbor helm installation:
 
-[./instance.yaml](./instance.yaml)
+[registries_v1alpha1_instance.yaml](./registries_v1alpha1_instance.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha1
 kind: Instance
@@ -85,7 +85,7 @@ the accompanying controller automatically adds/updates the specified chart in it
 
 An example `InstanceChartRepository`, using the official [goharbor/harbor-helm](https://github.com/goharbor/harbor-helm) chart might look like this:
 
-[./instancechartrepo.yaml](./instancechartrepo.yaml)
+[registries_v1alpha1_instancechartrepository.yaml](./registries_v1alpha1_instancechartrepository.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha1
 kind: InstanceChartRepository
@@ -109,7 +109,7 @@ If you need credentials accessing the desired helm repository, you can use kuber
 #### InstanceChartRepository Secrets
 An `instancechartrepository`'s secret is a kubernetes secret:
 
-[./instancechartrepo-secret.yaml](./instancechartrepo-secret.yaml)
+[instancechartrepository-secret.yaml](instancechartrepository-secret.yaml)
 ```yaml
 apiVersion: v1
 data:
@@ -121,8 +121,8 @@ metadata:
   namespace: harbor-operator
 ```
 
-### Repositories
-Repositories (or *Harbor Projects*) hold the information of a Harbor project, mirroring values from its spec on to a Harbor instance via the [goharbor-client](https://github.com/mittwald/goharbor-client) library.
+### Projects
+Projects hold the information of a Harbor project, mirroring values from its spec on to a Harbor instance via the [goharbor-client](https://github.com/mittwald/goharbor-client) library.
 
 A harbor project is "hollow", in the sense of being the authority that holds repository and helm chart information over its lifecycle.
 
@@ -139,7 +139,7 @@ NAME           STATUS   ID    PUBLIC
 repository-1   Ready    1     false
 ```
 
-[./repository.yaml](./repository.yaml)
+[registries_v1alpha1_project.yaml](./registries_v1alpha1_project.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha1
 kind: Repository
@@ -174,7 +174,7 @@ The available registry types (configurable via `.spec.type`) are:
 `harbor`, `docker-hub`, `docker-registry`, `huawei-SWR`, `google-gcr`, `aws-ecr`,
 `azure-acr`, `ali-acr`, `jfrog-artifactory`, `quay-io`, `gitlab`, `helm-hub`.
 
-[./registry-dockerhub.yaml](./registry-dockerhub.yaml)
+[registries_v1alpha1_registry-dockerhub.yaml](./registries_v1alpha1_registry-dockerhub.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha1
 kind: Registry
@@ -205,7 +205,7 @@ test-registry         Ready    1
 test-registry-local   Ready    2
 ```
 
-[./registry-local.yaml](./registry-local.yaml)
+[registries_v1alpha1_registry-local.yaml](./registries_v1alpha1_registry-local.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha1
 kind: Registry
@@ -243,7 +243,7 @@ Specifying a source registry will trigger harbor to _pull_ the specified resourc
 
 Filters and triggers are *optional* fields.
 
-[./replication-src.yaml](./replication-src.yaml)
+[registries_v1alpha1_replication_src.yaml](./registries_v1alpha1_replication_src.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha1
 kind: Replication
@@ -279,7 +279,7 @@ Specifying a destination registry will trigger harbor to **push** the specified 
 
 Filters and triggers are *optional* fields.
 
-[./replication-dst.yaml](./replication-dst.yaml)
+[registries_v1alpha1_replication_dst.yaml](./registries_v1alpha1_replication_dst.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha1
 kind: Replication
@@ -314,7 +314,7 @@ The admin role grants full admin access over a harbor instance, toggleable via `
 If `.spec.userSecretRef` specifies a non-existing secret, the strength for a generated secret password value can
  be defined via `.spec.passwordStrength`.
 
-[./user.yaml](./user.yaml)
+[registries_v1alpha1_user.yaml](./registries_v1alpha1_user.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha1
 kind: User
@@ -345,7 +345,7 @@ The users' password then will get randomly generated.
 
 **Passwords must be longer than 8 characters, containing at least 1 uppercase letter, 1 lowercase letter and 1 number.**
 
-[./user-secret.yaml](./user-secret.yaml)
+[user-secret.yaml](./user-secret.yaml)
 ```yaml
 apiVersion: v1
 data:

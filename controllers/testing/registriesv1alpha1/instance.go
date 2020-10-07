@@ -8,7 +8,7 @@ import (
 )
 
 // CreateInstance returns an instance object with sample values.
-func CreateInstance(name, namespace string) registriesv1alpha1.Instance {
+func CreateInstance(name, namespace string) *registriesv1alpha1.Instance {
 	i := registriesv1alpha1.Instance{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -37,7 +37,7 @@ func CreateInstance(name, namespace string) registriesv1alpha1.Instance {
 		},
 	}
 
-	return i
+	return &i
 }
 
 // CreateSecret returns an instance secret with sample values.

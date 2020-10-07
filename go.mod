@@ -8,8 +8,8 @@ require (
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/mittwald/go-helm-client v0.4.1
 	github.com/mittwald/goharbor-client/v2 v2.0.1
-	github.com/onsi/ginkgo v1.12.1
-	github.com/onsi/gomega v1.10.1
+	github.com/onsi/ginkgo v1.14.1
+	github.com/onsi/gomega v1.10.2
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.6.1
@@ -19,4 +19,5 @@ require (
 	k8s.io/apimachinery v0.18.8
 	k8s.io/client-go v0.18.8
 	sigs.k8s.io/controller-runtime v0.6.3
+	sigs.k8s.io/controller-tools v0.4.0 // indirect
 )

@@ -1,7 +1,7 @@
 # Current Operator version
 VERSION ?= 0.0.1
 # Default bundle image tag
-BUNDLE_IMG ?= controller-bundle:$(VERSION)
+BUNDLE_IMG ?= harbor-operator-bundle:$(VERSION)
 # Options for 'bundle-build'
 ifneq ($(origin CHANNELS), undefined)
 BUNDLE_CHANNELS := --channels=$(CHANNELS)
@@ -12,7 +12,7 @@ endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= harbor-operator:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -26,8 +26,12 @@ endif
 all: manager
 
 # Run tests
+ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
+ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: generate fmt vet manifests
-	go test ./... -coverprofile cover.out
+		mkdir -p ${ENVTEST_ASSETS_DIR}
+		test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/master/hack/setup-envtest.sh
+		source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test -v ./... -count=1 -coverprofile cover.out
 
 # Build manager binary
 manager: generate fmt vet
@@ -56,11 +60,11 @@ manifests: controller-gen
 
 # Run go fmt against code
 fmt:
-	go fmt ./...
+	go fmt $$(go list ./...)
 
 # Run go vet against code
 vet:
-	go vet ./...
+	go vet $$(go list ./...)
 
 # Generate code
 generate: controller-gen
@@ -83,7 +87,7 @@ ifeq (, $(shell which controller-gen))
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.3.0 ;\
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.0 ;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
@@ -118,3 +122,18 @@ bundle: manifests
 .PHONY: bundle-build
 bundle-build:
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+
+# Mock generation for the controller runtime client used by some unit tests
+CONTROLLER_RUNTIME_VERSION=$(shell echo `find . -maxdepth 1 -name 'go.mod' | xargs awk '$$1 == "sigs.k8s.io/controller-runtime"{print $$2}'`)
+
+mock:
+	@echo generating mocked k8s runtime client via
+	@echo sigs.k8s.io/controller-runtime@$(CONTROLLER_RUNTIME_VERSION)/pkg/client.Client
+	$(eval WORKDIR := $(shell pwd))
+	$(eval TMP := $(shell mktemp -d))
+	echo $(WORKDIR)
+	git clone https://github.com/kubernetes-sigs/controller-runtime -q --branch $(CONTROLLER_RUNTIME_VERSION) $(TMP)
+	cd $(TMP); mockery --dir $(TMP)/pkg/client/ --name Client --structname MockClient \
+	--filename=runtime_client_mock.go --output "$(PWD)/controllers/internal/mocks"
+	rm -rf $(TMP)
+

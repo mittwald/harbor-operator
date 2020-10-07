@@ -49,7 +49,6 @@ type InstanceChartRepositoryReconciler struct {
 
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=instancechartrepositories,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=instancechartrepositories/status,verbs=get;update;patch
-
 func (r *InstanceChartRepositoryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("instancechartrepository", req.NamespacedName)
 

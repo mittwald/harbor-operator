@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package controllers_test
 
 import (
 	"path/filepath"
@@ -59,29 +59,28 @@ var _ = BeforeSuite(func(done Done) {
 
 	var err error
 	cfg, err = testEnv.Start()
-	Expect(err).ToNot(HaveOccurred())
-	Expect(cfg).ToNot(BeNil())
+	Ω(err).ToNot(HaveOccurred())
+	Ω(cfg).ToNot(BeNil())
 
 	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	Ω(err).NotTo(HaveOccurred())
 
 	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	Ω(err).NotTo(HaveOccurred())
 
 	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	Ω(err).NotTo(HaveOccurred())
 
 	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	Ω(err).NotTo(HaveOccurred())
 
 	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	Ω(err).NotTo(HaveOccurred())
 
 	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	Ω(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
-
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
@@ -92,5 +91,5 @@ var _ = BeforeSuite(func(done Done) {
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
 	err := testEnv.Stop()
-	Expect(err).ToNot(HaveOccurred())
+	Ω(err).ToNot(HaveOccurred())
 })

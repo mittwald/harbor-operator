@@ -46,7 +46,7 @@ func TestBuildClient(t *testing.T) {
 			Name:      harbor.Spec.Name + "-harbor-core",
 		}, &corev1.Secret{}).Return(nil)
 
-		harborClient, err := BuildClient(ctx, mockClient, &harbor)
+		harborClient, err := BuildClient(ctx, mockClient, harbor)
 
 		assert.Nil(t, harborClient)
 		if assert.Error(t, err) {

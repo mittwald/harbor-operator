@@ -25,14 +25,13 @@ The operator utilizes a [helm client](https://github.com/mittwald/go-helm-client
 ### CRDs
 - registriesv1alpha1:
     - instances.registries.mittwald.de
-    - instancechartrepos.registries.mittwald.de
-    - repository.registries.mittwald.de
+    - instancechartrepositories.registries.mittwald.de
+    - project.registries.mittwald.de
     - users.registries.mittwald.de
     - replications.registries.mittwald.de
     - registries.registries.mittwald.de
     
-To get an overview of the individual resources that come with this operator, take a look at the [examples directory
-](./examples).
+To get an overview of the individual resources that come with this operator, take a look at the [examples directory](./config/samples).
 
 ## Installation
 ### Helm
@@ -62,6 +61,20 @@ Example annotation, using cert-manager as the cluster-issuer:
 
 ### Local Development
 
+#### Testing
+
+Make sure [kubebuilder](https://book-v1.book.kubebuilder.io/getting_started/installation_and_setup.html) is installed on your system.
+
+Run tests either by [ginkgo](http://onsi.github.io/ginkgo/#getting-ginkgo) via:
+``` shell script
+ginkgo test ./...
+```
+Or via the go test suite:
+``` shell script
+go test -v ./...
+```
+
+
 #### Installing
 Create a local kind cluster containing all needed resources via:
 
@@ -83,7 +96,7 @@ Note: When using the provided examples and running the operator locally, an entr
 127.0.0.1 core.harbor.domain 
 ```
 
-Example resources can be deployed using the files provided in the [examples directory](./examples).
+Example resources can be deployed using the files provided in the [examples directory](./config/examples).
 To start testing, simply apply these after starting the operator:
 
 ```

@@ -75,8 +75,9 @@ tags
 .vscode/*
 .history
 # End of https://www.gitignore.io/api/go,vim,emacs,visualstudiocode
-
 .idea
-
-# Operator SDK
+# Operator SDK v1
 bin
+testbin/*
+# local test etcd
+default.etcd/*
