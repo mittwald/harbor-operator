@@ -41,18 +41,8 @@ manager: generate fmt vet
 run: generate fmt vet manifests
 	go run ./main.go
 
-# Install CRDs into a cluster
-install: manifests kustomize
-	$(KUSTOMIZE) build config/crd | kubectl apply -f -
-
-# Uninstall CRDs from a cluster
-uninstall: manifests kustomize
-	$(KUSTOMIZE) build config/crd | kubectl delete -f -
-
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests kustomize
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	$(KUSTOMIZE) build config/default | kubectl apply -f -
+debug: generate fmt vet manifests manager
+	dlv --listen=:2345 --headless=true --api-version=2 exec bin/manager --
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
@@ -126,7 +116,7 @@ bundle-build:
 # Mock generation for the controller runtime client used by some unit tests
 CONTROLLER_RUNTIME_VERSION=$(shell echo `find . -maxdepth 1 -name 'go.mod' | xargs awk '$$1 == "sigs.k8s.io/controller-runtime"{print $$2}'`)
 
-mock:
+mock-runtime-client:
 	@echo generating mocked k8s runtime client via
 	@echo sigs.k8s.io/controller-runtime@$(CONTROLLER_RUNTIME_VERSION)/pkg/client.Client
 	$(eval WORKDIR := $(shell pwd))

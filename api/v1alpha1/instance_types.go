@@ -65,26 +65,26 @@ type InstanceSpec struct {
 
 	InstanceURL string `json:"instanceURL"`
 
-	// +optional
+	// +kubebuilder:validation:Optional
 	Options *InstanceDeployOptions `json:"options,omitempty"`
 
 	HelmChart *InstanceHelmChartSpec `json:"helmChart"`
 
-	// +optional
+	// +kubebuilder:validation:Optional
 	GarbageCollection *GarbageCollection `json:"garbageCollection,omitempty"`
 }
 
 // GarbageCollectionReq holds request information for a garbage collection schedule.
 type GarbageCollection struct {
-	// +optional
+	// +kubebuilder:validation:Optional
 	Cron string `json:"cron,omitempty"`
 
-	// +optional
+	// +kubebuilder:validation:Optional
 	ScheduleType ScheduleType `json:"scheduleType,omitempty"`
 }
 
 type InstanceDeployOptions struct {
-	// +optional
+	// +kubebuilder:validation:Optional
 	KubeconfigSecret *KubeconfigSecret `json:"kubeconfigSecret"`
 }
 
@@ -97,7 +97,7 @@ type InstanceHelmChartSpec struct {
 	helmclient.ChartSpec `json:",inline"`
 
 	// set additional chart values from secret
-	// +optional
+	// +kubebuilder:validation:Optional
 	SecretValues *InstanceHelmChartSecretValues `json:"secretValues,omitempty"`
 }
 
@@ -110,7 +110,7 @@ type InstanceHelmChartSecretValues struct {
 type InstanceStatus struct {
 	Phase InstanceStatusPhase `json:"phase"`
 
-	// +optional
+	// +kubebuilder:validation:Optional
 	Version string `json:"version"`
 
 	SpecHash string `json:"specHash"`
@@ -122,6 +122,6 @@ type InstanceStatusPhase struct {
 	Message string `json:"message"`
 
 	// Time of last observed transition into this state.
-	// +optional
+	// +kubebuilder:validation:Optional
 	LastTransition *metav1.Time `json:"lastTransition,omitempty"`
 }

@@ -38,16 +38,14 @@ type ProjectSpec struct {
 	// name of the harbor instance the project is created for
 	ParentInstance corev1.LocalObjectReference `json:"parentInstance"`
 
-	// +optional
-	CountLimit int `json:"countLimit"`
-
-	// +optional
+	// +kubebuilder:validation:Optional
 	StorageLimit int `json:"storageLimit"`
 
-	Metadata ProjectMetadata `json:"metadata"`
+	// +kubebuilder:validation:Optional
+	Metadata ProjectMetadata `json:"metadata,omitempty"`
 
 	// Ref to the name of a 'User' resource
-	// +optional
+	// +kubebuilder:validation:Optional
 	MemberRequests []MemberRequest `json:"memberRequests,omitempty"`
 }
 
@@ -106,7 +104,7 @@ type ProjectStatus struct {
 	Phase   ProjectStatusPhaseName `json:"phase"`
 	Message string                 `json:"message"`
 	// Time of last observed transition into this state
-	// +optional
+	// +kubebuilder:validation:Optional
 	LastTransition *metav1.Time `json:"lastTransition,omitempty"`
 
 	// The project ID is written back from the held project ID.

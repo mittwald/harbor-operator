@@ -1,0 +1,20 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: user-viewer-role
+rules:
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - users
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - users/status
+  verbs:
+  - get

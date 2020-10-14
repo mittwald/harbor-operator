@@ -52,8 +52,6 @@ spec:
             type: object
           spec:
             properties:
-              countLimit:
-                type: integer
               memberRequests:
                 description: Ref to the name of a 'User' resource
                 items:
@@ -129,7 +127,6 @@ spec:
               storageLimit:
                 type: integer
             required:
-            - metadata
             - name
             - parentInstance
             type: object

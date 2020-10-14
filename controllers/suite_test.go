@@ -17,8 +17,14 @@ limitations under the License.
 package controllers_test
 
 import (
+	"context"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -37,9 +43,23 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var cfg *rest.Config
-var k8sClient client.Client
-var testEnv *envtest.Environment
+var (
+	k8sClient                       client.Client
+	testEnv                         *envtest.Environment
+	cfg                             *rest.Config
+	name                            string
+	namespace                       string
+	request                         ctrl.Request
+	testNamespace                   = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespaceName}}
+	testInstanceChartRepositoryName = "test-instancechartrepo"
+	testInstanceName                = "test-instance"
+	testProjectName                 = "test-project"
+	testRegistryName                = "test-registry"
+	testUserName                    = "test-user"
+	testReplicationName             = "test-replication"
+	testNamespaceName               = "test-namespace"
+	ctx                             = context.TODO()
+)
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -62,33 +82,51 @@ var _ = BeforeSuite(func(done Done) {
 	Ω(err).ToNot(HaveOccurred())
 	Ω(cfg).ToNot(BeNil())
 
-	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
-	Ω(err).NotTo(HaveOccurred())
+	// Add the apiextensions API to operate on CRDs
+	err = apiextensions.AddToScheme(scheme.Scheme)
+	Ω(err).ToNot(HaveOccurred())
 
 	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
-	Ω(err).NotTo(HaveOccurred())
+	Ω(err).ToNot(HaveOccurred())
 
 	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
-	Ω(err).NotTo(HaveOccurred())
+	Ω(err).ToNot(HaveOccurred())
 
 	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
-	Ω(err).NotTo(HaveOccurred())
+	Ω(err).ToNot(HaveOccurred())
 
 	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
-	Ω(err).NotTo(HaveOccurred())
+	Ω(err).ToNot(HaveOccurred())
 
 	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
-	Ω(err).NotTo(HaveOccurred())
+	Ω(err).ToNot(HaveOccurred())
+
+	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
+	Ω(err).ToNot(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).ToNot(HaveOccurred())
-	Expect(k8sClient).ToNot(BeNil())
+	Ω(err).ToNot(HaveOccurred())
+	Ω(k8sClient).ToNot(BeNil())
+
+	// Create namespace for tests
+	err = k8sClient.Create(ctx, testNamespace)
+	Ω(err).ToNot(HaveOccurred())
 
 	close(done)
 }, 60)
 
 var _ = AfterSuite(func() {
+	// Clean up CRDs
+	Context("Deleting CRDs", func() {
+		err := envtest.UninstallCRDs(cfg, envtest.CRDInstallOptions{
+			Paths:        []string{filepath.Join("..", "config", "crd", "bases")},
+			MaxTime:      50 * time.Millisecond,
+			PollInterval: 15 * time.Millisecond,
+		})
+		Ω(err).ToNot(HaveOccurred())
+	})
+
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Ω(err).ToNot(HaveOccurred())

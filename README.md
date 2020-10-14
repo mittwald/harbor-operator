@@ -24,14 +24,15 @@ The operator utilizes a [helm client](https://github.com/mittwald/go-helm-client
 
 ### CRDs
 - registriesv1alpha1:
-    - instances.registries.mittwald.de
     - instancechartrepositories.registries.mittwald.de
+    - instances.registries.mittwald.de
     - project.registries.mittwald.de
-    - users.registries.mittwald.de
-    - replications.registries.mittwald.de
     - registries.registries.mittwald.de
+    - replications.registries.mittwald.de
+    - users.registries.mittwald.de
     
-To get an overview of the individual resources that come with this operator, take a look at the [examples directory](./config/samples).
+To get an overview of the individual resources that come with this operator,
+take a look at the [samples directory](./config/samples).
 
 ## Installation
 ### Helm
@@ -60,6 +61,16 @@ Example annotation, using cert-manager as the cluster-issuer:
 `cert-manager.io/cluster-issuer: "letsencrypt-issuer"`
 
 ### Local Development
+To start the operator locally, run:
+```shell script
+make run
+```
+
+To start a debug session using [delve](https://github.com/go-delve/delve), run:
+```shell script
+make debug
+```
+This will start a debugging server with the listen address `localhost:2345`.
 
 #### Testing
 
@@ -74,18 +85,18 @@ Or via the go test suite:
 go test -v ./...
 ```
 
+_Some_ unit tests require a [mocked controller-runtime client](./controllers/internal/mocks/runtime_client_mock.go).
+This mock is generated using the `make mock-runtime-client` command.
+
 
 #### Installing
-Create a local kind cluster containing all needed resources via:
-
+Generate `packagemanifests`
 ```shell script
-make bootstrap-kind
+make manifests
 ```
 
-To start the operator locally, use:
-
 ```shell script
-operator-sdk run local --watch-namespace harbor-operator
+make run
 ```
 
 #### Deploying example resources
@@ -100,9 +111,7 @@ Example resources can be deployed using the files provided in the [examples dire
 To start testing, simply apply these after starting the operator:
 
 ```
-kubectl create -f examples/instancechartrepo.yaml
-kubectl create -f examples/instance.yaml
-[...]
+k create -f config/samples/
 ```
 
 After a successful installation, the Harbor portal

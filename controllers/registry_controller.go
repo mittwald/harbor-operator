@@ -258,12 +258,6 @@ func (r *RegistryReconciler) ensureRegistry(ctx context.Context, harborClient *h
 		return err
 	}
 
-	// Construct a registry from the CR spec
-	newReg, err := r.buildRegistryFromCR(ctx, originalRegistry)
-	if err != nil {
-		return err
-	}
-
 	// Use the registry's ID from the Harbor instance and write it back to the the CR's status field
 	if originalRegistry.Status.ID != heldRegistry.ID {
 		originalRegistry.Status.ID = heldRegistry.ID
@@ -271,6 +265,12 @@ func (r *RegistryReconciler) ensureRegistry(ctx context.Context, harborClient *h
 		if err := r.Client.Status().Update(ctx, originalRegistry); err != nil {
 			return err
 		}
+	}
+
+	// Construct a registry from the CR spec
+	newReg, err := r.buildRegistryFromCR(ctx, originalRegistry)
+	if err != nil {
+		return err
 	}
 
 	if newReg.Credential == nil {

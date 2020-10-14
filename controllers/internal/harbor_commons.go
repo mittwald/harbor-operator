@@ -2,7 +2,6 @@ package internal
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
@@ -33,12 +32,6 @@ func (e ErrInstanceNotReady) Error() string {
 func (e ErrRegistryNotReady) Error() string {
 	return fmt.Sprintf("registry '%s' not ready", string(e))
 }
-
-// ErrRegistryNotFound is a custom error type describing the absence of a registry.
-var ErrRegistryNotFound = errors.New("registry not found")
-
-// ErrReplicationNotFound is a custom error type describing the absence of a replication.
-var ErrReplicationNotFound = errors.New("replication not found")
 
 // FetchReadyHarborInstance returns a harbor instance based on the provided instance name
 // Also needs a controller client to fetch the actual instance.

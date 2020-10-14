@@ -27,7 +27,7 @@ type UserSpec struct {
 	RealName       string                      `json:"realname"`
 	Email          string                      `json:"email"`
 	UserSecretRef  corev1.LocalObjectReference `json:"userSecretRef"`
-	// +optional
+	// +kubebuilder:validation:Optional
 	Comments string `json:"comments,omitempty"`
 }
 
@@ -60,7 +60,7 @@ type UserStatus struct {
 	PasswordHash string              `json:"passwordHash"`
 
 	// Time of last observed transition into this state
-	// +optional
+	// +kubebuilder:validation:Optional
 	LastTransition *metav1.Time `json:"lastTransition,omitempty"`
 }
 

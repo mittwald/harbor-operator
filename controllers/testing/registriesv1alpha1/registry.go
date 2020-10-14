@@ -7,7 +7,7 @@ import (
 )
 
 // CreateRegistry returns a registry object with sample values.
-func CreateRegistry(name, namespace, instanceRef string) registriesv1alpha1.Registry {
+func CreateRegistry(name, namespace, instanceRef string) *registriesv1alpha1.Registry {
 	r := registriesv1alpha1.Registry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -25,5 +25,5 @@ func CreateRegistry(name, namespace, instanceRef string) registriesv1alpha1.Regi
 		Status: registriesv1alpha1.RegistryStatus{ID: 1},
 	}
 
-	return r
+	return &r
 }

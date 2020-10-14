@@ -6,8 +6,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CreateRepository returns a repository object with sample values.
-func CreateRepository(name, namespace, instanceRef string) registriesv1alpha1.Project {
+// CreateProject returns a project object with sample values.
+func CreateProject(name, namespace, instanceRef string) *registriesv1alpha1.Project {
 	r := registriesv1alpha1.Project{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -22,5 +22,5 @@ func CreateRepository(name, namespace, instanceRef string) registriesv1alpha1.Pr
 		Status: registriesv1alpha1.ProjectStatus{},
 	}
 
-	return r
+	return &r
 }

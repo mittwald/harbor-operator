@@ -18,6 +18,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	helmclient "github.com/mittwald/go-helm-client"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"os"
@@ -50,18 +52,13 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+	flag.StringVar(&opconfig.MetricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.BoolVar(&opconfig.EnableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.Parse()
-
-	// don't bind commands to variables, access them through viper
-	flag.String("helm-client-repo-cache-path",
+	flag.StringVar(&opconfig.HelmClientRepoCachePath, "helm-client-repo-cache-path",
 		"/tmp/.helmcache", "helm client repository cache path")
-	flag.String("helm-client-repo-conf-path",
+	flag.StringVar(&opconfig.HelmClientRepoConfPath, "helm-client-repo-conf-path",
 		"/tmp/.helmconfig", "helm client repository config path")
 
 	flag.Parse()
@@ -81,14 +78,15 @@ func main() {
 	}
 
 	opconfig.FromViper()
+	fmt.Println(opconfig.Config)
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
+		MetricsBindAddress: opconfig.MetricsAddr,
 		Port:               9443,
-		LeaderElection:     enableLeaderElection,
+		LeaderElection:     opconfig.EnableLeaderElection,
 		LeaderElectionID:   "a1e7caa2.mittwald.de",
 	})
 	if err != nil {
@@ -97,17 +95,19 @@ func main() {
 	}
 
 	if err = (&controllers.InstanceChartRepositoryReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("InstanceChartRepository"),
-		Scheme: mgr.GetScheme(),
+		Client:             mgr.GetClient(),
+		Log:                ctrl.Log.WithName("controllers").WithName("InstanceChartRepository"),
+		Scheme:             mgr.GetScheme(),
+		HelmClientReceiver: AddHelmClientReceiver(mgr),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "InstanceChartRepository")
 		os.Exit(1)
 	}
 	if err = (&controllers.InstanceReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Instance"),
-		Scheme: mgr.GetScheme(),
+		Client:             mgr.GetClient(),
+		Log:                ctrl.Log.WithName("controllers").WithName("Instance"),
+		Scheme:             mgr.GetScheme(),
+		HelmClientReceiver: AddHelmClientReceiver(mgr),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Instance")
 		os.Exit(1)
@@ -151,4 +151,20 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func AddHelmClientReceiver(mgr ctrl.Manager) controllers.HelmClientFactory {
+	f := func(repoCache, repoConfig, namespace string) (helmclient.Client, error) {
+		opts := &helmclient.RestConfClientOptions{
+			Options: &helmclient.Options{
+				Namespace:        namespace,
+				RepositoryCache:  repoCache,
+				RepositoryConfig: repoConfig,
+			},
+			RestConfig: mgr.GetConfig(),
+		}
+
+		return helmclient.NewClientFromRestConf(opts)
+	}
+	return f
 }

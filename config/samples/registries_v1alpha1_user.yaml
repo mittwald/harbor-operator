@@ -11,5 +11,5 @@ spec:
   email: test@example.com
   userSecretRef:
     name: harbor-user
-  adminRole: true
+  sysAdmin: true
   passwordStrength: 16

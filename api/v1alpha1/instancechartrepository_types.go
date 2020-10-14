@@ -16,10 +16,10 @@ const (
 type InstanceChartRepositorySpec struct {
 	URL string `json:"url"`
 
-	// +optional
+	// +kubebuilder:validation:Optional
 	Name string `json:"name,omitempty"`
 
-	// +optional
+	// +kubebuilder:validation:Optional
 	SecretRef *v1.LocalObjectReference `json:"secretRef,omitempty"`
 }
 

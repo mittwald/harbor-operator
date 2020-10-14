@@ -36,7 +36,7 @@ const (
 type RegistrySpec struct {
 	Name string `json:"name"`
 
-	// +optional
+	// +kubebuilder:validation:Optional
 	Description string `json:"description,omitempty"`
 
 	Type RegistryType `json:"type"`
@@ -44,11 +44,11 @@ type RegistrySpec struct {
 	// Target URL of the registry
 	URL string `json:"url"`
 
-	// +optional
+	// +kubebuilder:validation:Optional
 	Credential *RegistryCredential `json:"credential,omitempty"`
 
 	// Whether or not the TLS certificate will be verified when Harbor tries to access the registry
-	// +optional
+	// +kubebuilder:validation:Optional
 	Insecure bool `json:"insecure,omitempty"`
 
 	// ParentInstance is a LocalObjectReference to the
@@ -77,7 +77,7 @@ type RegistryStatus struct {
 	Message string                  `json:"message"`
 
 	// Time of last observed transition into this state
-	// +optional
+	// +kubebuilder:validation:Optional
 	LastTransition *metav1.Time `json:"lastTransition,omitempty"`
 
 	// The registry ID is written back from the held registry ID.

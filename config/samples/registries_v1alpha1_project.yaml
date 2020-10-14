@@ -1,5 +1,5 @@
 apiVersion: registries.mittwald.de/v1alpha1
-kind: Repository
+kind: Project
 metadata:
   name: repository-1
   namespace: harbor-operator
@@ -11,10 +11,10 @@ spec:
   name: repository-1
   parentInstance:
     name: test-harbor
-  metadata:
-    enableContentTrust:     false
-    autoScan:               false
-    severity:               "none"
-    reuseSysSVEWhitelist:   false
-    public:                 false
-    preventVul:             false
+#  metadata:
+#    enableContentTrust:     false
+#    autoScan:               false
+#    severity:               "none"
+#    reuseSysSVEWhitelist:   false
+#    public:                 false
+#    preventVul:             false

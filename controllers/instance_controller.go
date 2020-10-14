@@ -47,7 +47,7 @@ type InstanceReconciler struct {
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 	// helmClientReceiver is a receiver function to generate a helmclient dynamically.
-	helmClientReceiver internal.HelmClientFactory
+	HelmClientReceiver HelmClientFactory
 }
 
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -240,7 +240,7 @@ func (r *InstanceReconciler) updateInstanceCR(ctx context.Context, originalInsta
 
 // updateHelmRepos updates helm chart repositories.
 func (r *InstanceReconciler) updateHelmRepos() error {
-	helmClient, err := r.helmClientReceiver(config.Config.HelmClientRepositoryCachePath,
+	helmClient, err := r.HelmClientReceiver(config.Config.HelmClientRepositoryCachePath,
 		config.Config.HelmClientRepositoryConfigPath, "")
 	if err != nil {
 		return err
@@ -251,7 +251,7 @@ func (r *InstanceReconciler) updateHelmRepos() error {
 
 // installOrUpgradeHelmChart installs and upgrades a helm chart.
 func (r *InstanceReconciler) installOrUpgradeHelmChart(ctx context.Context, helmChart *helmclient.ChartSpec) error {
-	helmClient, err := r.helmClientReceiver(config.Config.HelmClientRepositoryCachePath,
+	helmClient, err := r.HelmClientReceiver(config.Config.HelmClientRepositoryCachePath,
 		config.Config.HelmClientRepositoryConfigPath, helmChart.Namespace)
 	if err != nil {
 		return err
@@ -262,7 +262,7 @@ func (r *InstanceReconciler) installOrUpgradeHelmChart(ctx context.Context, helm
 
 // uninstallHelmRelease uninstalls a helm release.
 func (r *InstanceReconciler) uninstallHelmRelease(helmChart *helmclient.ChartSpec) error {
-	helmClient, err := r.helmClientReceiver(config.Config.HelmClientRepositoryCachePath,
+	helmClient, err := r.HelmClientReceiver(config.Config.HelmClientRepositoryCachePath,
 		config.Config.HelmClientRepositoryConfigPath, helmChart.Namespace)
 	if err != nil {
 		return err

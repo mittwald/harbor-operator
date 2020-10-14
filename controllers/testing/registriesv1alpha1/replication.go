@@ -7,18 +7,17 @@ import (
 )
 
 // CreateReplication returns a replication object with sample values.
-func CreateReplication(name, namespace, instanceRef string) registriesv1alpha1.Replication {
+func CreateReplication(name, namespace, instanceRef string) *registriesv1alpha1.Replication {
 	r := registriesv1alpha1.Replication{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
 		Spec: registriesv1alpha1.ReplicationSpec{
-			Name:          name,
-			Description:   "",
-			Creator:       "",
-			DestNamespace: "",
-			// These are intentionally left nil and should be specified in the individual tests
+			Name:              name,
+			Description:       "",
+			Creator:           "",
+			DestNamespace:     "",
 			SrcRegistry:       nil,
 			DestRegistry:      nil,
 			ReplicateDeletion: false,
@@ -27,5 +26,5 @@ func CreateReplication(name, namespace, instanceRef string) registriesv1alpha1.R
 		Status: registriesv1alpha1.ReplicationStatus{ID: 1},
 	}
 
-	return r
+	return &r
 }

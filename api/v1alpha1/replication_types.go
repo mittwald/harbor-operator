@@ -32,44 +32,44 @@ type ReplicationSpec struct {
 	Override bool `json:"override"`
 
 	// Whether the policy is enabled or not
-	// +optional
+	// +kubebuilder:validation:Optional
 	Enabled bool `json:"enabled,omitempty"`
-	// +optional
+	// +kubebuilder:validation:Optional
 	TriggerAfterCreation bool `json:"triggerAfterCreation,omitempty"`
 	// Whether to replicate the deletion operation
-	// +optional
+	// +kubebuilder:validation:Optional
 	ReplicateDeletion bool `json:"replicateDeletion,omitempty"`
 
 	// The name of the replication
 	Name string `json:"name"`
 
-	// +optional
+	// +kubebuilder:validation:Optional
 	Description string `json:"description,omitempty"`
 
-	// +optional
+	// +kubebuilder:validation:Optional
 	Creator string `json:"creator,omitempty"`
 
 	// The destination namespace
 	// If left empty, the resource will be but in the same namespace as the source
-	// +optional
+	// +kubebuilder:validation:Optional
 	DestNamespace string `json:"destNamespace,omitempty"`
 
 	// Source Registry
 	// Reference to a registry cr
-	// +optional
+	// +kubebuilder:validation:Optional
 	SrcRegistry *corev1.LocalObjectReference `json:"srcRegistry,omitempty"`
 
 	// Destination Registry
 	// Reference to a registry cr
-	// +optional
+	// +kubebuilder:validation:Optional
 	DestRegistry *corev1.LocalObjectReference `json:"destRegistry,omitempty"`
 
 	// The replication policy trigger type
-	// +optional
+	// +kubebuilder:validation:Optional
 	Trigger *ReplicationTrigger `json:"trigger,omitempty"`
 
 	// The replication policy filter array
-	// +optional
+	// +kubebuilder:validation:Optional
 	Filters []ReplicationFilter `json:"filters,omitempty"`
 
 	// ParentInstance is a LocalObjectReference to the
@@ -83,7 +83,7 @@ type ReplicationStatus struct {
 	Phase   ReplicationStatusPhaseName `json:"phase"`
 	Message string                     `json:"message"`
 	// Time of last observed transition into this state
-	// +optional
+	// +kubebuilder:validation:Optional
 	LastTransition *metav1.Time `json:"lastTransition,omitempty"`
 
 	// The replication ID is written back from the held replication ID.
@@ -96,21 +96,21 @@ type ReplicationStatus struct {
 // Have to use our custom type here, because we cannot DeepCopy the pointer of *h.Trigger
 // Trigger holds info for a trigger
 type ReplicationTrigger struct {
-	// +optional
+	// +kubebuilder:validation:Optional
 	Type string `json:"type,omitempty"`
 
-	// +optional
+	// +kubebuilder:validation:Optional
 	Settings *TriggerSettings `json:"triggerSettings,omitempty"`
 }
 
 // ReplicationFilter holds the specifications of a replication filter
 type ReplicationFilter struct {
 	// The replication policy filter type.
-	// +optional
+	// +kubebuilder:validation:Optional
 	Type string `json:"type,omitempty"`
 
 	// The value of replication policy filter.
-	// +optional
+	// +kubebuilder:validation:Optional
 	Value string `json:"value,omitempty"`
 }
 

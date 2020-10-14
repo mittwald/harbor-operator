@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"github.com/mittwald/harbor-operator/api/v1alpha1/config"
 	"github.com/mittwald/harbor-operator/controllers/helper"
-	"github.com/mittwald/harbor-operator/controllers/internal"
 	"helm.sh/helm/v3/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -44,7 +43,7 @@ type InstanceChartRepositoryReconciler struct {
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 	// helmClientReceiver is a receiver function to generate a helmclient dynamically.
-	helmClientReceiver internal.HelmClientFactory
+	HelmClientReceiver HelmClientFactory
 }
 
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=instancechartrepositories,verbs=get;list;watch;create;update;patch;delete
@@ -76,8 +75,8 @@ func (r *InstanceChartRepositoryReconciler) Reconcile(req ctrl.Request) (ctrl.Re
 		return r.setErrStatus(ctx, instance, err)
 	}
 
-	helmClient, err := r.helmClientReceiver(config.Config.HelmClientRepositoryCachePath,
-		config.Config.HelmClientRepositoryConfigPath, "")
+	helmClient, err := r.HelmClientReceiver(config.HelmClientRepoCachePath,
+		config.HelmClientRepoConfPath, "")
 	if err != nil {
 		return ctrl.Result{}, err
 	}
