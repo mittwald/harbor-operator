@@ -57,8 +57,7 @@ func init() {
 
 // InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
+	Name string `json:"name"`
 	// can't use the resulting string-type so this is a simple string and will be casted to an OperatorType in the resolver:
 	// error: Hit an unsupported type invalid type for invalid type
 	Type string `json:"type"`

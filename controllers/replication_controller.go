@@ -124,19 +124,49 @@ func (r *ReplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		}
 
 		helper.PushFinalizer(replication, internal.FinalizerName)
-
 		if replication.Spec.TriggerAfterCreation {
 			replExec := &legacymodel.ReplicationExecution{
 				PolicyID: replication.Status.ID,
 				Trigger:  registriesv1alpha1.ReplicationTriggerTypeManual,
 			}
 
-			if err = harborClient.TriggerReplicationExecution(ctx, replExec); err != nil {
+			if err := harborClient.TriggerReplicationExecution(ctx, replExec); err != nil {
+				reqLogger.Info("replication execution after creation could not be triggered")
 				return ctrl.Result{}, err
 			}
+
+			replication.Status = registriesv1alpha1.ReplicationStatus{
+				Phase: registriesv1alpha1.ReplicationStatusPhaseManualExecutionRunning,
+			}
+
+			return r.updateReplicationCR(ctx, harbor, originalReplication, replication)
 		}
 
 		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseReady}
+
+	case registriesv1alpha1.ReplicationStatusPhaseManualExecutionRunning:
+		running, err := r.reconcileRunningReplicationExecution(ctx, replication, harborClient)
+		if err != nil {
+			reqLogger.Info(fmt.Sprintf("replication execution failed %s", err))
+			replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseManualExecutionFailed}
+		}
+		if running {
+			return ctrl.Result{RequeueAfter: 1 * time.Minute}, nil
+		}
+		if !running {
+			reqLogger.Info("replication finished")
+			replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseManualExecutionFinished}
+		}
+
+	case registriesv1alpha1.ReplicationStatusPhaseManualExecutionFinished:
+		err := r.reconcileFinishedReplicationExecution(ctx, replication, harborClient)
+		if err != nil {
+			reqLogger.Info(fmt.Sprintf("replication execution failed %s", err))
+			replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseManualExecutionFailed}
+		}
+
+	case registriesv1alpha1.ReplicationStatusPhaseManualExecutionFailed:
+		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseCreating}
 
 	case registriesv1alpha1.ReplicationStatusPhaseReady:
 		err := r.assertExistingReplication(ctx, harborClient, replication)
@@ -153,6 +183,48 @@ func (r *ReplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	return r.updateReplicationCR(ctx, harbor, originalReplication, replication)
+}
+
+// reconcileRunningReplicationExecution fetches the newest replication execution of
+// the replication and checks, whether it is still running or not.
+// Returns an error, if no replication execution could be found for the replication policy.
+func (r *ReplicationReconciler) reconcileRunningReplicationExecution(ctx context.Context, replication *registriesv1alpha1.Replication, harborClient *h.RESTClient) (bool, error) {
+	replExec := &legacymodel.ReplicationExecution{
+		PolicyID: replication.Status.ID,
+		Trigger:  registriesv1alpha1.ReplicationTriggerTypeManual,
+	}
+
+	executions, err := harborClient.GetReplicationExecutions(ctx, replExec)
+	if err != nil {
+		return false, fmt.Errorf("no replication executions found: %s", err)
+	}
+
+	newestReplExecID := getNewestReplicationExecutionID(executions)
+	if executions[newestReplExecID].InProgress > 0 {
+		return true, nil
+	} else {
+		return false, nil
+	}
+}
+
+// reconcileFinishedReplicationExecution fetches the latest finished replication execution and returns an error when it has failed.
+func (r *ReplicationReconciler) reconcileFinishedReplicationExecution(ctx context.Context, replication *registriesv1alpha1.Replication, harborClient *h.RESTClient) error {
+	replExec := &legacymodel.ReplicationExecution{
+		PolicyID: replication.Status.ID,
+		Trigger:  registriesv1alpha1.ReplicationTriggerTypeManual,
+	}
+
+	executions, err := harborClient.GetReplicationExecutions(ctx, replExec)
+	if err != nil {
+		return fmt.Errorf("fetching successful replication executions failed for replication policy %s: %s", replication.Status.Name, err)
+	}
+
+	newestReplExecID := getNewestReplicationExecutionID(executions)
+	if executions[newestReplExecID].Failed > 0 {
+		return fmt.Errorf("latest execution was not successful, replication policy: %s", replication.Status.Name)
+	} else {
+		return nil
+	}
 }
 
 // blank assignment to verify that ReplicationReconciler implements reconcile.Reconciler.
@@ -172,6 +244,17 @@ func (r *ReplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return nil
+}
+
+// getNewestReplicationExecutionID takes a slice of replication executions and returns the one with the highest ID.
+func getNewestReplicationExecutionID(executions []*legacymodel.ReplicationExecution) int64 {
+	var max = executions[0].ID
+	for i := range executions {
+		if max < executions[i].ID {
+			max = executions[i].ID
+		}
+	}
+	return max
 }
 
 // updateReplicationCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly

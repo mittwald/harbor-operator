@@ -34,18 +34,18 @@ metadata:
   namespace: harbor-operator
 spec:
   name: test-harbor
-  version: v1.3.1
   type: manual
-  instanceURL: http://core.harbor.domain:30002 # this may be replaced with {http/https}://yourdomain.com
+  instanceURL: http://core.harbor.domain:30002
   garbageCollection:
     cron: "0 * * * *"
     scheduleType: "Hourly"
   helmChart:
       release: test-harbor
       chart: harbor/harbor
-      version: v1.3.1
+      version: v1.5.0 # equalling to Harbor OSS version v2.0.3
+      # see https://github.com/goharbor/harbor-helm/releases for a full list of supported versions
       namespace: harbor-operator
-      valuesYaml: | # the helm values the harbor instance is deployed with
+      valuesYaml: |
         expose:
           type: nodePort
           tls:
@@ -57,7 +57,8 @@ spec:
       [...]
 ```
 
-The operator utilizes the [InstanceChartRepository](#InstanceChartRepository)-resource for these helm installations.
+The operator utilizes the [InstanceChartRepository](#InstanceChartRepository)-resource for helm installations.
+The helm chart version can be specified via `.spec.helmChart.version`.
 
 Note: Specifying an empty string for the `harborAdminPassword`-key in `spec.helmChart.valuesYaml` will trigger
  password generation by the Harbor instance itself.
@@ -78,7 +79,7 @@ The `.cron` parameter is a cron expression:
 A `None`-value of the schedule type effectively deactivates the garbage collection.
  
 ### InstanceChartRepositories
-An `InstanceChartRepositories` object references the actual chart repository to be installed.
+`InstanceChartRepositories` reference the actual helm chart repository to be installed.
 
 By utilizing a custom [helm client](https://github.com/mittwald/go-helm-client), 
 the accompanying controller automatically adds/updates the specified chart in its local cache (similarly to `helm repo add`).

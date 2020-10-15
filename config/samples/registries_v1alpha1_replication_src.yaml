@@ -16,7 +16,7 @@ spec:
   enabled: true
   triggerAfterCreation: true
   srcRegistry: # you have to create the srcRegistry via a registry custom resource first
-    name: test-registry-local
+    name: test-registry
 #  filters:
 #    - type: name
 #      value: alpine

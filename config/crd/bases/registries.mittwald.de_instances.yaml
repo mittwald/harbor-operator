@@ -167,14 +167,11 @@ spec:
                   string and will be casted to an OperatorType in the resolver: error:
                   Hit an unsupported type invalid type for invalid type'
                 type: string
-              version:
-                type: string
             required:
             - helmChart
             - instanceURL
             - name
             - type
-            - version
             type: object
           status:
             description: InstanceStatus defines the observed state of Instance.

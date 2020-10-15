@@ -16,7 +16,6 @@ func CreateInstance(name, namespace string) *registriesv1alpha1.Instance {
 		},
 		Spec: registriesv1alpha1.InstanceSpec{
 			Name:        name,
-			Version:     "v1.0.0",
 			Type:        "manual",
 			InstanceURL: "https://core.harbor.domain",
 			GarbageCollection: &registriesv1alpha1.GarbageCollection{

@@ -87,7 +87,9 @@ func (r *InstanceChartRepositoryReconciler) Reconcile(req ctrl.Request) (ctrl.Re
 	}
 
 	instance.Status.State = registriesv1alpha1.RepoStateReady
-	err = r.Client.Status().Update(context.TODO(), instance)
+	if err = r.Client.Status().Update(context.TODO(), instance); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }

@@ -139,7 +139,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 
 		harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
-		harbor.Status.Version = harbor.Spec.Version
+		harbor.Status.Version = harbor.Spec.HelmChart.Version
 
 		// Creating a spec hash of the chart spec pre-installation
 		// ensures that it is set in "InstanceStatusPhaseInstalled", preventing the controller
