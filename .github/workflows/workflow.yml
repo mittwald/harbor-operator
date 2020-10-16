@@ -105,7 +105,6 @@ jobs:
 
       - name: Build latest image
         run: make docker-build
-        run: operator-sdk build "$IMAGE_NAME:latest" --go-build-args "-ldflags -X=version.Version=${GITHUB_SHA::8}"
 
       - name: Push latest tag
         run: docker push "$IMAGE_NAME:latest"
