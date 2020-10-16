@@ -19,11 +19,8 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
 
-      - name: Run controller-gen
+      - name: Generate manifests
         run: make generate
-
-      - name: Generate Mocks
-        run: make mock-runtime-client
 
       - name: Test diff
         run: |
