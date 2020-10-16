@@ -22,11 +22,6 @@ func CreateInstance(name, namespace string) *registriesv1alpha1.Instance {
 				Cron:         "0 * * * *",
 				ScheduleType: "Hourly",
 			},
-			Options: &registriesv1alpha1.InstanceDeployOptions{
-				KubeconfigSecret: &registriesv1alpha1.KubeconfigSecret{
-					SecretRef: &corev1.LocalObjectReference{},
-				},
-			},
 			HelmChart: &registriesv1alpha1.InstanceHelmChartSpec{
 				ChartSpec: helmclient.ChartSpec{
 					ReleaseName: name,
