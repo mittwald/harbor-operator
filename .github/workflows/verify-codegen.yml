@@ -3,7 +3,7 @@ name: Verify code generation integrity
 on: pull_request
 
 env:
-  OPERATOR_SDK_VERSION: v1.0.1
+  OPERATOR_SDK_VERSION: v1.1.0
 
 jobs:
   verify-operator-sdk:
@@ -23,7 +23,7 @@ jobs:
         run: make generate
 
       - name: Generate Mocks
-        run: make mock
+        run: make mock-runtime-client
 
       - name: Test diff
         run: |

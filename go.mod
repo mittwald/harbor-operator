@@ -6,7 +6,6 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/imdario/mergo v0.3.9
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
-	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/mittwald/go-helm-client v0.4.1
 	github.com/mittwald/goharbor-client/v2 v2.0.1
 	github.com/nxadm/tail v1.4.5 // indirect

@@ -11,9 +11,9 @@ const (
 	ReplicationStatusPhaseUnknown                 ReplicationStatusPhaseName = ""
 	ReplicationStatusPhaseCreating                ReplicationStatusPhaseName = "Creating"
 	ReplicationStatusPhaseReady                   ReplicationStatusPhaseName = "Ready"
+	ReplicationStatusPhaseTerminating             ReplicationStatusPhaseName = "Terminating"
 	ReplicationStatusPhaseManualExecutionRunning  ReplicationStatusPhaseName = "Execution Running"
 	ReplicationStatusPhaseManualExecutionFailed   ReplicationStatusPhaseName = "Execution Failed"
-	ReplicationStatusPhaseTerminating             ReplicationStatusPhaseName = "Terminating"
 	ReplicationStatusPhaseManualExecutionFinished ReplicationStatusPhaseName = "Execution Finished"
 )
 

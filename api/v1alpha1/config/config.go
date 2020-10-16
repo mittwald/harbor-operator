@@ -12,5 +12,4 @@ var (
 func FromViper() {
 	Config.HelmClientRepositoryCachePath = HelmClientRepoCachePath
 	Config.HelmClientRepositoryConfigPath = HelmClientRepoConfPath
-
 }

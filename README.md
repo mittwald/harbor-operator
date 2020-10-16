@@ -17,7 +17,7 @@ A Kubernetes operator for managing [Goharbor](https://github.com/goharbor/harbor
 The operator utilizes a [helm client](https://github.com/mittwald/go-helm-client) library for the management of these instances
 
 - **Custom chart repositories**: If you need to install a customized or private Harbor helm chart, the
- `instancechartrepo` resource allows you to do so. The official Harbor Helm chart can be found [here](https://github.com/goharbor/harbor-helm)
+ `InstanceChartRepository` resource allows you to do so. The official Harbor Helm chart can be found [here](https://github.com/goharbor/harbor-helm)
 
 - **Harbor resource reconciliation**: This operator automatically manages Harbor components by utilizing
  a custom [harbor client](https:/github.com/mittwald/goharbor-client).
@@ -26,7 +26,7 @@ The operator utilizes a [helm client](https://github.com/mittwald/go-helm-client
 - registriesv1alpha1:
     - instancechartrepositories.registries.mittwald.de
     - instances.registries.mittwald.de
-    - project.registries.mittwald.de
+    - projects.registries.mittwald.de
     - registries.registries.mittwald.de
     - replications.registries.mittwald.de
     - users.registries.mittwald.de
@@ -51,12 +51,10 @@ For more specific documentation, please refer to the [godoc](https://pkg.go.dev/
 #### Web UI
 For a trouble-free experience with created instances, a valid TLS certificate is required.
 
-For automatic certificate creation, you can set the desired cluster certificate issuer via the instance spec's
-ingress annotations:
- 
-`.spec.helmChart.valuesYaml.expose.ingress.annotations`
+For automatic certificate creation, you can set the desired cluster certificate
+issuer via the `Instance` resource's `.spec.helmChart.valuesYaml.expose.ingress.annotations`.
 
-Example annotation, using cert-manager as the cluster-issuer: 
+Example annotation using cert-manager as the cluster-issuer: 
 
 `cert-manager.io/cluster-issuer: "letsencrypt-issuer"`
 
@@ -73,10 +71,15 @@ make debug
 This will start a debugging server with the listen address `localhost:2345`.
 
 #### Testing
+To test the operator, simply run:
+```shell script
+make test
+```
 
-Make sure [kubebuilder](https://book-v1.book.kubebuilder.io/getting_started/installation_and_setup.html) is installed on your system.
+This will spin up a local [envtest](https://sdk.operatorframework.io/docs/building-operators/golang/references/envtest-setup)
+environment and execute the provided tests.
 
-Run tests either by [ginkgo](http://onsi.github.io/ginkgo/#getting-ginkgo) via:
+Alternatively, you can run tests by [ginkgo](http://onsi.github.io/ginkgo/#getting-ginkgo) via:
 ``` shell script
 ginkgo test ./...
 ```
@@ -88,26 +91,21 @@ go test -v ./...
 _Some_ unit tests require a [mocked controller-runtime client](./controllers/internal/mocks/runtime_client_mock.go).
 This mock is generated using the `make mock-runtime-client` command.
 
-
-#### Installing
-Generate `packagemanifests`
+When making changes to API definitions (located in [./api/v1alpha1](./api/v1alpha1)),
+make sure to re-generate manifests via:
 ```shell script
 make manifests
 ```
 
-```shell script
-make run
-```
-
 #### Deploying example resources
-
 Note: When using the provided examples and running the operator locally, an entry to your `/etc/hosts` is
  needed:
 ```shell script
 127.0.0.1 core.harbor.domain 
 ```
 
-Example resources can be deployed using the files provided in the [examples directory](./config/examples).
+Example resources can be deployed using the files provided in the [samples directory](./config/samples).
+
 To start testing, simply apply these after starting the operator:
 
 ```
@@ -116,10 +114,3 @@ k create -f config/samples/
 
 After a successful installation, the Harbor portal
 may be accessed either by `localhost:30002` or `core.harbor.domain:30002`. 
-
-#### Uninstalling
-
-Uninstall all dependencies via:
-```shell script
-make teardown
-```

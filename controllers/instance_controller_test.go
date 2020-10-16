@@ -17,19 +17,19 @@ var _ = Describe("InstanceController", func() {
 			NamespacedName: types.NamespacedName{
 				Name:      name,
 				Namespace: namespace,
-			}}
+			},
+		}
 	})
 	Describe("Create, Get and Delete", func() {
-		var (
-			instance *registriesv1alpha1.Instance
-		)
+		var instance *registriesv1alpha1.Instance
 		Context("Instance", func() {
 			BeforeEach(func() {
 				instance = registriesv1alpha1test.CreateInstance(name, namespace)
 				Ω(k8sClient.Create(ctx, instance)).Should(Succeed())
 				Ω(k8sClient.Get(ctx, types.NamespacedName{
 					Name:      name,
-					Namespace: namespace},
+					Namespace: namespace,
+				},
 					instance)).Should(Succeed())
 			})
 			AfterEach(func() {

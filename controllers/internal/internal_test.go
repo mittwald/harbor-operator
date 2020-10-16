@@ -38,7 +38,6 @@ func TestBuildClient(t *testing.T) {
 
 	harbor := testingregistriesv1alpha1.CreateInstance("test-harbor", ns)
 	_ = testingregistriesv1alpha1.CreateSecret(harbor.Spec.Name+"-harbor-core", ns)
-	// sec := &corev1.Secret{}
 
 	t.Run("SecretKeyNotFound", func(t *testing.T) {
 		mockClient.On("Get", ctx, types.NamespacedName{

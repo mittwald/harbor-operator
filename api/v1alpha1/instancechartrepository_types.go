@@ -12,7 +12,7 @@ const (
 	RepoStateError RepoState = "Error"
 )
 
-// InstanceChartRepoSpec defines the desired state of InstanceChartRepo.
+// InstanceChartRepositorySpec defines the desired state of InstanceChartRepo.
 type InstanceChartRepositorySpec struct {
 	URL string `json:"url"`
 
@@ -23,7 +23,7 @@ type InstanceChartRepositorySpec struct {
 	SecretRef *v1.LocalObjectReference `json:"secretRef,omitempty"`
 }
 
-// InstanceChartRepoStatus defines the observed state of InstanceChartRepo.
+// InstanceChartRepositoryStatus defines the observed state of InstanceChartRepo.
 type InstanceChartRepositoryStatus struct {
 	State RepoState `json:"state"`
 }

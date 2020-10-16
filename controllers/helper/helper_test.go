@@ -1,8 +1,10 @@
-package helper
+package helper_test
 
 import (
 	"context"
 	"testing"
+
+	"github.com/mittwald/harbor-operator/controllers/helper"
 
 	helmclient "github.com/mittwald/go-helm-client"
 	"github.com/mittwald/harbor-operator/controllers/internal/mocks"
@@ -13,8 +15,8 @@ import (
 )
 
 func TestBoolToString(t *testing.T) {
-	assert.Equal(t, BoolToString(false), "false")
-	assert.Equal(t, BoolToString(true), "true")
+	assert.Equal(t, helper.BoolToString(false), "false")
+	assert.Equal(t, helper.BoolToString(true), "true")
 }
 
 func TestGetValueFromSecret(t *testing.T) {
@@ -25,7 +27,7 @@ func TestGetValueFromSecret(t *testing.T) {
 	}
 
 	t.Run("ExistingKey", func(t *testing.T) {
-		val, err := GetValueFromSecret(sec, "a")
+		val, err := helper.GetValueFromSecret(sec, "a")
 
 		if assert.NoError(t, err) {
 			assert.Equal(t, val, "b")
@@ -33,7 +35,7 @@ func TestGetValueFromSecret(t *testing.T) {
 	})
 
 	t.Run("NonExistentKey", func(t *testing.T) {
-		_, err := GetValueFromSecret(sec, "z")
+		_, err := helper.GetValueFromSecret(sec, "z")
 
 		if assert.NotNil(t, err) {
 			assert.Errorf(t, err,
@@ -43,7 +45,7 @@ func TestGetValueFromSecret(t *testing.T) {
 }
 
 func TestInterfaceHash(t *testing.T) {
-	var i InterfaceHash = make([]byte, 16)
+	var i helper.InterfaceHash = make([]byte, 16)
 
 	t.Run("Short", func(t *testing.T) {
 		short := i.Short()
@@ -63,14 +65,14 @@ func TestInterfaceHash(t *testing.T) {
 }
 
 func TestJSONPatch_AddOp(t *testing.T) {
-	var p JSONPatch
+	var p helper.JSONPatch
 
 	p.AddOp("foo", "bar", "baz")
-	assert.Equal(t, 1, len(p.ops))
+	assert.Equal(t, 1, len(p.Ops))
 }
 
 func TestJSONPatch_Data(t *testing.T) {
-	var p JSONPatch
+	var p helper.JSONPatch
 
 	sec := &corev1.Secret{}
 
@@ -82,7 +84,7 @@ func TestJSONPatch_Data(t *testing.T) {
 }
 
 func TestJSONPatch_Type(t *testing.T) {
-	var p JSONPatch
+	var p helper.JSONPatch
 
 	j := p.Type()
 
@@ -90,7 +92,7 @@ func TestJSONPatch_Type(t *testing.T) {
 }
 
 func TestNewRandomPassword(t *testing.T) {
-	pw, err := NewRandomPassword(8)
+	pw, err := helper.NewRandomPassword(8)
 
 	assert.NoError(t, err)
 
@@ -100,11 +102,11 @@ func TestNewRandomPassword(t *testing.T) {
 func TestCreateSpecHash(t *testing.T) {
 	spec := &helmclient.ChartSpec{}
 
-	hash, err := CreateSpecHash(spec)
+	hash, err := helper.CreateSpecHash(spec)
 
 	assert.NoError(t, err)
 
-	hash2, err := CreateSpecHash(spec)
+	hash2, err := helper.CreateSpecHash(spec)
 
 	assert.NoError(t, err)
 
@@ -114,7 +116,7 @@ func TestCreateSpecHash(t *testing.T) {
 
 	spec.ChartName = "foo"
 
-	hash3, err := CreateSpecHash(spec)
+	hash3, err := helper.CreateSpecHash(spec)
 
 	assert.NoError(t, err)
 
@@ -127,8 +129,8 @@ func TestPushFinalizer(t *testing.T) {
 	o := &corev1.Pod{}
 	finalizer := "foo"
 	// Push finalizer twice to cover already existing finalizers
-	PushFinalizer(o, finalizer)
-	PushFinalizer(o, finalizer)
+	helper.PushFinalizer(o, finalizer)
+	helper.PushFinalizer(o, finalizer)
 }
 
 func TestPullFinalizer(t *testing.T) {
@@ -138,13 +140,13 @@ func TestPullFinalizer(t *testing.T) {
 
 	t.Run("existing finalizer", func(t *testing.T) {
 		// Add the finalizer before pulling
-		PushFinalizer(o, finalizer)
-		PullFinalizer(o, finalizer)
+		helper.PushFinalizer(o, finalizer)
+		helper.PullFinalizer(o, finalizer)
 	})
 
 	t.Run("non existent finalizer", func(t *testing.T) {
-		PushFinalizer(o, finalizer)
-		PullFinalizer(o, finalizer2)
+		helper.PushFinalizer(o, finalizer)
+		helper.PullFinalizer(o, finalizer2)
 	})
 }
 
@@ -165,7 +167,7 @@ func TestObjExists(t *testing.T) {
 			Name:      sec.Name,
 		}, sec).Return(nil)
 
-		exists, err := ObjExists(ctx, mockClient, sec.Name, sec.Namespace, sec)
+		exists, err := helper.ObjExists(ctx, mockClient, sec.Name, sec.Namespace, sec)
 
 		assert.NoError(t, err)
 		assert.Equal(t, exists, true)

@@ -57,7 +57,7 @@ spec:
       [...]
 ```
 
-The operator utilizes the [InstanceChartRepository](#InstanceChartRepository)-resource for helm installations.
+The operator utilizes the [InstanceChartRepository](#InstanceChartRepositories)-resource for helm installations.
 The helm chart version can be specified via `.spec.helmChart.version`.
 
 Note: Specifying an empty string for the `harborAdminPassword`-key in `spec.helmChart.valuesYaml` will trigger

@@ -19,12 +19,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"strings"
+
 	helmclient "github.com/mittwald/go-helm-client"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"os"
+
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"strings"
 
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
 	opconfig "github.com/mittwald/harbor-operator/api/v1alpha1/config"

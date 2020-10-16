@@ -17,19 +17,19 @@ var _ = Describe("InstanceChartRepositoryController", func() {
 			NamespacedName: types.NamespacedName{
 				Name:      name,
 				Namespace: namespace,
-			}}
+			},
+		}
 	})
 	Describe("Create, Get and Delete", func() {
-		var (
-			instanceChartRepository *registriesv1alpha1.InstanceChartRepository
-		)
+		var instanceChartRepository *registriesv1alpha1.InstanceChartRepository
 		Context("InstanceChartRepository", func() {
 			BeforeEach(func() {
 				instanceChartRepository = registriesv1alpha1test.CreateInstanceChartRepository(name, namespace)
 				Ω(k8sClient.Create(ctx, instanceChartRepository)).Should(Succeed())
 				Ω(k8sClient.Get(ctx, types.NamespacedName{
 					Name:      name,
-					Namespace: namespace},
+					Namespace: namespace,
+				},
 					instanceChartRepository)).Should(Succeed())
 			})
 			AfterEach(func() {

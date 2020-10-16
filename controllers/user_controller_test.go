@@ -17,19 +17,19 @@ var _ = Describe("UserController", func() {
 			NamespacedName: types.NamespacedName{
 				Name:      name,
 				Namespace: namespace,
-			}}
+			},
+		}
 	})
 	Describe("Create, Get and Delete", func() {
-		var (
-			user *registriesv1alpha1.User
-		)
+		var user *registriesv1alpha1.User
 		Context("User", func() {
 			BeforeEach(func() {
 				user = registriesv1alpha1test.CreateUser(name, namespace, "")
 				Ω(k8sClient.Create(ctx, user)).Should(Succeed())
 				Ω(k8sClient.Get(ctx, types.NamespacedName{
 					Name:      name,
-					Namespace: namespace},
+					Namespace: namespace,
+				},
 					user)).Should(Succeed())
 			})
 			AfterEach(func() {

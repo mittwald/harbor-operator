@@ -17,19 +17,19 @@ var _ = Describe("ProjectController", func() {
 			NamespacedName: types.NamespacedName{
 				Name:      name,
 				Namespace: namespace,
-			}}
+			},
+		}
 	})
 	Describe("Create, Get and Delete", func() {
-		var (
-			project *registriesv1alpha1.Project
-		)
+		var project *registriesv1alpha1.Project
 		Context("Project", func() {
 			BeforeEach(func() {
 				project = registriesv1alpha1test.CreateProject(name, namespace, "")
 				Ω(k8sClient.Create(ctx, project)).Should(Succeed())
 				Ω(k8sClient.Get(ctx, types.NamespacedName{
 					Name:      name,
-					Namespace: namespace},
+					Namespace: namespace,
+				},
 					project)).Should(Succeed())
 			})
 			AfterEach(func() {

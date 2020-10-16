@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/mittwald/harbor-operator/api/v1alpha1/config"
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	"helm.sh/helm/v3/pkg/repo"

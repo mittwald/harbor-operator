@@ -17,19 +17,19 @@ var _ = Describe("ReplicationController", func() {
 			NamespacedName: types.NamespacedName{
 				Name:      name,
 				Namespace: namespace,
-			}}
+			},
+		}
 	})
 	Describe("Create, Get and Delete", func() {
-		var (
-			replication *registriesv1alpha1.Replication
-		)
+		var replication *registriesv1alpha1.Replication
 		Context("Replication", func() {
 			BeforeEach(func() {
 				replication = registriesv1alpha1test.CreateReplication(name, namespace, "")
 				Ω(k8sClient.Create(ctx, replication)).Should(Succeed())
 				Ω(k8sClient.Get(ctx, types.NamespacedName{
 					Name:      name,
-					Namespace: namespace},
+					Namespace: namespace,
+				},
 					replication)).Should(Succeed())
 			})
 			AfterEach(func() {

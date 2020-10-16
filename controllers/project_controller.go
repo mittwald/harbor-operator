@@ -18,25 +18,25 @@ package controllers
 
 import (
 	"context"
-	"github.com/mittwald/harbor-operator/controllers/internal"
+	"errors"
+	"fmt"
+	"reflect"
 	"strconv"
+	"time"
+
+	"github.com/mittwald/harbor-operator/controllers/internal"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
-	"errors"
-	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
-	"reflect"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 
 	"github.com/mittwald/goharbor-client/v2/apiv2/model"
 	legacymodel "github.com/mittwald/goharbor-client/v2/apiv2/model/legacy"
 	projectapi "github.com/mittwald/goharbor-client/v2/apiv2/project"
-
-	controllerruntime "sigs.k8s.io/controller-runtime"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -195,7 +195,7 @@ func (r *ProjectReconciler) updateProjectCR(ctx context.Context, parentInstance 
 	if (originalProject.OwnerReferences == nil ||
 		len(originalProject.OwnerReferences) == 0) &&
 		parentInstance != nil {
-		err := controllerruntime.SetControllerReference(parentInstance, originalProject, r.Scheme)
+		err := ctrl.SetControllerReference(parentInstance, originalProject, r.Scheme)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -236,6 +236,7 @@ func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborCli
 
 	if errors.Is(err, &projectapi.ErrProjectNotFound{}) {
 		_, err := harborClient.NewProject(ctx, project.Spec.Name, project.Spec.StorageLimit)
+
 		return err
 	} else if err != nil {
 		return err
@@ -247,7 +248,6 @@ func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborCli
 // generateProjectMetadata constructs the project metadata for a Harbor project
 func (r *ProjectReconciler) generateProjectMetadata(
 	projectMeta *registriesv1alpha1.ProjectMetadata) *model.ProjectMetadata {
-
 	autoScan := strconv.FormatBool(projectMeta.AutoScan)
 	enableContentTrust := strconv.FormatBool(projectMeta.EnableContentTrust)
 	preventVul := strconv.FormatBool(projectMeta.PreventVul)

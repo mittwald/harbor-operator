@@ -9,5 +9,5 @@ type jsonPatchOp struct {
 }
 
 type JSONPatch struct {
-	ops []jsonPatchOp
+	Ops []jsonPatchOp
 }

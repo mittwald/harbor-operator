@@ -2,8 +2,9 @@ package controllers
 
 import (
 	"context"
-	"github.com/mittwald/harbor-operator/controllers/helper"
 	"reflect"
+
+	"github.com/mittwald/harbor-operator/controllers/helper"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 

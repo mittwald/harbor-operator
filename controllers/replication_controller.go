@@ -20,22 +20,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"time"
+
 	legacymodel "github.com/mittwald/goharbor-client/v2/apiv2/model/legacy"
 	replicationapi "github.com/mittwald/goharbor-client/v2/apiv2/replication"
 	v1 "k8s.io/api/core/v1"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 
 	h "github.com/mittwald/goharbor-client/v2/apiv2"
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	"github.com/mittwald/harbor-operator/controllers/internal"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"reflect"
+
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -132,6 +133,7 @@ func (r *ReplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 			if err := harborClient.TriggerReplicationExecution(ctx, replExec); err != nil {
 				reqLogger.Info("replication execution after creation could not be triggered")
+
 				return ctrl.Result{}, err
 			}
 
@@ -202,9 +204,9 @@ func (r *ReplicationReconciler) reconcileRunningReplicationExecution(ctx context
 	newestReplExecID := getNewestReplicationExecutionID(executions)
 	if executions[newestReplExecID].InProgress > 0 {
 		return true, nil
-	} else {
-		return false, nil
 	}
+
+	return false, nil
 }
 
 // reconcileFinishedReplicationExecution fetches the latest finished replication execution and returns an error when it has failed.
@@ -248,7 +250,7 @@ func (r *ReplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // getNewestReplicationExecutionID takes a slice of replication executions and returns the one with the highest ID.
 func getNewestReplicationExecutionID(executions []*legacymodel.ReplicationExecution) int64 {
-	var max = executions[0].ID
+	max := executions[0].ID
 	for i := range executions {
 		if max < executions[i].ID {
 			max = executions[i].ID
@@ -276,7 +278,7 @@ func (r *ReplicationReconciler) updateReplicationCR(ctx context.Context, parentI
 
 	// Set owner
 	if (len(originalReplication.OwnerReferences) == 0) && parentInstance != nil {
-		err := controllerruntime.SetControllerReference(parentInstance, originalReplication, r.Scheme)
+		err := ctrl.SetControllerReference(parentInstance, originalReplication, r.Scheme)
 		if err != nil {
 			return ctrl.Result{}, err
 		}

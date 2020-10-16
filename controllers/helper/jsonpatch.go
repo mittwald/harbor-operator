@@ -12,9 +12,9 @@ func (p *JSONPatch) Type() types.PatchType {
 }
 
 func (p *JSONPatch) Data(obj runtime.Object) ([]byte, error) {
-	return json.Marshal(p.ops)
+	return json.Marshal(p.Ops)
 }
 
 func (p *JSONPatch) AddOp(op, path string, value interface{}) {
-	p.ops = append(p.ops, jsonPatchOp{op, path, value})
+	p.Ops = append(p.Ops, jsonPatchOp{op, path, value})
 }

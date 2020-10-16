@@ -19,6 +19,10 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"reflect"
+	"time"
+
 	h "github.com/mittwald/goharbor-client/v2/apiv2"
 	legacymodel "github.com/mittwald/goharbor-client/v2/apiv2/model/legacy"
 	registryapi "github.com/mittwald/goharbor-client/v2/apiv2/registry"
@@ -26,17 +30,14 @@ import (
 	"github.com/mittwald/harbor-operator/controllers/internal"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/url"
-	"reflect"
+
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -166,7 +167,7 @@ func (r *RegistryReconciler) updateRegistryCR(ctx context.Context, parentInstanc
 
 	// set owner
 	if (len(originalRegistry.OwnerReferences) == 0) && parentInstance != nil {
-		err := controllerruntime.SetControllerReference(parentInstance, originalRegistry, r.Scheme)
+		err := ctrl.SetControllerReference(parentInstance, originalRegistry, r.Scheme)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
