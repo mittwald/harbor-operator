@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	legacymodel "github.com/mittwald/goharbor-client/v2/apiv2/model/legacy"
+	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

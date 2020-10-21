@@ -17,12 +17,12 @@ spec:
   triggerAfterCreation: true
   srcRegistry: # you have to create the srcRegistry via a registry custom resource first
     name: test-registry
-#  filters:
-#    - type: name
-#      value: alpine
-#    - type: tag
-#      value: latest
-#  trigger:
-#    type: manual
-#    triggerSettings:
-#      cron: ""
+  filters:
+    - type: name
+      value: alpine
+    - type: tag
+      value: latest
+  trigger:
+    type: manual
+    triggerSettings:
+      cron: ""

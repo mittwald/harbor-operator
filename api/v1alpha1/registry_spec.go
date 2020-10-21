@@ -1,7 +1,7 @@
 package v1alpha1
 
 import (
-	legacymodel "github.com/mittwald/goharbor-client/v2/apiv2/model/legacy"
+	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
 )
 
 // ToHarborRegistry returns a Harbor registry constructed from the provided spec.

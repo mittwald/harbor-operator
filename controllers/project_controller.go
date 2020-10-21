@@ -34,15 +34,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/mittwald/goharbor-client/v2/apiv2/model"
-	legacymodel "github.com/mittwald/goharbor-client/v2/apiv2/model/legacy"
-	projectapi "github.com/mittwald/goharbor-client/v2/apiv2/project"
+	"github.com/mittwald/goharbor-client/v3/apiv2/model"
+	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
+	projectapi "github.com/mittwald/goharbor-client/v3/apiv2/project"
 
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/go-logr/logr"
 	"github.com/jinzhu/copier"
-	h "github.com/mittwald/goharbor-client/v2/apiv2"
+	h "github.com/mittwald/goharbor-client/v3/apiv2"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"

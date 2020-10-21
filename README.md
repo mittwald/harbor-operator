@@ -30,7 +30,7 @@ The operator utilizes a [helm client](https://github.com/mittwald/go-helm-client
     - registries.registries.mittwald.de
     - replications.registries.mittwald.de
     - users.registries.mittwald.de
-    
+
 To get an overview of the individual resources that come with this operator,
 take a look at the [samples directory](./config/samples).
 
@@ -48,13 +48,67 @@ helm install harbor-operator mittwald/harbor-operator --namespace my-namespace
 ## Documentation
 For more specific documentation, please refer to the [godoc](https://pkg.go.dev/github.com/mittwald/harbor-operator) of this repository
 
+```
+ 0
+/|\ User
+/ \
+
+ |
+ |      creates         ┌───────────────────────────────┐
+ ├────────────────────▶ |    InstanceChartRepository    |
+ |                      |       (Custom Resource)       |
+ |                      └───────────────────────────────┘
+ |                                             ▲
+ |      creates         ┌───────────────────┐  |
+ ├────────────────────▶ |      Instance     |  |
+ |                      | (Custom Resource) |  |
+ |                      └───────────────────┘  | watches
+ |                                    ▲        | & updates
+ |                                    |        |
+ |                            watches |        |
+ |                                    |        |           creates & updates
+ |                                  ┌─┴────────┴──────┐      (via Instance)      
+ |                                  │ Harbor Operator ├──────────────────────────┐
+ |                                  └─────────┬─────┬─┘                          |
+ |                                            |     |                            |
+ |                                    watches |     |                            |
+ |                                            |     |                            |
+ |      creates         ┌─────────────────┐   |     |         ┌─────────┐  ┌─────┴──────┐
+ ├────────────────────▶ |     Project     ├ - ┼ - - └─────── ▶| Harbor  ├──┤   Harbor   |
+ |                      |(Custom Resource)|   ╎      creates  |   API   |  |Helm Release|
+ |                      └─────────────────┘   ╎      updates  └─────────┘  └────────────┘
+ |                              ▲             ╎      deletes  (via the CRs on the left)
+ |                              |             ╎
+ |           has access through |             ╎
+ |               membership     |             ╎
+ |                              |             ╎
+ |      creates         ┌───────┴─────────┐   ╎
+ ├────────────────────▶ |      User       ├ - ┤
+ |                      |(Custom Resource)|   ╎
+ |                      └─────────────────┘   ╎
+ |      creates         ┌─────────────────┐   ╎
+ ├────────────────────▶ |    Registry     ├ - ┘
+ |                      |(Custom Resource)|   ╎
+ |                      └─────────────────┘   ╎
+ |                              ▲             ╎
+ |                              |             ╎
+ |                  is owned by |             ╎
+ |                              |             ╎
+ |      creates         ┌───────┴─────────┐   ╎
+ └────────────────────▶ |    Replication  ├ - ┘
+                        |(Custom Resource)|
+                        └─────────────────┘
+```
+
+
+
 #### Web UI
 For a trouble-free experience with created instances, a valid TLS certificate is required.
 
 For automatic certificate creation, you can set the desired cluster certificate
 issuer via the `Instance` resource's `.spec.helmChart.valuesYaml.expose.ingress.annotations`.
 
-Example annotation using cert-manager as the cluster-issuer: 
+Example annotation using cert-manager as the cluster-issuer:
 
 `cert-manager.io/cluster-issuer: "letsencrypt-issuer"`
 
@@ -101,7 +155,7 @@ make manifests
 Note: When using the provided examples and running the operator locally, an entry to your `/etc/hosts` is
  needed:
 ```shell script
-127.0.0.1 core.harbor.domain 
+127.0.0.1 core.harbor.domain
 ```
 
 Example resources can be deployed using the files provided in the [samples directory](./config/samples).
@@ -113,4 +167,4 @@ k create -f config/samples/
 ```
 
 After a successful installation, the Harbor portal
-may be accessed either by `localhost:30002` or `core.harbor.domain:30002`. 
+may be accessed either by `localhost:30002` or `core.harbor.domain:30002`.

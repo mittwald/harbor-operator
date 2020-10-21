@@ -10,7 +10,7 @@ type ReplicationStatusPhaseName string
 const (
 	ReplicationStatusPhaseUnknown                 ReplicationStatusPhaseName = ""
 	ReplicationStatusPhaseCreating                ReplicationStatusPhaseName = "Creating"
-	ReplicationStatusPhaseReady                   ReplicationStatusPhaseName = "Ready"
+	ReplicationStatusPhaseCompleted               ReplicationStatusPhaseName = "Completed"
 	ReplicationStatusPhaseTerminating             ReplicationStatusPhaseName = "Terminating"
 	ReplicationStatusPhaseManualExecutionRunning  ReplicationStatusPhaseName = "Execution Running"
 	ReplicationStatusPhaseManualExecutionFailed   ReplicationStatusPhaseName = "Execution Failed"

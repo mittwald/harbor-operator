@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"time"
 
-	h "github.com/mittwald/goharbor-client/v2/apiv2"
-	legacymodel "github.com/mittwald/goharbor-client/v2/apiv2/model/legacy"
-	userapi "github.com/mittwald/goharbor-client/v2/apiv2/user"
+	h "github.com/mittwald/goharbor-client/v3/apiv2"
+	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
+	userapi "github.com/mittwald/goharbor-client/v3/apiv2/user"
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	"github.com/mittwald/harbor-operator/controllers/internal"
 	corev1 "k8s.io/api/core/v1"
@@ -238,6 +238,7 @@ func (r *UserReconciler) assertExistingUser(ctx context.Context, harborClient *h
 		switch err.Error() {
 		case userapi.ErrUserNotFoundMsg:
 			usr.Status.PasswordHash = pwHash.Short()
+
 			return r.createUser(ctx, harborClient, usr, pw)
 		default:
 			return err

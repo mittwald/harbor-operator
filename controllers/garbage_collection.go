@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/mittwald/goharbor-client/v2/apiv2/system"
+	"github.com/mittwald/goharbor-client/v3/apiv2/system"
 	"github.com/mittwald/harbor-operator/controllers/internal"
 
-	legacymodel "github.com/mittwald/goharbor-client/v2/apiv2/model/legacy"
+	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
 )
 

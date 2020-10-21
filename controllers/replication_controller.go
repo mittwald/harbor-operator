@@ -23,11 +23,13 @@ import (
 	"reflect"
 	"time"
 
-	legacymodel "github.com/mittwald/goharbor-client/v2/apiv2/model/legacy"
-	replicationapi "github.com/mittwald/goharbor-client/v2/apiv2/replication"
+	"k8s.io/apimachinery/pkg/types"
+
+	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
+	replicationapi "github.com/mittwald/goharbor-client/v3/apiv2/replication"
 	v1 "k8s.io/api/core/v1"
 
-	h "github.com/mittwald/goharbor-client/v2/apiv2"
+	h "github.com/mittwald/goharbor-client/v3/apiv2"
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	"github.com/mittwald/harbor-operator/controllers/internal"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -79,12 +81,8 @@ func (r *ReplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	originalReplication := replication.DeepCopy()
 
-	if replication.ObjectMeta.DeletionTimestamp != nil &&
-		replication.Status.Phase != registriesv1alpha1.ReplicationStatusPhaseTerminating {
-		replication.Status = registriesv1alpha1.ReplicationStatus{
-			Phase: registriesv1alpha1.ReplicationStatusPhaseTerminating,
-		}
-
+	if replication.ObjectMeta.DeletionTimestamp != nil && replication.Status.Phase != registriesv1alpha1.ReplicationStatusPhaseTerminating {
+		replication.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseTerminating
 		return r.updateReplicationCR(ctx, nil, originalReplication, replication)
 	}
 
@@ -115,9 +113,8 @@ func (r *ReplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	default:
 		return ctrl.Result{}, nil
 	case registriesv1alpha1.ReplicationStatusPhaseUnknown:
-		replication.Status = registriesv1alpha1.ReplicationStatus{
-			Phase: registriesv1alpha1.ReplicationStatusPhaseCreating,
-		}
+
+		replication.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseCreating
 
 	case registriesv1alpha1.ReplicationStatusPhaseCreating:
 		if err := r.assertExistingReplication(ctx, harborClient, replication); err != nil {
@@ -132,45 +129,42 @@ func (r *ReplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 			}
 
 			if err := harborClient.TriggerReplicationExecution(ctx, replExec); err != nil {
-				reqLogger.Info("replication execution after creation could not be triggered")
-
+				reqLogger.Info(fmt.Sprintf("replication execution after creation could not be triggered: %s", err))
 				return ctrl.Result{}, err
 			}
 
-			replication.Status = registriesv1alpha1.ReplicationStatus{
-				Phase: registriesv1alpha1.ReplicationStatusPhaseManualExecutionRunning,
-			}
+			replication.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseManualExecutionRunning
 
 			return r.updateReplicationCR(ctx, harbor, originalReplication, replication)
 		}
 
-		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseReady}
+		replication.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseCompleted
 
 	case registriesv1alpha1.ReplicationStatusPhaseManualExecutionRunning:
 		running, err := r.reconcileRunningReplicationExecution(ctx, replication, harborClient)
 		if err != nil {
-			reqLogger.Info(fmt.Sprintf("replication execution failed %s", err))
-			replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseManualExecutionFailed}
+			reqLogger.Info(fmt.Sprintf("replication execution failed: %s", err))
+			replication.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseManualExecutionFailed
 		}
 		if running {
 			return ctrl.Result{RequeueAfter: 1 * time.Minute}, nil
 		}
 		if !running {
-			reqLogger.Info("replication finished")
-			replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseManualExecutionFinished}
+			replication.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseManualExecutionFinished
 		}
 
 	case registriesv1alpha1.ReplicationStatusPhaseManualExecutionFinished:
 		err := r.reconcileFinishedReplicationExecution(ctx, replication, harborClient)
 		if err != nil {
-			reqLogger.Info(fmt.Sprintf("replication execution failed %s", err))
-			replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseManualExecutionFailed}
+			reqLogger.Info(fmt.Sprintf("replication execution failed: %s", err))
+			replication.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseManualExecutionFailed
 		}
+		replication.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseCompleted
 
 	case registriesv1alpha1.ReplicationStatusPhaseManualExecutionFailed:
-		replication.Status = registriesv1alpha1.ReplicationStatus{Phase: registriesv1alpha1.ReplicationStatusPhaseCreating}
+		replication.Status.Phase = registriesv1alpha1.ReplicationStatusPhaseCreating
 
-	case registriesv1alpha1.ReplicationStatusPhaseReady:
+	case registriesv1alpha1.ReplicationStatusPhaseCompleted:
 		err := r.assertExistingReplication(ctx, harborClient, replication)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -202,7 +196,13 @@ func (r *ReplicationReconciler) reconcileRunningReplicationExecution(ctx context
 	}
 
 	newestReplExecID := getNewestReplicationExecutionID(executions)
-	if executions[newestReplExecID].InProgress > 0 {
+
+	execution, err := harborClient.GetReplicationExecutionByID(ctx, newestReplExecID)
+	if err != nil {
+		return false, fmt.Errorf("could not get the latest running replication execution, id: %d, error: %s", newestReplExecID, err)
+	}
+
+	if execution.InProgress > 0 {
 		return true, nil
 	}
 
@@ -222,11 +222,17 @@ func (r *ReplicationReconciler) reconcileFinishedReplicationExecution(ctx contex
 	}
 
 	newestReplExecID := getNewestReplicationExecutionID(executions)
-	if executions[newestReplExecID].Failed > 0 {
-		return fmt.Errorf("latest execution was not successful, replication policy: %s", replication.Status.Name)
-	} else {
-		return nil
+
+	execution, err := harborClient.GetReplicationExecutionByID(ctx, newestReplExecID)
+	if err != nil {
+		return fmt.Errorf("could not get the latest finished replication execution, id: %d, error: %s", newestReplExecID, err)
 	}
+
+	if execution.Failed > 0 || execution.Status == "Failed" {
+		return fmt.Errorf("latest execution was not successful, replication policy: %s", replication.Spec.Name)
+	}
+
+	return nil
 }
 
 // blank assignment to verify that ReplicationReconciler implements reconcile.Reconciler.
@@ -262,18 +268,18 @@ func getNewestReplicationExecutionID(executions []*legacymodel.ReplicationExecut
 // updateReplicationCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
 func (r *ReplicationReconciler) updateReplicationCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance,
 	originalReplication, replication *registriesv1alpha1.Replication) (ctrl.Result, error) {
+	if err := r.Client.Get(ctx, types.NamespacedName{
+		Name:      originalReplication.Name,
+		Namespace: originalReplication.Namespace,
+	},
+		originalReplication); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	if originalReplication == nil {
 		return ctrl.Result{},
 			fmt.Errorf("cannot update replication '%s' because the original replication is nil",
 				replication.Spec.Name)
-	}
-
-	// Update status
-	if !reflect.DeepEqual(originalReplication.Status, replication.Status) {
-		originalReplication.Status = replication.Status
-		if err := r.Client.Status().Update(ctx, originalReplication); err != nil {
-			return ctrl.Result{}, err
-		}
 	}
 
 	// Set owner
@@ -287,6 +293,14 @@ func (r *ReplicationReconciler) updateReplicationCR(ctx context.Context, parentI
 	// Update finalizer
 	if !reflect.DeepEqual(originalReplication.Finalizers, replication.Finalizers) {
 		originalReplication.SetFinalizers(replication.Finalizers)
+	}
+
+	// Update status
+	if !reflect.DeepEqual(originalReplication.Status.Phase, replication.Status.Phase) {
+		originalReplication.Status.Phase = replication.Status.Phase
+		if err := r.Client.Status().Update(ctx, originalReplication); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	if err := r.Client.Update(ctx, originalReplication); err != nil {
@@ -369,12 +383,6 @@ func (r *ReplicationReconciler) ensureReplication(ctx context.Context, harborCli
 		return err
 	}
 
-	// Construct a replication from the CR spec
-	newRep, err := r.buildReplicationFromCR(originalReplication)
-	if err != nil {
-		return err
-	}
-
 	if originalReplication.Status.ID != heldReplication.ID {
 		originalReplication.Status.ID = heldReplication.ID
 
@@ -400,6 +408,12 @@ func (r *ReplicationReconciler) ensureReplication(ctx context.Context, harborCli
 				return err
 			}
 		}
+	}
+
+	// Construct a replication from the CR spec
+	newRep, err := r.buildReplicationFromCR(originalReplication)
+	if err != nil {
+		return err
 	}
 
 	// Compare the replications and update accordingly

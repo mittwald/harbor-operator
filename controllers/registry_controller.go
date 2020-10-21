@@ -23,9 +23,9 @@ import (
 	"reflect"
 	"time"
 
-	h "github.com/mittwald/goharbor-client/v2/apiv2"
-	legacymodel "github.com/mittwald/goharbor-client/v2/apiv2/model/legacy"
-	registryapi "github.com/mittwald/goharbor-client/v2/apiv2/registry"
+	h "github.com/mittwald/goharbor-client/v3/apiv2"
+	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
+	registryapi "github.com/mittwald/goharbor-client/v3/apiv2/registry"
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	"github.com/mittwald/harbor-operator/controllers/internal"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"

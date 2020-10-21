@@ -122,7 +122,7 @@ mock-runtime-client:
 	$(eval TMP := $(shell mktemp -d))
 	echo $(WORKDIR)
 	git clone https://github.com/kubernetes-sigs/controller-runtime -q --branch $(CONTROLLER_RUNTIME_VERSION) $(TMP)
-	cd $(TMP); zmockery --dir $(TMP)/pkg/client/ --name Client --structname MockClient \
+	cd $(TMP); mockery --dir $(TMP)/pkg/client/ --name Client --structname MockClient \
 	--filename=runtime_client_mock.go --output "$(PWD)/controllers/internal/mocks"
 	rm -rf $(TMP)
 

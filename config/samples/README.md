@@ -272,7 +272,7 @@ spec:
 #      cron: ""
 ```
 
-The commented `filters` section in this example will make harbor filter the provided registry for `alpine:latest`:
+The commented `filters` section in this example will make harbor filter the provided registry for an image named `alpine:latest`:
 
 #### Destination Registries
 
