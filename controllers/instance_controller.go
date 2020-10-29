@@ -24,7 +24,7 @@ import (
 	"time"
 
 	helmclient "github.com/mittwald/go-helm-client"
-	"github.com/mittwald/harbor-operator/api/v1alpha1/config"
+	"github.com/mittwald/harbor-operator/controllers/config"
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	"github.com/mittwald/harbor-operator/controllers/internal"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"

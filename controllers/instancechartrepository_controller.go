@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mittwald/harbor-operator/api/v1alpha1/config"
+	"github.com/mittwald/harbor-operator/controllers/config"
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	"helm.sh/helm/v3/pkg/repo"
 	corev1 "k8s.io/api/core/v1"

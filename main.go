@@ -29,8 +29,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
-	opconfig "github.com/mittwald/harbor-operator/api/v1alpha1/config"
 	"github.com/mittwald/harbor-operator/controllers"
+	opconfig "github.com/mittwald/harbor-operator/controllers/config"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
