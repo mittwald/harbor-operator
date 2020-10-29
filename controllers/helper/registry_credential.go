@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func ToHarborRegistryCredential(ctx context.Context, c client.Client, namespace string, regcred *v1alpha1.RegistryCredential) (*legacymodel.RegistryCredential, error) {
+func ToHarborRegistryCredential(ctx context.Context, c client.Client, namespace string, regcred v1alpha1.RegistryCredential) (*legacymodel.RegistryCredential, error) {
 	var secret v1.Secret
 	if err := c.Get(ctx, client.ObjectKey{Name: regcred.SecretRef.Name, Namespace: namespace}, &secret); err != nil {
 		return nil, err
