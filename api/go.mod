@@ -9,4 +9,4 @@ require (
 	sigs.k8s.io/controller-runtime v0.6.3
 )
 
-replace k8s.io/kubectl => k8s.io/kubectl v0.19.3
+replace github.com/mittwald/go-helm-client => ../../go-helm-client

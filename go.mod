@@ -20,7 +20,7 @@ require (
 	k8s.io/api v0.19.3
 	k8s.io/apiextensions-apiserver v0.19.2
 	k8s.io/apimachinery v0.19.3
-	k8s.io/client-go v0.19.2
+	k8s.io/client-go v0.19.3
 	sigs.k8s.io/controller-runtime v0.6.3
 	sigs.k8s.io/yaml v1.2.0
 )
@@ -30,4 +30,7 @@ replace (
 	github.com/go-logr/zapr => github.com/go-logr/zapr v0.2.0
 	github.com/mittwald/go-helm-client => ../go-helm-client
 	github.com/mittwald/harbor-operator/api => ./api
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.18.8
+	k8s.io/client-go => k8s.io/client-go v0.19.3
+	sigs.k8s.io/kustomize => sigs.k8s.io/kustomize v2.0.3+incompatible
 )
