@@ -1,4 +1,4 @@
-module github.com/mittwald/harbor-operator/api
+module github.com/mittwald/harbor-operator/apipkg
 
 go 1.15
 
