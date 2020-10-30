@@ -58,7 +58,7 @@ vet:
 # Generate code
 generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
-	cp -rf ./api/* ./apipkg/
+	rm -r ./apipkg/v* && cp -rf ./api/* ./apipkg/
 	cd apipkg && go mod tidy
 
 # Build the docker image
