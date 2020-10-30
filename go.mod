@@ -7,8 +7,8 @@ require (
 	github.com/imdario/mergo v0.3.9
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/mittwald/go-helm-client v0.4.1
+	github.com/mittwald/goharbor-client v1.0.7 // indirect
 	github.com/mittwald/goharbor-client/v3 v3.0.3
-	github.com/mittwald/harbor-operator/api v0.0.0-00010101000000-000000000000
 	github.com/nxadm/tail v1.4.5 // indirect
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.2
@@ -23,5 +23,3 @@ require (
 	sigs.k8s.io/controller-runtime v0.6.3
 	sigs.k8s.io/yaml v1.2.0
 )
-
-replace github.com/mittwald/harbor-operator/api => ./api
