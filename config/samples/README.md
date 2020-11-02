@@ -21,6 +21,57 @@ This page covers example usage of all resources supported by this operator.
    
    - [User Secrets](#User-Secrets)
 
+```
+ 0
+/|\ User
+/ \
+
+ |
+ |      creates         ┌───────────────────────────────┐
+ ├────────────────────▶ |    InstanceChartRepository    |
+ |                      |       (Custom Resource)       |
+ |                      └───────────────────────────────┘
+ |                                             ▲
+ |      creates         ┌───────────────────┐  |
+ ├────────────────────▶ |      Instance     |  |
+ |                      | (Custom Resource) |  |
+ |                      └───────────────────┘  | watches
+ |                                    ▲        |
+ |                                    |        |
+ |                            watches |        |
+ |                                    |        |           creates & updates
+ |                                  ┌─┴────────┴──────┐      (via Instance)      
+ |                                  │ Harbor Operator ├──────────────────────────┐
+ |                                  └─────────┬─────┬─┘                          |
+ |                                            ╎     |                            |
+ |                                    watches ╎     |                            |
+ |                                            ╎     |                            |
+ |      creates         ┌─────────────────┐   ╎     |         ┌─────────┐  ┌─────┴──────┐
+ ├────────────────────▶ |     Project     ├ - ┼ - - └─────── ▶| Harbor  ├──┤   Harbor   |
+ |                      |(Custom Resource)|   ╎      perform  |   API   |  |Helm Release|
+ |                      └─────────────────┘   ╎      CRUD     └─────────┘  └────────────┘
+ |                              ▲             ╎      via the CRs on the left
+ |                              |             ╎
+ |           has access through |             ╎
+ |               membership     |             ╎
+ |                              |             ╎
+ |      creates         ┌───────┴─────────┐   ╎
+ ├────────────────────▶ |      User       ├ - ┤
+ |                      |(Custom Resource)|   ╎
+ |                      └─────────────────┘   ╎
+ |      creates         ┌─────────────────┐   ╎
+ ├────────────────────▶ |    Registry     ├ - ┤
+ |                      |(Custom Resource)|   ╎
+ |                      └─────────────────┘   ╎
+ |                              ▲             ╎
+ |                              |             ╎
+ |                  is owned by |             ╎
+ |                              |             ╎
+ |      creates         ┌───────┴─────────┐   ╎
+ └────────────────────▶ |    Replication  ├ - ┘
+                        |(Custom Resource)|
+                        └─────────────────┘
+```
 
 ### Instances
 The`Instance`-resource specifies the desired Harbor helm installation:

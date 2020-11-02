@@ -49,59 +49,7 @@ helm install harbor-operator mittwald/harbor-operator --namespace my-namespace
 ```
 
 ## Documentation
-For more specific documentation, please refer to the [godoc](https://pkg.go.dev/github.com/mittwald/harbor-operator) of this repository
-
-```
- 0
-/|\ User
-/ \
-
- |
- |      creates         ┌───────────────────────────────┐
- ├────────────────────▶ |    InstanceChartRepository    |
- |                      |       (Custom Resource)       |
- |                      └───────────────────────────────┘
- |                                             ▲
- |      creates         ┌───────────────────┐  |
- ├────────────────────▶ |      Instance     |  |
- |                      | (Custom Resource) |  |
- |                      └───────────────────┘  | watches
- |                                    ▲        |
- |                                    |        |
- |                            watches |        |
- |                                    |        |           creates & updates
- |                                  ┌─┴────────┴──────┐      (via Instance)      
- |                                  │ Harbor Operator ├──────────────────────────┐
- |                                  └─────────┬─────┬─┘                          |
- |                                            ╎     |                            |
- |                                    watches ╎     |                            |
- |                                            ╎     |                            |
- |      creates         ┌─────────────────┐   ╎     |         ┌─────────┐  ┌─────┴──────┐
- ├────────────────────▶ |     Project     ├ - ┼ - - └─────── ▶| Harbor  ├──┤   Harbor   |
- |                      |(Custom Resource)|   ╎      perform  |   API   |  |Helm Release|
- |                      └─────────────────┘   ╎      CRUD     └─────────┘  └────────────┘
- |                              ▲             ╎      via the CRs on the left
- |                              |             ╎
- |           has access through |             ╎
- |               membership     |             ╎
- |                              |             ╎
- |      creates         ┌───────┴─────────┐   ╎
- ├────────────────────▶ |      User       ├ - ┤
- |                      |(Custom Resource)|   ╎
- |                      └─────────────────┘   ╎
- |      creates         ┌─────────────────┐   ╎
- ├────────────────────▶ |    Registry     ├ - ┤
- |                      |(Custom Resource)|   ╎
- |                      └─────────────────┘   ╎
- |                              ▲             ╎
- |                              |             ╎
- |                  is owned by |             ╎
- |                              |             ╎
- |      creates         ┌───────┴─────────┐   ╎
- └────────────────────▶ |    Replication  ├ - ┘
-                        |(Custom Resource)|
-                        └─────────────────┘
-```
+For more specific documentation, please refer to the [godoc](https://pkg.go.dev/github.com/mittwald/harbor-operator) of this repository.
 
 #### Web UI
 For a trouble-free experience with created instances, a valid TLS certificate is required.
@@ -115,8 +63,6 @@ However, local installations can be accessed via `http://`.
 Example annotation value using cert-manager as the cluster-issuer:
 
 `cert-manager.io/cluster-issuer: "letsencrypt-issuer"`
-
-
 
 ### Local Development
 To start the operator locally, run:

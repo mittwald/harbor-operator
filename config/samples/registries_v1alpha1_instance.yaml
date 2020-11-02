@@ -149,7 +149,7 @@ spec:
         nginx:
           image:
             repository: goharbor/nginx-photon
-            tag: v2.1.0
+            tag: v2.1.1
           replicas: 1
           nodeSelector: {}
           tolerations: []
@@ -158,7 +158,7 @@ spec:
         portal:
           image:
             repository: goharbor/harbor-portal
-            tag: v2.1.0
+            tag: v2.1.1
           replicas: 1
           nodeSelector: {}
           tolerations: []
@@ -168,7 +168,7 @@ spec:
         core:
           image:
             repository: goharbor/harbor-core
-            tag: v2.1.0
+            tag: v2.1.1
           replicas: 1
           livenessProbe:
             initialDelaySeconds: 30
@@ -182,7 +182,7 @@ spec:
         jobservice:
           image:
             repository: goharbor/harbor-jobservice
-            tag: v2.1.0
+            tag: v2.1.1
           replicas: 1
           maxJobWorkers: 10
           jobLogger: file
@@ -195,11 +195,11 @@ spec:
           registry:
             image:
               repository: goharbor/registry-photon
-              tag: v2.1.0
+              tag: v2.1.1
           controller:
             image:
               repository: goharbor/harbor-registryctl
-              tag: v2.1.0
+              tag: v2.1.1
           replicas: 1
           nodeSelector: {}
           tolerations: []
@@ -225,7 +225,7 @@ spec:
           absoluteUrl: false
           image:
             repository: goharbor/chartmuseum-photon
-            tag: v2.1.0
+            tag: v2.1.1
           replicas: 1
           nodeSelector: {}
           tolerations: []
@@ -236,11 +236,11 @@ spec:
           clair:
             image:
               repository: goharbor/clair-photon
-              tag: v2.1.0
+              tag: v2.1.1
           adapter:
             image:
               repository: goharbor/clair-adapter-photon
-              tag: v2.1.0
+              tag: v2.1.1
           replicas: 1
           updatersInterval: 12
           nodeSelector: {}
@@ -252,7 +252,7 @@ spec:
           enabled: true
           image:
             repository: goharbor/trivy-adapter-photon
-            tag: v2.1.0
+            tag: v2.1.1
           replicas: 1
           debugMode: false
           vulnType: "os,library"
@@ -272,12 +272,12 @@ spec:
           server:
             image:
               repository: goharbor/notary-server-photon
-              tag: v2.1.0
+              tag: v2.1.1
             replicas: 1
           signer:
             image:
               repository: goharbor/notary-signer-photon
-              tag: v2.1.0
+              tag: v2.1.1
             replicas: 1
           nodeSelector: {}
           tolerations: []
@@ -290,7 +290,7 @@ spec:
           internal:
             image:
               repository: goharbor/harbor-db
-              tag: v2.1.0
+              tag: v2.1.1
             initContainerImage:
               repository: busybox
               tag: latest
@@ -316,7 +316,7 @@ spec:
           internal:
             image:
               repository: goharbor/redis-photon
-              tag: v2.1.0
+              tag: v2.1.1
             nodeSelector: {}
             tolerations: []
             affinity: {}
