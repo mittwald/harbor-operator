@@ -1,39 +1,38 @@
-package v1alpha1
+package helper
 
 import (
 	"context"
 	"fmt"
-
-	"github.com/mittwald/harbor-operator/controllers/helper"
+	"github.com/mittwald/harbor-operator/api/v1alpha1"
 
 	"github.com/imdario/mergo"
 	helmclient "github.com/mittwald/go-helm-client"
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (i *Instance) ToChartSpec(ctx context.Context, c client.Client) (*helmclient.ChartSpec, error) {
-	err := i.enrichChartWithSecretValues(ctx, c)
+func InstanceToChartSpec(ctx context.Context, c client.Client, instance *v1alpha1.Instance) (*helmclient.ChartSpec, error) {
+	err := enrichChartWithSecretValues(ctx, c, instance)
 	if err != nil {
 		return nil, err
 	}
 
-	return &i.Spec.HelmChart.ChartSpec, nil
+	return &instance.Spec.HelmChart.ChartSpec, nil
 }
 
-func (i *Instance) enrichChartWithSecretValues(ctx context.Context, c client.Client) error {
-	if i.Spec.HelmChart.SecretValues == nil {
+func enrichChartWithSecretValues(ctx context.Context, c client.Client, instance *v1alpha1.Instance) error {
+	if instance.Spec.HelmChart.SecretValues == nil {
 		return nil
 	}
 
-	secret, err := i.getValuesSecret(ctx, c)
+	secret, err := getValuesSecret(ctx, c, instance)
 	if err != nil {
 		return err
 	}
 
-	spec := i.Spec.HelmChart
+	spec := instance.Spec.HelmChart
 
 	secretValuesYaml, ok := secret.Data[spec.SecretValues.Key]
 	if !ok {
@@ -71,14 +70,14 @@ func (i *Instance) enrichChartWithSecretValues(ctx context.Context, c client.Cli
 	return nil
 }
 
-func (i *Instance) getValuesSecret(ctx context.Context, c client.Client) (*v1.Secret, error) {
-	secName := i.Spec.HelmChart.SecretValues.SecretRef.Name
+func getValuesSecret(ctx context.Context, c client.Client, instance *v1alpha1.Instance) (*v1.Secret, error) {
+	secName := instance.Spec.HelmChart.SecretValues.SecretRef.Name
 
 	var secret v1.Secret
 
-	existing, err := helper.ObjExists(ctx, c,
+	existing, err := ObjExists(ctx, c,
 		secName,
-		i.Namespace,
+		instance.Namespace,
 		&secret)
 	if err != nil {
 		return nil, err

@@ -522,13 +522,13 @@ func (r *ReplicationReconciler) getHarborRegistryFromRef(ctx context.Context, re
 
 	var credential *legacymodel.RegistryCredential
 	if registry.Spec.Credential != nil {
-		credential, err = registry.Spec.Credential.ToHarborRegistryCredential(ctx, r.Client, namespace)
+		credential, err = helper.ToHarborRegistryCredential(ctx, r.Client, namespace, *registry.Spec.Credential)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return registry.Spec.ToHarborRegistry(registry.Status.ID, credential), nil
+	return helper.ToHarborRegistry(registry.Spec, registry.Status.ID, credential), nil
 }
 
 // assertDeletedReplication deletes a replication, first ensuring its existence

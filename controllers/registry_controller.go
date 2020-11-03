@@ -306,7 +306,7 @@ func (r *RegistryReconciler) buildRegistryFromCR(ctx context.Context, originalRe
 
 	var credential *legacymodel.RegistryCredential
 	if originalRegistry.Spec.Credential != nil {
-		credential, err = originalRegistry.Spec.Credential.ToHarborRegistryCredential(ctx, r.Client, originalRegistry.Namespace)
+		credential, err = helper.ToHarborRegistryCredential(ctx, r.Client, originalRegistry.Namespace, *originalRegistry.Spec.Credential)
 		if err != nil {
 			return nil, err
 		}

@@ -24,7 +24,7 @@ import (
 	"time"
 
 	helmclient "github.com/mittwald/go-helm-client"
-	"github.com/mittwald/harbor-operator/api/v1alpha1/config"
+	"github.com/mittwald/harbor-operator/controllers/config"
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	"github.com/mittwald/harbor-operator/controllers/internal"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -128,7 +128,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return ctrl.Result{}, err
 		}
 
-		chartSpec, err := harbor.ToChartSpec(ctx, r.Client)
+		chartSpec, err := helper.InstanceToChartSpec(ctx, r.Client, harbor)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -161,7 +161,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			}
 		}
 
-		chartSpec, err := harbor.ToChartSpec(ctx, r.Client)
+		chartSpec, err := helper.InstanceToChartSpec(ctx, r.Client, harbor)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -195,7 +195,7 @@ func (r *InstanceReconciler) reconcileTerminatingInstance(ctx context.Context, l
 		return errors.New("no harbor instance provided")
 	}
 
-	chartSpec, err := harbor.ToChartSpec(ctx, r.Client)
+	chartSpec, err := helper.InstanceToChartSpec(ctx, r.Client, harbor)
 	if err != nil {
 		return err
 	}
