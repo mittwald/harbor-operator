@@ -314,7 +314,7 @@ func (r *ProjectReconciler) deleteProjectMemberStatus(ctx context.Context, proje
 
 // projectMemberShouldExist
 func (r *ProjectReconciler) projectMemberShouldExist(existing corev1.LocalObjectReference, desired []registriesv1alpha1.MemberRequest) bool {
-	for i, _ := range desired {
+	for i := range desired {
 		if existing.Name == desired[i].User.Name {
 			return true
 		}
@@ -339,6 +339,9 @@ func (r *ProjectReconciler) reconcileProjectMembers(ctx context.Context, project
 
 		// Look up if the user exists as a project member. If not, add the user as project member.
 		harborProjectMembers, err := harborClient.ListProjectMembers(ctx, harborProject)
+		if err != nil {
+			return err
+		}
 		if !r.projectMemberExists(harborProjectMembers, userCR) {
 			err = harborClient.AddProjectMember(ctx, harborProject, harborUser, int(project.Spec.MemberRequests[i].Role.ID()))
 			if err != nil {
@@ -367,6 +370,9 @@ func (r *ProjectReconciler) reconcileProjectMembers(ctx context.Context, project
 
 			// Look up if the user exists as a project member.
 			harborProjectMembers, err := harborClient.ListProjectMembers(ctx, harborProject)
+			if err != nil {
+				return err
+			}
 			if r.projectMemberExists(harborProjectMembers, userCR) {
 				err = harborClient.DeleteProjectMember(ctx, harborProject, harborUser)
 				if err != nil {
@@ -388,18 +394,6 @@ func (r *ProjectReconciler) getUserCRFromRef(ctx context.Context, userRef v1.Loc
 	err := r.Client.Get(ctx, client.ObjectKey{Name: userRef.Name, Namespace: namespace}, &user)
 
 	return &user, err
-}
-
-// getMemberUserFromList returns a project member from a list of members, filtered by the username
-func getMemberUserFromList(members []*legacymodel.ProjectMemberEntity,
-	user *registriesv1alpha1.User) *legacymodel.ProjectMemberEntity {
-	for i := range members {
-		if members[i].EntityName == user.Spec.Name {
-			return members[i]
-		}
-	}
-
-	return nil
 }
 
 // ensureProject triggers reconciliation of project members
