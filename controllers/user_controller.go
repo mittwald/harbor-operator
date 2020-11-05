@@ -58,6 +58,34 @@ const (
 	labelUserRelease   = "instances.registries.mittwald.de/release"
 )
 
+func (r *UserReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// Create a new controller
+	c, err := controller.New("user-controller", mgr, controller.Options{Reconciler: r})
+	if err != nil {
+		return err
+	}
+
+	// Watch for changes to primary resource User
+	err = c.Watch(&source.Kind{Type: &registriesv1alpha1.User{}}, &handler.EnqueueRequestForObject{})
+	if err != nil {
+		return err
+	}
+
+	// Add a handler to watch for changes in the secondary resource, Secrets
+	watchHandler := &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &registriesv1alpha1.User{},
+	}
+
+	// Watch for changes to secondary resources
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, watchHandler)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=users,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=users/status,verbs=get;update;patch
 func (r *UserReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, err error) {
@@ -154,34 +182,6 @@ func (r *UserReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, err error
 	}
 
 	return r.updateUserCR(ctx, harbor, originalUser, user, res)
-}
-
-func (r *UserReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// Create a new controller
-	c, err := controller.New("user-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to primary resource User
-	err = c.Watch(&source.Kind{Type: &registriesv1alpha1.User{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	// Add a handler to watch for changes in the secondary resource, Secrets
-	watchHandler := &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &registriesv1alpha1.User{},
-	}
-
-	// Watch for changes to secondary resources
-	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, watchHandler)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // updateUserCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.

@@ -1,6 +1,11 @@
 package config
 
-var Config config
+import "github.com/spf13/viper"
+
+var Config = &config{
+	HelmClientRepositoryCachePath:  viper.GetString(HelmClientRepoCachePath),
+	HelmClientRepositoryConfigPath: viper.GetString(HelmClientRepoConfPath),
+}
 
 var (
 	MetricsAddr             string
@@ -8,8 +13,3 @@ var (
 	HelmClientRepoConfPath  string
 	EnableLeaderElection    bool
 )
-
-func FromViper() {
-	Config.HelmClientRepositoryCachePath = HelmClientRepoCachePath
-	Config.HelmClientRepositoryConfigPath = HelmClientRepoConfPath
-}

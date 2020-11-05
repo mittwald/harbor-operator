@@ -12,7 +12,7 @@ const (
 	RepoStateError RepoState = "Error"
 )
 
-// InstanceChartRepositorySpec defines the desired state of InstanceChartRepo.
+// InstanceChartRepositorySpec defines the desired state of an InstanceChartRepository.
 type InstanceChartRepositorySpec struct {
 	URL string `json:"url"`
 
@@ -23,7 +23,7 @@ type InstanceChartRepositorySpec struct {
 	SecretRef *v1.LocalObjectReference `json:"secretRef,omitempty"`
 }
 
-// InstanceChartRepositoryStatus defines the observed state of InstanceChartRepo.
+// InstanceChartRepositoryStatus defines the observed state of an InstanceChartRepository.
 type InstanceChartRepositoryStatus struct {
 	State RepoState `json:"state"`
 }
@@ -45,7 +45,7 @@ type InstanceChartRepository struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// InstanceChartRepositoryList contains a list of InstanceChartRepo.
+// InstanceChartRepositoryList contains a list of InstanceChartRepositories.
 type InstanceChartRepositoryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

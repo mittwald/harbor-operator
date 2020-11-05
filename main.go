@@ -54,8 +54,11 @@ func init() {
 }
 
 func main() {
-	flag.StringVar(&opconfig.MetricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&opconfig.EnableLeaderElection, "enable-leader-election", false,
+	var metricsAddr string
+	var enableLeaderElection bool
+
+	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&opconfig.HelmClientRepoCachePath, "helm-client-repo-cache-path",
@@ -65,12 +68,16 @@ func main() {
 
 	flag.Parse()
 
+	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+
+	fmt.Println(metricsAddr,
+		enableLeaderElection,
+		opconfig.HelmClientRepoConfPath,
+		opconfig.HelmClientRepoCachePath)
+
 	viper.SetEnvPrefix("HARBOR_OPERATOR")
-
 	replacer := strings.NewReplacer("-", "_")
-
 	viper.SetEnvKeyReplacer(replacer)
-
 	viper.AutomaticEnv()
 
 	err := viper.BindPFlags(pflag.CommandLine)
@@ -78,11 +85,6 @@ func main() {
 		log.Error(err, "failed parsing pflag CommandLine")
 		os.Exit(1)
 	}
-
-	opconfig.FromViper()
-	fmt.Println(opconfig.Config)
-
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,

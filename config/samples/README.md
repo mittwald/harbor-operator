@@ -130,7 +130,7 @@ The `.cron` parameter is a cron expression:
 A `None`-value of the schedule type effectively deactivates the garbage collection.
  
 ### InstanceChartRepositories
-`InstanceChartRepositories` reference the actual helm chart repository to be installed.
+`InstanceChartRepositories` is a reference to a helm chart repository which contains a `goharbor` helm chart.
 
 By utilizing a custom [helm client](https://github.com/mittwald/go-helm-client), 
 the accompanying controller automatically adds/updates the specified chart in its local cache (similarly to `helm repo add`).

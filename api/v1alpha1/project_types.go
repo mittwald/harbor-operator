@@ -85,8 +85,8 @@ type MemberRequest struct {
 type Project struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              ProjectSpec `json:"spec,omitempty"`
 
+	Spec   ProjectSpec   `json:"spec,omitempty"`
 	Status ProjectStatus `json:"status,omitempty"`
 }
 
@@ -109,6 +109,8 @@ type ProjectStatus struct {
 
 	// The project ID is written back from the held project ID.
 	ID int32 `json:"id,omitempty"`
+	// Members is the list of existing project member users as LocalObjectReference
+	Members []corev1.LocalObjectReference `json:"members,omitempty"`
 }
 
 func init() {

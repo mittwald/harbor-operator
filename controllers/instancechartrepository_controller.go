@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/mittwald/harbor-operator/controllers/config"
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	"helm.sh/helm/v3/pkg/repo"
@@ -59,7 +58,7 @@ func (r *InstanceChartRepositoryReconciler) Reconcile(req ctrl.Request) (ctrl.Re
 	// Fetch the InstanceChartRepository instance
 	instance := &registriesv1alpha1.InstanceChartRepository{}
 
-	err := r.Client.Get(context.TODO(), req.NamespacedName, instance)
+	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -68,6 +67,10 @@ func (r *InstanceChartRepositoryReconciler) Reconcile(req ctrl.Request) (ctrl.Re
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
+		return ctrl.Result{}, err
+	}
+
+	if err := r.reconcileInstanceChartRepositorySecret(ctx, instance); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -88,7 +91,7 @@ func (r *InstanceChartRepositoryReconciler) Reconcile(req ctrl.Request) (ctrl.Re
 	}
 
 	instance.Status.State = registriesv1alpha1.RepoStateReady
-	if err = r.Client.Status().Update(context.TODO(), instance); err != nil {
+	if err = r.Client.Status().Update(ctx, instance); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -108,15 +111,35 @@ func (r *InstanceChartRepositoryReconciler) SetupWithManager(mgr ctrl.Manager) e
 		return err
 	}
 
-	// Watch for changes to secondary resource Pods and requeue the owner InstanceChartRepo
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &registriesv1alpha1.InstanceChartRepository{},
-	})
+	// Watch for changes to the secondary resource corev1.Secrets
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+// reconcileInstanceChartRepositorySecret fetches the secret specified in an
+// InstanceChartRepository's spec and sets an OwnerReference to the owned Object.
+// Returns nil when the OwnerReference has been successfully set, or when no secret is specified.
+func (r *InstanceChartRepositoryReconciler) reconcileInstanceChartRepositorySecret(ctx context.Context, i *registriesv1alpha1.InstanceChartRepository) error {
+	if i.Spec.SecretRef != nil {
+		secret, err := r.getSecret(ctx, i)
+		if err != nil {
+			return err
+		}
+
+		if secret.OwnerReferences == nil || len(secret.OwnerReferences) == 0 {
+			err = ctrl.SetControllerReference(i, secret, r.Scheme)
+			if err != nil {
+				return err
+			}
+			if err = r.Client.Update(ctx, secret); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
@@ -186,7 +209,7 @@ func (r *InstanceChartRepositoryReconciler) getSecret(ctx context.Context,
 	}
 
 	if !existing {
-		return nil, fmt.Errorf("secret %q not found", cr.Spec.SecretRef.Name)
+		return nil, fmt.Errorf("secret %s not found, namespace: %s", cr.Spec.SecretRef.Name, cr.Namespace)
 	}
 
 	return &secret, nil

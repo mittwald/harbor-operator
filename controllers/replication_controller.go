@@ -23,8 +23,6 @@ import (
 	"reflect"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
 	replicationapi "github.com/mittwald/goharbor-client/v3/apiv2/replication"
 	v1 "k8s.io/api/core/v1"
@@ -55,6 +53,9 @@ type ReplicationReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+// blank assignment to verify that ReplicationReconciler implements reconcile.Reconciler.
+var _ reconcile.Reconciler = &ReplicationReconciler{}
+
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=replications,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=replications/status,verbs=get;update;patch
 func (r *ReplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
@@ -67,7 +68,7 @@ func (r *ReplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// Fetch the Replication instance
 	replication := &registriesv1alpha1.Replication{}
 
-	err := r.Client.Get(context.TODO(), req.NamespacedName, replication)
+	err := r.Client.Get(ctx, req.NamespacedName, replication)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -235,9 +236,6 @@ func (r *ReplicationReconciler) reconcileFinishedReplicationExecution(ctx contex
 	return nil
 }
 
-// blank assignment to verify that ReplicationReconciler implements reconcile.Reconciler.
-var _ reconcile.Reconciler = &ReplicationReconciler{}
-
 func (r *ReplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Create a new controller
 	c, err := controller.New("replication-controller", mgr, controller.Options{Reconciler: r})
@@ -268,14 +266,6 @@ func getNewestReplicationExecutionID(executions []*legacymodel.ReplicationExecut
 // updateReplicationCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
 func (r *ReplicationReconciler) updateReplicationCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance,
 	originalReplication, replication *registriesv1alpha1.Replication) (ctrl.Result, error) {
-	if err := r.Client.Get(ctx, types.NamespacedName{
-		Name:      originalReplication.Name,
-		Namespace: originalReplication.Namespace,
-	},
-		originalReplication); err != nil {
-		return ctrl.Result{}, err
-	}
-
 	if originalReplication == nil {
 		return ctrl.Result{},
 			fmt.Errorf("cannot update replication '%s' because the original replication is nil",
