@@ -65,7 +65,7 @@ jobs:
 
       - name: Go Test
         if: github.event_name == 'pull_request'
-        run: make test
+        run: sudo ln -sf /bin/bash /bin/sh && make test
 
   build:
     name: Build Image
@@ -81,7 +81,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build Image
-        run: make docker-build
+        run: sudo ln -sf /bin/bash /bin/sh && make docker-build
 
   deploymaster:
     name: Deploy Latest Image

@@ -275,11 +275,6 @@ func (r *ProjectReconciler) generateProjectMetadata(
 	return &pm
 }
 
-func (r *ProjectReconciler) getMemberUserCR(ctx context.Context, namespace string, member *legacymodel.ProjectMemberEntity, requests []registriesv1alpha1.MemberRequest) (*registriesv1alpha1.User, error) {
-
-	return nil, fmt.Errorf("no CR found for existing project member %q", member.EntityName)
-}
-
 func (r *ProjectReconciler) projectMemberExists(members []*legacymodel.ProjectMemberEntity, requestedMember *registriesv1alpha1.User) bool {
 	for i := range members {
 		if members[i].EntityName == requestedMember.Spec.Name {
