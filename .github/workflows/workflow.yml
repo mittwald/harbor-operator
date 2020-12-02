@@ -17,7 +17,7 @@ env:
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - name: Set up Go 1.15
         uses: actions/setup-go@v2
@@ -36,7 +36,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - name: Set up Go 1.15
         uses: actions/setup-go@v2
@@ -67,7 +67,7 @@ jobs:
 
   build:
     name: Build Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - name: Set up Go 1.15
         uses: actions/setup-go@v2
@@ -83,7 +83,7 @@ jobs:
 
   deploymaster:
     name: Deploy Latest Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     needs: ['test', 'build']
     if: github.ref == 'refs/heads/master'
     steps:
@@ -107,7 +107,7 @@ jobs:
 
   deploytagged:
     name: Deploy Tagged Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     needs: ['test', 'build']
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
