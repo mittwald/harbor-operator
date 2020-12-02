@@ -78,7 +78,7 @@ The`Instance`-resource specifies the desired Harbor helm installation:
 
 [registries_v1alpha1_instance.yaml](./registries_v1alpha1_instance.yaml)
 ```yaml
-apiVersion: registries.mittwald.de/v1alpha1
+apiVersion: registries.mittwald.de/v1alpha2
 kind: Instance
 metadata:
   name: test-harbor
@@ -139,7 +139,7 @@ An example `InstanceChartRepository`, using the official [goharbor/harbor-helm](
 
 [registries_v1alpha1_instancechartrepository.yaml](./registries_v1alpha1_instancechartrepository.yaml)
 ```yaml
-apiVersion: registries.mittwald.de/v1alpha1
+apiVersion: registries.mittwald.de/v1alpha2
 kind: InstanceChartRepository
 metadata:
   name: harbor # use this name as prefix for your chart (myrepo/mychart)
@@ -193,7 +193,7 @@ repository-1   Ready    1     false
 
 [registries_v1alpha1_project.yaml](./registries_v1alpha1_project.yaml)
 ```yaml
-apiVersion: registries.mittwald.de/v1alpha1
+apiVersion: registries.mittwald.de/v1alpha2
 kind: Repository
 metadata:
   name: repository-1
@@ -228,7 +228,7 @@ The available registry types (configurable via `.spec.type`) are:
 
 [registries_v1alpha1_registry-dockerhub.yaml](./registries_v1alpha1_registry-dockerhub.yaml)
 ```yaml
-apiVersion: registries.mittwald.de/v1alpha1
+apiVersion: registries.mittwald.de/v1alpha2
 kind: Registry
 metadata:
   name: test-registry-dockerhub
@@ -259,7 +259,7 @@ test-registry-local   Ready    2
 
 [registries_v1alpha1_registry-local.yaml](./registries_v1alpha1_registry-local.yaml)
 ```yaml
-apiVersion: registries.mittwald.de/v1alpha1
+apiVersion: registries.mittwald.de/v1alpha2
 kind: Registry
 metadata:
   name: test-registry-local
@@ -297,7 +297,7 @@ Filters and triggers are *optional* fields.
 
 [registries_v1alpha1_replication_src.yaml](./registries_v1alpha1_replication_src.yaml)
 ```yaml
-apiVersion: registries.mittwald.de/v1alpha1
+apiVersion: registries.mittwald.de/v1alpha2
 kind: Replication
 metadata:
   name: test-replication-src
@@ -333,7 +333,7 @@ Filters and triggers are *optional* fields.
 
 [registries_v1alpha1_replication_dst.yaml](./registries_v1alpha1_replication_dst.yaml)
 ```yaml
-apiVersion: registries.mittwald.de/v1alpha1
+apiVersion: registries.mittwald.de/v1alpha2
 kind: Replication
 metadata:
   name: test-replication-dst
@@ -368,7 +368,7 @@ If `.spec.userSecretRef` specifies a non-existing secret, the strength for a gen
 
 [registries_v1alpha1_user.yaml](./registries_v1alpha1_user.yaml)
 ```yaml
-apiVersion: registries.mittwald.de/v1alpha1
+apiVersion: registries.mittwald.de/v1alpha2
 kind: User
 metadata:
   name: harbor-user

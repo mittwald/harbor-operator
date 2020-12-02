@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -18,7 +18,7 @@ type ErrInstanceNotFound string
 // ErrInstanceNotFound is called when the corresponding Harbor instance is not ready.
 type ErrInstanceNotReady string
 
-// ErrRegistryNotReady is called when the corresponding RegistryCR (registriesv1alpha1.Registry) is not ready.
+// ErrRegistryNotReady is called when the corresponding RegistryCR (registriesv1alpha2.Registry) is not ready.
 type ErrRegistryNotReady string
 
 func (e ErrInstanceNotFound) Error() string {
@@ -36,8 +36,8 @@ func (e ErrRegistryNotReady) Error() string {
 // FetchReadyHarborInstance returns a harbor instance based on the provided instance name
 // Also needs a controller client to fetch the actual instance.
 func FetchReadyHarborInstance(ctx context.Context, namespace, parentInstanceName string,
-	r client.Client) (*registriesv1alpha1.Instance, error) {
-	harbor := &registriesv1alpha1.Instance{}
+	r client.Client) (*registriesv1alpha2.Instance, error) {
+	harbor := &registriesv1alpha2.Instance{}
 	ns := types.NamespacedName{
 		Namespace: namespace,
 		Name:      parentInstanceName,
@@ -51,7 +51,7 @@ func FetchReadyHarborInstance(ctx context.Context, namespace, parentInstanceName
 	}
 
 	// Reconcile only if the corresponding harbor instance is in 'Ready' state
-	if harbor.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseInstalled {
+	if harbor.Status.Phase.Name != registriesv1alpha2.InstanceStatusPhaseInstalled {
 		return nil, ErrInstanceNotReady(parentInstanceName)
 	}
 

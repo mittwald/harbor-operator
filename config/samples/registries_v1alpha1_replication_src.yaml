@@ -2,7 +2,7 @@
 # Using a source registry equals using the 'Pull-based' option for 'Replication Mode'
 # This pulls the specified resources from the remote registry to the local registry
 # Filters and triggers are optional
-apiVersion: registries.mittwald.de/v1alpha1
+apiVersion: registries.mittwald.de/v1alpha2
 kind: Replication
 metadata:
   name: test-replication-src

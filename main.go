@@ -28,7 +28,7 @@ import (
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
 	"github.com/mittwald/harbor-operator/controllers"
 	opconfig "github.com/mittwald/harbor-operator/controllers/config"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -48,7 +48,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(registriesv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(registriesv1alpha2.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 

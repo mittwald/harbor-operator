@@ -38,7 +38,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -88,22 +88,22 @@ var _ = BeforeSuite(func(done Done) {
 	err = apiextensions.AddToScheme(scheme.Scheme)
 	Ω(err).ToNot(HaveOccurred())
 
-	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
+	err = registriesv1alpha2.AddToScheme(scheme.Scheme)
 	Ω(err).ToNot(HaveOccurred())
 
-	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
+	err = registriesv1alpha2.AddToScheme(scheme.Scheme)
 	Ω(err).ToNot(HaveOccurred())
 
-	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
+	err = registriesv1alpha2.AddToScheme(scheme.Scheme)
 	Ω(err).ToNot(HaveOccurred())
 
-	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
+	err = registriesv1alpha2.AddToScheme(scheme.Scheme)
 	Ω(err).ToNot(HaveOccurred())
 
-	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
+	err = registriesv1alpha2.AddToScheme(scheme.Scheme)
 	Ω(err).ToNot(HaveOccurred())
 
-	err = registriesv1alpha1.AddToScheme(scheme.Scheme)
+	err = registriesv1alpha2.AddToScheme(scheme.Scheme)
 	Ω(err).ToNot(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme

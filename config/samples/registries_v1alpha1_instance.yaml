@@ -1,4 +1,4 @@
-apiVersion: registries.mittwald.de/v1alpha1
+apiVersion: registries.mittwald.de/v1alpha2
 kind: Instance
 metadata:
   name: test-harbor

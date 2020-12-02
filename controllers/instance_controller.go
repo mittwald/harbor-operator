@@ -40,7 +40,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
 )
 
 // InstanceReconciler reconciles a Instance object
@@ -60,7 +60,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Watch for changes to primary resource Instance
-	err = c.Watch(&source.Kind{Type: &registriesv1alpha1.Instance{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &registriesv1alpha2.Instance{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 
 	// Fetch the Instance
-	harbor := &registriesv1alpha1.Instance{}
+	harbor := &registriesv1alpha2.Instance{}
 	if err := r.Client.Get(ctx, req.NamespacedName, harbor); err != nil {
 		if k8serrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -102,10 +102,10 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	originalInstance := harbor.DeepCopy()
 
 	if harbor.DeletionTimestamp != nil &&
-		harbor.Status.Phase.Name != registriesv1alpha1.InstanceStatusPhaseTerminating {
+		harbor.Status.Phase.Name != registriesv1alpha2.InstanceStatusPhaseTerminating {
 		now := metav1.Now()
-		harbor.Status.Phase = registriesv1alpha1.InstanceStatusPhase{
-			Name:           registriesv1alpha1.InstanceStatusPhaseTerminating,
+		harbor.Status.Phase = registriesv1alpha2.InstanceStatusPhase{
+			Name:           registriesv1alpha2.InstanceStatusPhaseTerminating,
 			Message:        "Deleted",
 			LastTransition: &now,
 		}
@@ -118,9 +118,9 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 
 	case "":
-		harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
+		harbor.Status.Phase.Name = registriesv1alpha2.InstanceStatusPhaseInstalling
 
-	case registriesv1alpha1.InstanceStatusPhaseInstalling:
+	case registriesv1alpha2.InstanceStatusPhaseInstalling:
 		reqLogger.Info("Installing Helm chart")
 
 		err := r.updateHelmRepos()
@@ -140,7 +140,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return ctrl.Result{RequeueAfter: 60 * time.Second}, err
 		}
 
-		harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalled
+		harbor.Status.Phase.Name = registriesv1alpha2.InstanceStatusPhaseInstalled
 		harbor.Status.Version = harbor.Spec.HelmChart.Version
 
 		// Creating a spec hash of the chart spec pre-installation
@@ -154,7 +154,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return r.updateInstanceCR(ctx, originalInstance, harbor)
 		}
 
-	case registriesv1alpha1.InstanceStatusPhaseInstalled:
+	case registriesv1alpha2.InstanceStatusPhaseInstalled:
 		if harbor.Spec.GarbageCollection != nil {
 			if err := r.reconcileGarbageCollection(ctx, harbor); err != nil {
 				return ctrl.Result{RequeueAfter: 60 * time.Second}, err
@@ -172,13 +172,13 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 
 		if harbor.Status.SpecHash != specHash {
-			harbor.Status.Phase.Name = registriesv1alpha1.InstanceStatusPhaseInstalling
+			harbor.Status.Phase.Name = registriesv1alpha2.InstanceStatusPhaseInstalling
 			harbor.Status.SpecHash = specHash
 
 			return r.updateInstanceCR(ctx, originalInstance, harbor)
 		}
 
-	case registriesv1alpha1.InstanceStatusPhaseTerminating:
+	case registriesv1alpha2.InstanceStatusPhaseTerminating:
 		err := r.reconcileTerminatingInstance(ctx, reqLogger, harbor)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -190,7 +190,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 // reconcileTerminatingInstance triggers a helm uninstall for the created release.
 func (r *InstanceReconciler) reconcileTerminatingInstance(ctx context.Context, log logr.Logger,
-	harbor *registriesv1alpha1.Instance) error {
+	harbor *registriesv1alpha2.Instance) error {
 	if harbor == nil {
 		return errors.New("no harbor instance provided")
 	}
@@ -215,7 +215,7 @@ func (r *InstanceReconciler) reconcileTerminatingInstance(ctx context.Context, l
 
 // updateInstanceCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
 func (r *InstanceReconciler) updateInstanceCR(ctx context.Context, originalInstance,
-	instance *registriesv1alpha1.Instance) (ctrl.Result, error) {
+	instance *registriesv1alpha2.Instance) (ctrl.Result, error) {
 	if originalInstance == nil || instance == nil {
 		return ctrl.Result{}, fmt.Errorf("cannot update instance '%s' because the original instance is nil",
 			instance.Spec.Name)

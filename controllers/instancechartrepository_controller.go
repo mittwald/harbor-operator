@@ -35,7 +35,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
 )
 
 // InstanceChartRepositoryReconciler reconciles a InstanceChartRepository object
@@ -57,7 +57,7 @@ func (r *InstanceChartRepositoryReconciler) Reconcile(req ctrl.Request) (ctrl.Re
 	ctx := context.Background()
 
 	// Fetch the InstanceChartRepository instance
-	instance := &registriesv1alpha1.InstanceChartRepository{}
+	instance := &registriesv1alpha2.InstanceChartRepository{}
 
 	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
@@ -91,7 +91,7 @@ func (r *InstanceChartRepositoryReconciler) Reconcile(req ctrl.Request) (ctrl.Re
 		return r.setErrStatus(ctx, instance, err)
 	}
 
-	instance.Status.State = registriesv1alpha1.RepoStateReady
+	instance.Status.State = registriesv1alpha2.RepoStateReady
 	if err = r.Client.Status().Update(ctx, instance); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -107,13 +107,13 @@ func (r *InstanceChartRepositoryReconciler) SetupWithManager(mgr ctrl.Manager) e
 	}
 
 	// Watch for changes to primary resource InstanceChartRepo
-	err = c.Watch(&source.Kind{Type: &registriesv1alpha1.InstanceChartRepository{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &registriesv1alpha2.InstanceChartRepository{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	// Watch for changes to secondary resource corev1.Secret and enqueue a request for the owner, InstanceChartRepository
-	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{OwnerType: &registriesv1alpha1.InstanceChartRepository{}})
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{OwnerType: &registriesv1alpha2.InstanceChartRepository{}})
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (r *InstanceChartRepositoryReconciler) SetupWithManager(mgr ctrl.Manager) e
 // reconcileInstanceChartRepositorySecret fetches the secret specified in an
 // InstanceChartRepository's spec and sets an OwnerReference to the owned Object.
 // Returns nil when the OwnerReference has been successfully set, or when no secret is specified.
-func (r *InstanceChartRepositoryReconciler) reconcileInstanceChartRepositorySecret(ctx context.Context, i *registriesv1alpha1.InstanceChartRepository) error {
+func (r *InstanceChartRepositoryReconciler) reconcileInstanceChartRepositorySecret(ctx context.Context, i *registriesv1alpha2.InstanceChartRepository) error {
 	if i.Spec.SecretRef != nil {
 		secret, err := r.getSecret(ctx, i)
 		if err != nil {
@@ -146,12 +146,12 @@ func (r *InstanceChartRepositoryReconciler) reconcileInstanceChartRepositorySecr
 
 // setErrStatus sets the error status of an InstanceChartRepository object.
 func (r *InstanceChartRepositoryReconciler) setErrStatus(ctx context.Context,
-	cr *registriesv1alpha1.InstanceChartRepository, err error) (ctrl.Result, error) {
+	cr *registriesv1alpha2.InstanceChartRepository, err error) (ctrl.Result, error) {
 	if cr == nil {
 		return ctrl.Result{}, errors.New("no instance chart repo provided")
 	}
 
-	cr.Status.State = registriesv1alpha1.RepoStateError
+	cr.Status.State = registriesv1alpha2.RepoStateError
 
 	updateErr := r.Status().Update(ctx, cr)
 	if updateErr != nil {
@@ -163,7 +163,7 @@ func (r *InstanceChartRepositoryReconciler) setErrStatus(ctx context.Context,
 
 // specToRepoEntry constructs and returns a repository entry from an instancechartrepo CR object.
 func (r *InstanceChartRepositoryReconciler) specToRepoEntry(ctx context.Context,
-	cr *registriesv1alpha1.InstanceChartRepository) (*repo.Entry, error) {
+	cr *registriesv1alpha2.InstanceChartRepository) (*repo.Entry, error) {
 	if cr == nil {
 		return nil, errors.New("no instance chart repo provided")
 	}
@@ -201,7 +201,7 @@ func (r *InstanceChartRepositoryReconciler) specToRepoEntry(ctx context.Context,
 
 // getSecret gets and returns a kubernetes secret.
 func (r *InstanceChartRepositoryReconciler) getSecret(ctx context.Context,
-	cr *registriesv1alpha1.InstanceChartRepository) (*corev1.Secret, error) {
+	cr *registriesv1alpha2.InstanceChartRepository) (*corev1.Secret, error) {
 	var secret corev1.Secret
 
 	existing, err := helper.ObjExists(ctx, r, cr.Spec.SecretRef.Name, cr.Namespace, &secret)

@@ -41,7 +41,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
 )
 
 // RegistryReconciler reconciles a Registry object
@@ -59,7 +59,7 @@ func (r *RegistryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Watch for changes to primary resource Registry
-	err = c.Watch(&source.Kind{Type: &registriesv1alpha1.Registry{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &registriesv1alpha2.Registry{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (r *RegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 
 	// Fetch the Registry instance
-	registry := &registriesv1alpha1.Registry{}
+	registry := &registriesv1alpha2.Registry{}
 
 	err := r.Client.Get(ctx, req.NamespacedName, registry)
 	if err != nil {
@@ -94,8 +94,8 @@ func (r *RegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	originalRegistry := registry.DeepCopy()
 
 	if registry.ObjectMeta.DeletionTimestamp != nil &&
-		registry.Status.Phase != registriesv1alpha1.RegistryStatusPhaseTerminating {
-		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseTerminating}
+		registry.Status.Phase != registriesv1alpha2.RegistryStatusPhaseTerminating {
+		registry.Status = registriesv1alpha2.RegistryStatus{Phase: registriesv1alpha2.RegistryStatusPhaseTerminating}
 
 		return r.updateRegistryCR(ctx, nil, originalRegistry, registry)
 	}
@@ -108,7 +108,7 @@ func (r *RegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, err
 		} else {
-			registry.Status = registriesv1alpha1.RegistryStatus{LastTransition: &now}
+			registry.Status = registriesv1alpha2.RegistryStatus{LastTransition: &now}
 		}
 
 		return r.updateRegistryCR(ctx, nil, originalRegistry, registry)
@@ -124,23 +124,23 @@ func (r *RegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	default:
 		return ctrl.Result{}, nil
 
-	case registriesv1alpha1.RegistryStatusPhaseUnknown:
-		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseCreating}
+	case registriesv1alpha2.RegistryStatusPhaseUnknown:
+		registry.Status = registriesv1alpha2.RegistryStatus{Phase: registriesv1alpha2.RegistryStatusPhaseCreating}
 
-	case registriesv1alpha1.RegistryStatusPhaseCreating:
+	case registriesv1alpha2.RegistryStatusPhaseCreating:
 		if err := r.assertExistingRegistry(ctx, harborClient, registry); err != nil {
 			return ctrl.Result{}, err
 		}
 		helper.PushFinalizer(registry, internal.FinalizerName)
 
-		registry.Status = registriesv1alpha1.RegistryStatus{Phase: registriesv1alpha1.RegistryStatusPhaseReady}
-	case registriesv1alpha1.RegistryStatusPhaseReady:
+		registry.Status = registriesv1alpha2.RegistryStatus{Phase: registriesv1alpha2.RegistryStatusPhaseReady}
+	case registriesv1alpha2.RegistryStatusPhaseReady:
 		err := r.assertExistingRegistry(ctx, harborClient, registry)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-	case registriesv1alpha1.RegistryStatusPhaseTerminating:
+	case registriesv1alpha2.RegistryStatusPhaseTerminating:
 		// Delete the registry via harbor API
 		err := r.assertDeletedRegistry(ctx, reqLogger, harborClient, registry)
 		if err != nil {
@@ -152,7 +152,7 @@ func (r *RegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 // updateRegistryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
-func (r *RegistryReconciler) updateRegistryCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalRegistry, registry *registriesv1alpha1.Registry) (ctrl.Result, error) {
+func (r *RegistryReconciler) updateRegistryCR(ctx context.Context, parentInstance *registriesv1alpha2.Instance, originalRegistry, registry *registriesv1alpha2.Registry) (ctrl.Result, error) {
 	if originalRegistry == nil || registry == nil {
 		return ctrl.Result{}, fmt.Errorf("cannot update registry '%s' because the original registry is nil", registry.Spec.Name)
 	}
@@ -187,7 +187,7 @@ func (r *RegistryReconciler) updateRegistryCR(ctx context.Context, parentInstanc
 
 // assertExistingRegistry checks a harbor registry for existence and creates it accordingly.
 func (r *RegistryReconciler) assertExistingRegistry(ctx context.Context, harborClient *h.RESTClient,
-	originalRegistry *registriesv1alpha1.Registry) error {
+	originalRegistry *registriesv1alpha2.Registry) error {
 	_, err := harborClient.GetRegistry(ctx, originalRegistry.Spec.Name)
 	if err != nil {
 		switch err.Error() {
@@ -229,21 +229,21 @@ func parseURL(raw string) (string, error) {
 }
 
 // enumRegistryType enumerates a string against valid GarbageCollection types.
-func enumRegistryType(receivedRegistryType registriesv1alpha1.RegistryType) (registriesv1alpha1.RegistryType, error) {
+func enumRegistryType(receivedRegistryType registriesv1alpha2.RegistryType) (registriesv1alpha2.RegistryType, error) {
 	switch receivedRegistryType {
 	case
-		registriesv1alpha1.RegistryTypeHarbor,
-		registriesv1alpha1.RegistryTypeDockerHub,
-		registriesv1alpha1.RegistryTypeDockerRegistry,
-		registriesv1alpha1.RegistryTypeHuaweiSWR,
-		registriesv1alpha1.RegistryTypeGoogleGCR,
-		registriesv1alpha1.RegistryTypeAwsECR,
-		registriesv1alpha1.RegistryTypeAzureECR,
-		registriesv1alpha1.RegistryTypeAliACR,
-		registriesv1alpha1.RegistryTypeJfrogArtifactory,
-		registriesv1alpha1.RegistryTypeQuayIo,
-		registriesv1alpha1.RegistryTypeGitlab,
-		registriesv1alpha1.RegistryTypeHelmHub:
+		registriesv1alpha2.RegistryTypeHarbor,
+		registriesv1alpha2.RegistryTypeDockerHub,
+		registriesv1alpha2.RegistryTypeDockerRegistry,
+		registriesv1alpha2.RegistryTypeHuaweiSWR,
+		registriesv1alpha2.RegistryTypeGoogleGCR,
+		registriesv1alpha2.RegistryTypeAwsECR,
+		registriesv1alpha2.RegistryTypeAzureECR,
+		registriesv1alpha2.RegistryTypeAliACR,
+		registriesv1alpha2.RegistryTypeJfrogArtifactory,
+		registriesv1alpha2.RegistryTypeQuayIo,
+		registriesv1alpha2.RegistryTypeGitlab,
+		registriesv1alpha2.RegistryTypeHelmHub:
 		return receivedRegistryType, nil
 	default:
 		return "", fmt.Errorf("invalid garbage collection schedule type provided: '%s'", receivedRegistryType)
@@ -252,7 +252,7 @@ func enumRegistryType(receivedRegistryType registriesv1alpha1.RegistryType) (reg
 
 // ensureRegistry gets and compares the spec of the registry held by the harbor API with the spec of the existing CR.
 func (r *RegistryReconciler) ensureRegistry(ctx context.Context, harborClient *h.RESTClient,
-	originalRegistry *registriesv1alpha1.Registry) error {
+	originalRegistry *registriesv1alpha2.Registry) error {
 	// Get the registry held by harbor
 	heldRegistry, err := harborClient.GetRegistry(ctx, originalRegistry.Spec.Name)
 	if err != nil {
@@ -292,7 +292,7 @@ func (r *RegistryReconciler) updateRegistry(ctx context.Context, harborClient *h
 }
 
 // buildRegistryFromCR constructs and returns a Harbor registry object from the CR object's spec.
-func (r *RegistryReconciler) buildRegistryFromCR(ctx context.Context, originalRegistry *registriesv1alpha1.Registry) (*legacymodel.Registry,
+func (r *RegistryReconciler) buildRegistryFromCR(ctx context.Context, originalRegistry *registriesv1alpha2.Registry) (*legacymodel.Registry,
 	error) {
 	parsedURL, err := parseURL(originalRegistry.Spec.URL)
 	if err != nil {
@@ -325,7 +325,7 @@ func (r *RegistryReconciler) buildRegistryFromCR(ctx context.Context, originalRe
 
 // assertDeletedRegistry deletes a registry, first ensuring its existence.
 func (r *RegistryReconciler) assertDeletedRegistry(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
-	registry *registriesv1alpha1.Registry) error {
+	registry *registriesv1alpha2.Registry) error {
 	reg, err := harborClient.GetRegistry(ctx, registry.Name)
 	if err != nil {
 		return err

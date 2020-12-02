@@ -4,7 +4,7 @@ import (
 	"context"
 
 	h "github.com/mittwald/goharbor-client/v3/apiv2"
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -14,7 +14,7 @@ import (
 // BuildClient builds a harbor client to interact with the API
 // using the default (admin) credentials of an existing harbor instance.
 func BuildClient(ctx context.Context, client client.Client,
-	harbor *registriesv1alpha1.Instance) (*h.RESTClient, error) {
+	harbor *registriesv1alpha2.Instance) (*h.RESTClient, error) {
 	sec := &corev1.Secret{}
 
 	err := client.Get(ctx, types.NamespacedName{

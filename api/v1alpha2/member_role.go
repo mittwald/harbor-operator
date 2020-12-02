@@ -1,4 +1,4 @@
-package v1alpha1
+package v1alpha2
 
 // ID returns a role ID integer by enumerating the given role.
 func (role MemberRole) ID() MemberRoleID {

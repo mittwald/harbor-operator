@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mittwald/harbor-operator/api/v1alpha1"
+	"github.com/mittwald/harbor-operator/api/v1alpha2"
 
 	"github.com/imdario/mergo"
 	helmclient "github.com/mittwald/go-helm-client"
@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func InstanceToChartSpec(ctx context.Context, c client.Client, instance *v1alpha1.Instance) (*helmclient.ChartSpec, error) {
+func InstanceToChartSpec(ctx context.Context, c client.Client, instance *v1alpha2.Instance) (*helmclient.ChartSpec, error) {
 	err := enrichChartWithSecretValues(ctx, c, instance)
 	if err != nil {
 		return nil, err
@@ -23,7 +23,7 @@ func InstanceToChartSpec(ctx context.Context, c client.Client, instance *v1alpha
 	return &instance.Spec.HelmChart.ChartSpec, nil
 }
 
-func enrichChartWithSecretValues(ctx context.Context, c client.Client, instance *v1alpha1.Instance) error {
+func enrichChartWithSecretValues(ctx context.Context, c client.Client, instance *v1alpha2.Instance) error {
 	if instance.Spec.HelmChart.SecretValues == nil {
 		return nil
 	}
@@ -71,7 +71,7 @@ func enrichChartWithSecretValues(ctx context.Context, c client.Client, instance 
 	return nil
 }
 
-func getValuesSecret(ctx context.Context, c client.Client, instance *v1alpha1.Instance) (*v1.Secret, error) {
+func getValuesSecret(ctx context.Context, c client.Client, instance *v1alpha2.Instance) (*v1.Secret, error) {
 	secName := instance.Spec.HelmChart.SecretValues.SecretRef.Name
 
 	var secret v1.Secret

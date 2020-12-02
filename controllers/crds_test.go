@@ -27,42 +27,42 @@ var _ = Describe("CRDInstallation", func() {
 					Spec: apiextensions.CustomResourceDefinitionSpec{
 						Group:    "registries.mittwald.de",
 						Names:    apiextensions.CustomResourceDefinitionNames{Plural: "instancechartrepositories"},
-						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha1"}},
+						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
 					},
 				},
 				&apiextensions.CustomResourceDefinition{
 					Spec: apiextensions.CustomResourceDefinitionSpec{
 						Group:    "registries.mittwald.de",
 						Names:    apiextensions.CustomResourceDefinitionNames{Plural: "instances"},
-						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha1"}},
+						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
 					},
 				},
 				&apiextensions.CustomResourceDefinition{
 					Spec: apiextensions.CustomResourceDefinitionSpec{
 						Group:    "registries.mittwald.de",
 						Names:    apiextensions.CustomResourceDefinitionNames{Plural: "projects"},
-						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha1"}},
+						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
 					},
 				},
 				&apiextensions.CustomResourceDefinition{
 					Spec: apiextensions.CustomResourceDefinitionSpec{
 						Group:    "registries.mittwald.de",
 						Names:    apiextensions.CustomResourceDefinitionNames{Plural: "registries"},
-						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha1"}},
+						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
 					},
 				},
 				&apiextensions.CustomResourceDefinition{
 					Spec: apiextensions.CustomResourceDefinitionSpec{
 						Group:    "registries.mittwald.de",
 						Names:    apiextensions.CustomResourceDefinitionNames{Plural: "replications"},
-						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha1"}},
+						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
 					},
 				},
 				&apiextensions.CustomResourceDefinition{
 					Spec: apiextensions.CustomResourceDefinitionSpec{
 						Group:    "registries.mittwald.de",
 						Names:    apiextensions.CustomResourceDefinitionNames{Plural: "users"},
-						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha1"}},
+						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
 					},
 				},
 			}, envtest.CRDInstallOptions{

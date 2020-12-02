@@ -26,7 +26,7 @@ The operator utilizes a [helm client](https://github.com/mittwald/go-helm-client
  a custom [harbor client](https:/github.com/mittwald/goharbor-client).
 
 ### CRDs
-registries.mittwald.de/v1alpha1:
+registries.mittwald.de/v1alpha2:
 - [InstanceChartRepositories](./config/samples/README.md#InstanceChartRepositories)
 - [Instances](./config/samples/README.md#Instances)
 - [Projects](./config/samples/README.md#Projects)
@@ -76,7 +76,7 @@ make debug
 ```
 This will start a debugging server with the listen address `localhost:2345`.
 
-When making changes to API definitions (located in [./api/v1alpha1](./api/v1alpha1)),
+When making changes to API definitions (located in [./api/v1alpha1](api/v1alpha2)),
 make sure to re-generate manifests via:
 ```shell script
 make manifests
