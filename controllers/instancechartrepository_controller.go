@@ -112,6 +112,12 @@ func (r *InstanceChartRepositoryReconciler) SetupWithManager(mgr ctrl.Manager) e
 		return err
 	}
 
+	// Watch for changes to secondary resource corev1.Secret and enqueue a request for the owner, InstanceChartRepository
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{OwnerType: &registriesv1alpha1.InstanceChartRepository{}})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
