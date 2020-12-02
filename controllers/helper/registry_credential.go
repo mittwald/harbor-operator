@@ -3,6 +3,7 @@ package helper
 import (
 	"context"
 	"fmt"
+
 	"github.com/mittwald/harbor-operator/api/v1alpha1"
 
 	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"

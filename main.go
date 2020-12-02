@@ -17,10 +17,10 @@ limitations under the License.
 package main
 
 import (
-	"flag"
-	"fmt"
 	"os"
 	"strings"
+
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	helmclient "github.com/mittwald/go-helm-client"
 	"github.com/spf13/pflag"
@@ -36,7 +36,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -54,26 +53,16 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+	pflag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	pflag.Bool("enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&opconfig.HelmClientRepoCachePath, "helm-client-repo-cache-path",
+	pflag.String("helm-client-repo-cache-path",
 		"/tmp/.helmcache", "helm client repository cache path")
-	flag.StringVar(&opconfig.HelmClientRepoConfPath, "helm-client-repo-conf-path",
+	pflag.String("helm-client-repo-conf-path",
 		"/tmp/.helmconfig", "helm client repository config path")
 
-	flag.Parse()
-
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
-
-	fmt.Println(metricsAddr,
-		enableLeaderElection,
-		opconfig.HelmClientRepoConfPath,
-		opconfig.HelmClientRepoCachePath)
+	pflag.Parse()
 
 	viper.SetEnvPrefix("HARBOR_OPERATOR")
 	replacer := strings.NewReplacer("-", "_")
@@ -85,6 +74,10 @@ func main() {
 		log.Error(err, "failed parsing pflag CommandLine")
 		os.Exit(1)
 	}
+
+	opconfig.FromViper()
+
+	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,

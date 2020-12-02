@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/mittwald/harbor-operator/controllers/config"
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	"helm.sh/helm/v3/pkg/repo"
@@ -111,12 +112,6 @@ func (r *InstanceChartRepositoryReconciler) SetupWithManager(mgr ctrl.Manager) e
 		return err
 	}
 
-	// Watch for changes to the secondary resource corev1.Secrets
-	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -130,7 +125,7 @@ func (r *InstanceChartRepositoryReconciler) reconcileInstanceChartRepositorySecr
 			return err
 		}
 
-		if secret.OwnerReferences == nil || len(secret.OwnerReferences) == 0 {
+		if len(secret.OwnerReferences) == 0 {
 			err = ctrl.SetControllerReference(i, secret, r.Scheme)
 			if err != nil {
 				return err

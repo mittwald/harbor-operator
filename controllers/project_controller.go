@@ -20,10 +20,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	corev1 "k8s.io/api/core/v1"
 	"reflect"
 	"strconv"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/mittwald/harbor-operator/controllers/internal"
 
@@ -214,18 +215,19 @@ func (r *ProjectReconciler) updateProjectCR(ctx context.Context, parentInstance 
 // assertDeletedProject deletes a Harbor project, first ensuring its existence.
 func (r *ProjectReconciler) assertDeletedProject(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
 	project *registriesv1alpha1.Project) error {
-
 	p, err := harborClient.GetProjectByName(ctx, project.Name)
 	if err != nil {
 		if errors.Is(&projectapi.ErrProjectUnknownResource{}, err) {
 			return nil
 		}
+		return err
 	}
 
 	if err := harborClient.DeleteProject(ctx, p); err != nil {
 		if errors.Is(&projectapi.ErrProjectMismatch{}, err) {
 			return nil
 		}
+		return err
 	}
 
 	log.Info("pulling finalizers", project.Name, project.Namespace)
@@ -282,7 +284,6 @@ func (r *ProjectReconciler) projectMemberExists(members []*legacymodel.ProjectMe
 		}
 	}
 	return false
-
 }
 
 // addProjectMemberStatus
@@ -320,7 +321,6 @@ func (r *ProjectReconciler) projectMemberShouldExist(existing corev1.LocalObject
 
 func (r *ProjectReconciler) reconcileProjectMembers(ctx context.Context, project *registriesv1alpha1.Project,
 	harborClient *h.RESTClient, harborProject *model.Project) error {
-
 	for i := range project.Spec.MemberRequests {
 		userCR, err := r.getUserCRFromRef(ctx, project.Spec.MemberRequests[i].User, project.Namespace)
 		if err != nil {

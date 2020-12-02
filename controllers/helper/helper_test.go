@@ -14,6 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const testStr = "test"
+
 func TestBoolToString(t *testing.T) {
 	assert.Equal(t, helper.BoolToString(false), "false")
 	assert.Equal(t, helper.BoolToString(true), "true")
@@ -114,7 +116,7 @@ func TestCreateSpecHash(t *testing.T) {
 		assert.Equal(t, hash, hash2)
 	}
 
-	spec.ChartName = "foo"
+	spec.ChartName = testStr
 
 	hash3, err := helper.CreateSpecHash(spec)
 
@@ -127,14 +129,14 @@ func TestCreateSpecHash(t *testing.T) {
 
 func TestPushFinalizer(t *testing.T) {
 	o := &corev1.Pod{}
-	finalizer := "foo"
+	finalizer := testStr
 	// Push finalizer twice to cover already existing finalizers
 	helper.PushFinalizer(o, finalizer)
 	helper.PushFinalizer(o, finalizer)
 }
 
 func TestPullFinalizer(t *testing.T) {
-	finalizer := "foo"
+	finalizer := testStr
 	finalizer2 := "bar"
 	o := &corev1.Pod{}
 
