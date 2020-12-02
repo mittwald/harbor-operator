@@ -1,0 +1,20 @@
+apiVersion: registries.mittwald.de/v1alpha1
+kind: Project
+metadata:
+  name: repository-1
+  namespace: harbor-operator
+spec:
+  memberRequests:
+  - role: ProjectAdmin # one of "ProjectAdmin", "Developer", "Guest" or "Master"
+    user:
+     name: "harbor-user" # reference to a user object
+  name: repository-1
+  parentInstance:
+    name: test-harbor
+#  metadata:
+#    enableContentTrust:     false
+#    autoScan:               false
+#    severity:               "none"
+#    reuseSysSVEWhitelist:   false
+#    public:                 false
+#    preventVul:             false

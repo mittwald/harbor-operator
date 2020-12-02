@@ -1,1 +1,1 @@
-helm-chart/harbor-operator/crds
+../config/crd/bases/

@@ -3,7 +3,7 @@ kind: Role
 metadata:
   name: harbor-operator
   labels:
-    {{- include "chart.labels" . | nindent 4 }}
+    {{- include "harbor-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups: [""]
   resources: ['pods', 'services', 'services/finalizers', 'endpoints', 'persistentvolumeclaims', 'events', 'configmaps', 'secrets']

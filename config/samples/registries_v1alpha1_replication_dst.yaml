@@ -1,0 +1,28 @@
+# Replication example with a destination registry
+# Using a destination registry equals using the 'Push-based' option for 'Replication Mode'
+# This pushes the specified resources from local to the remote registry
+# Filters and triggers are optional
+apiVersion: registries.mittwald.de/v1alpha1
+kind: Replication
+metadata:
+  name: test-replication-dst
+  namespace: harbor-operator
+spec:
+  name: test-replication-dst
+  parentInstance:
+    name: test-harbor
+  replicateDeletion: false
+  override: true
+  enabled: true
+  triggerAfterCreation: true
+  destRegistry: # you have to create the destRegistry via a registry custom resource first
+    name: test-registry-local
+  filters:
+    - type: name
+      value: alpine
+    - type: tag
+      value: latest
+  trigger:
+    type: manual
+    triggerSettings:
+      cron: ""

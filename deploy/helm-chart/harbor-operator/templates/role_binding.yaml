@@ -1,12 +1,12 @@
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: {{ include "chart.fullname" . }}
+  name: {{ include "harbor-operator.fullname" . }}
   labels:
-  {{- include "chart.labels" . | nindent 4 }}
+  {{- include "harbor-operator.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
-    name: {{ include "chart.fullname" . }}
+    name: {{ include "harbor-operator.fullname" . }}
     namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role

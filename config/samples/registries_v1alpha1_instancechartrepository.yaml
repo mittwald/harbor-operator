@@ -1,0 +1,10 @@
+apiVersion: registries.mittwald.de/v1alpha1
+kind: InstanceChartRepository
+metadata:
+  name: harbor # use this name as prefix for your chart (myrepo/mychart)
+  namespace: harbor-operator
+spec:
+  url: https://helm.goharbor.io
+  # optional
+  #secretRef:
+    #   name: harbor-instancechartrepository-secret

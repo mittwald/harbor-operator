@@ -1,0 +1,20 @@
+# permissions for end users to view instancechartrepositories.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: instancechartrepository-viewer-role
+rules:
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - instancechartrepositories
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - instancechartrepositories/status
+  verbs:
+  - get

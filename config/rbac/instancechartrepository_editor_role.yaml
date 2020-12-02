@@ -1,0 +1,24 @@
+# permissions for end users to edit instancechartrepositories.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: instancechartrepository-editor-role
+rules:
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - instancechartrepositories
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - instancechartrepositories/status
+  verbs:
+  - get
