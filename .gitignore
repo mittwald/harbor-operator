@@ -79,5 +79,6 @@ tags
 # Operator SDK v1
 bin
 testbin/*
+bundle*
 # local test etcd
 default.etcd/*

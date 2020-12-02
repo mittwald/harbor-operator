@@ -53,13 +53,13 @@ func init() {
 }
 
 func main() {
-	pflag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	pflag.Bool("enable-leader-election", false,
+	pflag.String(opconfig.FlagMetricsAddress, ":8080", "The address the metric endpoint binds to.")
+	pflag.Bool(opconfig.FlagEnableLeaderElection, false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	pflag.String("helm-client-repo-cache-path",
+	pflag.String(opconfig.FlagHelmClientRepoCachePath,
 		"/tmp/.helmcache", "helm client repository cache path")
-	pflag.String("helm-client-repo-conf-path",
+	pflag.String(opconfig.FlagHelmClientRepoConfPath,
 		"/tmp/.helmconfig", "helm client repository config path")
 
 	pflag.Parse()
