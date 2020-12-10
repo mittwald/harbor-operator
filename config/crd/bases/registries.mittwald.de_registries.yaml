@@ -25,7 +25,7 @@ spec:
       jsonPath: .status.id
       name: ID
       type: integer
-    name: v1alpha1
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: Registry is the Schema for the registries API

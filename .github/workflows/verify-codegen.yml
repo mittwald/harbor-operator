@@ -8,7 +8,7 @@ env:
 jobs:
   verify-operator-sdk:
     name: Verify Code Generation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - name: Set up Go 1.15
         uses: actions/setup-go@v2

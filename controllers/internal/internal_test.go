@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/mittwald/harbor-operator/controllers/internal/mocks"
-	testingregistriesv1alpha1 "github.com/mittwald/harbor-operator/controllers/testing/registriesv1alpha1"
+	testingregistriesv1alpha2 "github.com/mittwald/harbor-operator/controllers/testing/registriesv1alpha2"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,8 +36,8 @@ func TestBuildClient(t *testing.T) {
 
 	mockClient := &mocks.MockClient{}
 
-	harbor := testingregistriesv1alpha1.CreateInstance("test-harbor", ns)
-	_ = testingregistriesv1alpha1.CreateSecret(harbor.Spec.Name+"-harbor-core", ns)
+	harbor := testingregistriesv1alpha2.CreateInstance("test-harbor", ns)
+	_ = testingregistriesv1alpha2.CreateSecret(harbor.Spec.Name+"-harbor-core", ns)
 
 	t.Run("SecretKeyNotFound", func(t *testing.T) {
 		mockClient.On("Get", ctx, types.NamespacedName{

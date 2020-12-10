@@ -42,7 +42,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
 )
 
 // UserReconciler reconciles a User object
@@ -66,7 +66,7 @@ func (r *UserReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Watch for changes to primary resource User
-	err = c.Watch(&source.Kind{Type: &registriesv1alpha1.User{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &registriesv1alpha2.User{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (r *UserReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Add a handler to watch for changes in the secondary resource, Secrets
 	watchHandler := &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &registriesv1alpha1.User{},
+		OwnerType:    &registriesv1alpha2.User{},
 	}
 
 	// Watch for changes to secondary resources
@@ -96,7 +96,7 @@ func (r *UserReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, err error
 	ctx := context.Background()
 
 	// Fetch the User instance
-	user := &registriesv1alpha1.User{}
+	user := &registriesv1alpha2.User{}
 
 	err = r.Client.Get(ctx, req.NamespacedName, user)
 	if err != nil {
@@ -112,8 +112,8 @@ func (r *UserReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, err error
 
 	originalUser := user.DeepCopy()
 
-	if user.ObjectMeta.DeletionTimestamp != nil && user.Status.Phase != registriesv1alpha1.UserStatusPhaseTerminating {
-		user.Status = registriesv1alpha1.UserStatus{Phase: registriesv1alpha1.UserStatusPhaseTerminating}
+	if user.ObjectMeta.DeletionTimestamp != nil && user.Status.Phase != registriesv1alpha2.UserStatusPhaseTerminating {
+		user.Status = registriesv1alpha2.UserStatus{Phase: registriesv1alpha2.UserStatusPhaseTerminating}
 		res = ctrl.Result{Requeue: true}
 
 		return r.updateUserCR(ctx, nil, originalUser, user, res)
@@ -129,7 +129,7 @@ func (r *UserReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, err error
 		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, err
 		} else {
-			user.Status = registriesv1alpha1.UserStatus{LastTransition: &now}
+			user.Status = registriesv1alpha2.UserStatus{LastTransition: &now}
 			res = ctrl.Result{RequeueAfter: 120 * time.Second}
 		}
 
@@ -147,24 +147,24 @@ func (r *UserReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, err error
 	default:
 		return ctrl.Result{}, nil
 
-	case registriesv1alpha1.UserStatusPhaseUnknown:
-		user.Status.Phase = registriesv1alpha1.UserStatusPhaseCreating
+	case registriesv1alpha2.UserStatusPhaseUnknown:
+		user.Status.Phase = registriesv1alpha2.UserStatusPhaseCreating
 		if err := r.Client.Status().Update(ctx, user); err != nil {
 			return ctrl.Result{}, err
 		}
 		return reconcile.Result{Requeue: true}, nil
 
-	case registriesv1alpha1.UserStatusPhaseCreating:
+	case registriesv1alpha2.UserStatusPhaseCreating:
 		if err := r.assertExistingUser(ctx, harborClient, user); err != nil {
 			return ctrl.Result{}, err
 		}
 
 		helper.PushFinalizer(user, internal.FinalizerName)
 
-		user.Status.Phase = registriesv1alpha1.UserStatusPhaseReady
+		user.Status.Phase = registriesv1alpha2.UserStatusPhaseReady
 		res = reconcile.Result{Requeue: true}
 
-	case registriesv1alpha1.UserStatusPhaseReady:
+	case registriesv1alpha2.UserStatusPhaseReady:
 		err := r.assertExistingUser(ctx, harborClient, user)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -172,7 +172,7 @@ func (r *UserReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, err error
 
 		res = ctrl.Result{}
 
-	case registriesv1alpha1.UserStatusPhaseTerminating:
+	case registriesv1alpha2.UserStatusPhaseTerminating:
 		err := r.assertDeletedUser(ctx, reqLogger, harborClient, user)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -185,8 +185,8 @@ func (r *UserReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, err error
 }
 
 // updateUserCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
-func (r *UserReconciler) updateUserCR(ctx context.Context, parentInstance *registriesv1alpha1.Instance, originalUser,
-	user *registriesv1alpha1.User, result reconcile.Result) (ctrl.Result, error) {
+func (r *UserReconciler) updateUserCR(ctx context.Context, parentInstance *registriesv1alpha2.Instance, originalUser,
+	user *registriesv1alpha2.User, result reconcile.Result) (ctrl.Result, error) {
 	if originalUser == nil || user == nil {
 		return ctrl.Result{},
 			fmt.Errorf("cannot update user because the original user has not been set")
@@ -217,7 +217,7 @@ func (r *UserReconciler) updateUserCR(ctx context.Context, parentInstance *regis
 
 // assertExistingUser ensures the specified user's existence.
 func (r *UserReconciler) assertExistingUser(ctx context.Context, harborClient *h.RESTClient,
-	usr *registriesv1alpha1.User) error {
+	usr *registriesv1alpha2.User) error {
 	sec, err := r.getOrCreateSecretForUser(ctx, usr)
 	if err != nil {
 		return err
@@ -260,7 +260,7 @@ func (r *UserReconciler) assertExistingUser(ctx context.Context, harborClient *h
 }
 
 // createUser constructs a user request and triggers the Harbor API to create that user.
-func (r *UserReconciler) createUser(ctx context.Context, harborClient *h.RESTClient, user *registriesv1alpha1.User,
+func (r *UserReconciler) createUser(ctx context.Context, harborClient *h.RESTClient, user *registriesv1alpha2.User,
 	newPassword string) error {
 	_, err := harborClient.NewUser(ctx,
 		user.Spec.Name,
@@ -276,7 +276,7 @@ func (r *UserReconciler) createUser(ctx context.Context, harborClient *h.RESTCli
 }
 
 // labelsForUserSecret returns a list of labels for a user's secret.
-func (r *UserReconciler) labelsForUserSecret(user *registriesv1alpha1.User, instanceName string) map[string]string {
+func (r *UserReconciler) labelsForUserSecret(user *registriesv1alpha2.User, instanceName string) map[string]string {
 	return map[string]string{
 		labelUserRegistry:  instanceName,
 		labelUserComponent: user.Spec.Name + "-secret",
@@ -286,7 +286,7 @@ func (r *UserReconciler) labelsForUserSecret(user *registriesv1alpha1.User, inst
 
 // ensureUser updates a users profile, if changed - Afterwards, it updates the password if changed.
 func (r *UserReconciler) ensureUser(ctx context.Context, harborClient *h.RESTClient,
-	heldUser *legacymodel.User, desiredUser *registriesv1alpha1.User) error {
+	heldUser *legacymodel.User, desiredUser *registriesv1alpha2.User) error {
 	newUsr := &legacymodel.User{
 		UserID: heldUser.UserID,
 	}
@@ -323,7 +323,7 @@ func isUserRequestEqual(existing, new *legacymodel.User) bool {
 
 // assertDeletedUser deletes a user, first ensuring its existence
 func (r *UserReconciler) assertDeletedUser(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
-	user *registriesv1alpha1.User) error {
+	user *registriesv1alpha2.User) error {
 	harborUser, err := harborClient.GetUser(ctx, user.Spec.Name)
 	if err != nil {
 		return err

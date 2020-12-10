@@ -32,7 +32,7 @@ spec:
       jsonPath: .spec.instanceURL
       name: URL
       type: string
-    name: v1alpha1
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: Instance is the Schema for the instances API

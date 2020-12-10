@@ -33,7 +33,7 @@ spec:
       jsonPath: .spec.metadata.public
       name: Public
       type: boolean
-    name: v1alpha1
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: Project is the Schema for the projects API

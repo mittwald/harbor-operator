@@ -1,4 +1,4 @@
-apiVersion: registries.mittwald.de/v1alpha1
+apiVersion: registries.mittwald.de/v1alpha2
 kind: InstanceChartRepository
 metadata:
   name: harbor # use this name as prefix for your chart (myrepo/mychart)

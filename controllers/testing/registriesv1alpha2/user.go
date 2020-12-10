@@ -1,19 +1,19 @@
-package registriesv1alpha1_test
+package registriesv1alpha2_test
 
 import (
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // CreateUser returns a user object with sample values.
-func CreateUser(name, namespace, instanceRef string) *registriesv1alpha1.User {
-	u := registriesv1alpha1.User{
+func CreateUser(name, namespace, instanceRef string) *registriesv1alpha2.User {
+	u := registriesv1alpha2.User{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: registriesv1alpha1.UserSpec{
+		Spec: registriesv1alpha2.UserSpec{
 			Name: name,
 			ParentInstance: corev1.LocalObjectReference{
 				Name: instanceRef,

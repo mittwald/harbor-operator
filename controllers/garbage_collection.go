@@ -9,12 +9,12 @@ import (
 	"github.com/mittwald/harbor-operator/controllers/internal"
 
 	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
 )
 
 // reconcileGarbageCollection reads the state of a configured garbage collection schedule and compares it to the user
 // defined garbage collection schedule.
-func (r *InstanceReconciler) reconcileGarbageCollection(ctx context.Context, harbor *registriesv1alpha1.Instance) error {
+func (r *InstanceReconciler) reconcileGarbageCollection(ctx context.Context, harbor *registriesv1alpha2.Instance) error {
 	scheduleType, err := enumGCType(harbor.Spec.GarbageCollection.ScheduleType)
 	if err != nil {
 		return err
@@ -57,11 +57,11 @@ func (r *InstanceReconciler) reconcileGarbageCollection(ctx context.Context, har
 }
 
 // enumGCType enumerates a string against valid GarbageCollection schedule types.
-func enumGCType(receivedScheduleType registriesv1alpha1.ScheduleType) (registriesv1alpha1.ScheduleType, error) {
+func enumGCType(receivedScheduleType registriesv1alpha2.ScheduleType) (registriesv1alpha2.ScheduleType, error) {
 	switch receivedScheduleType {
-	case registriesv1alpha1.ScheduleTypeCustom, registriesv1alpha1.ScheduleTypeDaily,
-		registriesv1alpha1.ScheduleTypeHourly, registriesv1alpha1.ScheduleTypeManually,
-		registriesv1alpha1.ScheduleTypeWeekly, registriesv1alpha1.ScheduleTypeNone:
+	case registriesv1alpha2.ScheduleTypeCustom, registriesv1alpha2.ScheduleTypeDaily,
+		registriesv1alpha2.ScheduleTypeHourly, registriesv1alpha2.ScheduleTypeManually,
+		registriesv1alpha2.ScheduleTypeWeekly, registriesv1alpha2.ScheduleTypeNone:
 		return receivedScheduleType, nil
 
 	default:

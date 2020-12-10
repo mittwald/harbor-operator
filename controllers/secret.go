@@ -8,14 +8,14 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (r *UserReconciler) getSecretForUser(ctx context.Context, user *registriesv1alpha1.User) (*corev1.Secret, error) {
+func (r *UserReconciler) getSecretForUser(ctx context.Context, user *registriesv1alpha2.User) (*corev1.Secret, error) {
 	sec := &corev1.Secret{}
 	sec.Name = user.Spec.UserSecretRef.Name
 	sec.Namespace = user.Namespace
@@ -28,7 +28,7 @@ func (r *UserReconciler) getSecretForUser(ctx context.Context, user *registriesv
 	return sec, nil
 }
 
-func (r *UserReconciler) newSecretForUser(ctx context.Context, user *registriesv1alpha1.User) (*corev1.Secret, error) {
+func (r *UserReconciler) newSecretForUser(ctx context.Context, user *registriesv1alpha2.User) (*corev1.Secret, error) {
 	ls := r.labelsForUserSecret(user, user.Spec.ParentInstance.Name)
 
 	sec := &corev1.Secret{}
@@ -73,7 +73,7 @@ func (r *UserReconciler) newSecretForUser(ctx context.Context, user *registriesv
 }
 
 func (r *UserReconciler) getOrCreateSecretForUser(ctx context.Context,
-	user *registriesv1alpha1.User) (*corev1.Secret, error) {
+	user *registriesv1alpha2.User) (*corev1.Secret, error) {
 	sec, err := r.getSecretForUser(ctx, user)
 	if errors.IsNotFound(err) {
 		sec, err = r.newSecretForUser(ctx, user)

@@ -1,8 +1,8 @@
 package controllers_test
 
 import (
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
-	registriesv1alpha1test "github.com/mittwald/harbor-operator/controllers/testing/registriesv1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
+	registriesv1alpha2test "github.com/mittwald/harbor-operator/controllers/testing/registriesv1alpha2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/types"
@@ -21,10 +21,10 @@ var _ = Describe("UserController", func() {
 		}
 	})
 	Describe("Create, Get and Delete", func() {
-		var user *registriesv1alpha1.User
+		var user *registriesv1alpha2.User
 		Context("User", func() {
 			BeforeEach(func() {
-				user = registriesv1alpha1test.CreateUser(name, namespace, "")
+				user = registriesv1alpha2test.CreateUser(name, namespace, "")
 				Ω(k8sClient.Create(ctx, user)).Should(Succeed())
 				Ω(k8sClient.Get(ctx, types.NamespacedName{
 					Name:      name,

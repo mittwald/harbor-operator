@@ -1,28 +1,28 @@
-package registriesv1alpha1_test
+package registriesv1alpha2_test
 
 import (
 	helmclient "github.com/mittwald/go-helm-client"
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // CreateInstance returns an instance object with sample values.
-func CreateInstance(name, namespace string) *registriesv1alpha1.Instance {
-	i := registriesv1alpha1.Instance{
+func CreateInstance(name, namespace string) *registriesv1alpha2.Instance {
+	i := registriesv1alpha2.Instance{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: registriesv1alpha1.InstanceSpec{
+		Spec: registriesv1alpha2.InstanceSpec{
 			Name:        name,
 			Type:        "manual",
 			InstanceURL: "https://core.harbor.domain",
-			GarbageCollection: &registriesv1alpha1.GarbageCollection{
+			GarbageCollection: &registriesv1alpha2.GarbageCollection{
 				Cron:         "0 * * * *",
 				ScheduleType: "Hourly",
 			},
-			HelmChart: &registriesv1alpha1.InstanceHelmChartSpec{
+			HelmChart: &registriesv1alpha2.InstanceHelmChartSpec{
 				ChartSpec: helmclient.ChartSpec{
 					ReleaseName: name,
 					ChartName:   "harbor/harbor",

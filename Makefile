@@ -62,7 +62,7 @@ generate: controller-gen
 	cd pkg/apis && go mod tidy
 
 # Build the docker image
-docker-build: test
+docker-build:
 	docker build . -t ${IMG}
 
 # Push the docker image

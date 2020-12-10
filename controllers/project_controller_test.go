@@ -1,8 +1,8 @@
 package controllers_test
 
 import (
-	registriesv1alpha1 "github.com/mittwald/harbor-operator/api/v1alpha1"
-	registriesv1alpha1test "github.com/mittwald/harbor-operator/controllers/testing/registriesv1alpha1"
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
+	registriesv1alpha2test "github.com/mittwald/harbor-operator/controllers/testing/registriesv1alpha2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/types"
@@ -21,10 +21,10 @@ var _ = Describe("ProjectController", func() {
 		}
 	})
 	Describe("Create, Get and Delete", func() {
-		var project *registriesv1alpha1.Project
+		var project *registriesv1alpha2.Project
 		Context("Project", func() {
 			BeforeEach(func() {
-				project = registriesv1alpha1test.CreateProject(name, namespace, "")
+				project = registriesv1alpha2test.CreateProject(name, namespace, "")
 				Ω(k8sClient.Create(ctx, project)).Should(Succeed())
 				Ω(k8sClient.Get(ctx, types.NamespacedName{
 					Name:      name,

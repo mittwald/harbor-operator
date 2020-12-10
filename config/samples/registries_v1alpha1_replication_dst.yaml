@@ -2,7 +2,7 @@
 # Using a destination registry equals using the 'Push-based' option for 'Replication Mode'
 # This pushes the specified resources from local to the remote registry
 # Filters and triggers are optional
-apiVersion: registries.mittwald.de/v1alpha1
+apiVersion: registries.mittwald.de/v1alpha2
 kind: Replication
 metadata:
   name: test-replication-dst
