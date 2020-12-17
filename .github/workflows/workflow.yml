@@ -61,7 +61,7 @@ jobs:
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.codeClimateReporterID }}
         with:
-          coverageCommand: go test -v -coverprofile=cover.out ./...
+          coverageCommand: make test
           debug: true
           prefix: 'github.com/${{ github.repository }}/'
 
