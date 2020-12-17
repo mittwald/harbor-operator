@@ -51,15 +51,9 @@ jobs:
         if: github.event_name != 'pull_request'
         run: mkdir -p github.com/mittwald && ln -sf $(pwd) github.com/mittwald/harbor-operator
 
-      - name: Hack bash symlink
-        run: sudo ln -sf /bin/bash /bin/sh
-
-      - name: Setup envtest
-        run: make setup-envtest
-
       - name: Go Test
         if: github.event_name == 'pull_request'
-        run: make test
+        run: sudo ln -sf /bin/bash /bin/sh && make test
 
       - name: Test & publish code coverage
         if: github.event_name != 'pull_request'
@@ -67,8 +61,9 @@ jobs:
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.codeClimateReporterID }}
         with:
-          coverageCommand: go test -v -coverprofile=cover.out ./...
+          coverageCommand: ln -sf /bin/bash /bin/sh && make test
           debug: true
+          coverageLocations: 'github.com/${{ github.repository }}/cover.out:gocov'
           prefix: 'github.com/${{ github.repository }}/'
 
   build:
