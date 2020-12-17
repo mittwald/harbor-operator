@@ -61,7 +61,7 @@ jobs:
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.codeClimateReporterID }}
         with:
-          coverageCommand: make test
+          coverageCommand: sudo ln -sf /bin/bash /bin/sh && make test
           debug: true
           prefix: 'github.com/${{ github.repository }}/'
 
