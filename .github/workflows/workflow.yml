@@ -89,7 +89,7 @@ jobs:
         run: make docker-build
 
       - name: Push latest tag
-        run: docker push "$IMAGE_NAME:latest"
+        run: make docker-push
 
   deploytagged:
     name: Deploy Tagged Image
@@ -108,6 +108,9 @@ jobs:
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
+
+      - name: Build tagged image
+        run: docker build "$IMAGE_NAME:latest" --go-build-args "-ldflags -X=version.Version=${GITHUB_REF##*/}"
 
       - name: Tag versioned image
         run: docker tag "$IMAGE_NAME:latest" "$IMAGE_NAME:${GITHUB_REF##*/}"
