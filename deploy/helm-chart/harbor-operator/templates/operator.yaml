@@ -33,7 +33,7 @@ spec:
 {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
-            - manager
+            - /manager
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
