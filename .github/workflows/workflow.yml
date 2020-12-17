@@ -54,6 +54,9 @@ jobs:
       - name: Hack bash symlink
         run: sudo ln -sf /bin/bash /bin/sh
 
+      - name: Setup envtest
+        run: make setup-envtest
+
       - name: Go Test
         if: github.event_name == 'pull_request'
         run: make test
@@ -64,7 +67,7 @@ jobs:
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.codeClimateReporterID }}
         with:
-          coverageCommand: make test
+          coverageCommand: go test -v -coverprofile=cover.out ./...
           debug: true
           prefix: 'github.com/${{ github.repository }}/'
 
