@@ -57,13 +57,12 @@ jobs:
 
       - name: Test & publish code coverage
         if: github.event_name != 'pull_request'
-        uses: paambaati/codeclimate-action@v2.7.4
+        uses: paambaati/codeclimate-action@v2.7.5
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.codeClimateReporterID }}
         with:
-          coverageCommand: ln -sf /bin/bash /bin/sh && make test
+          coverageCommand: ln -sf /bin/bash /bin/sh; make test
           debug: true
-          coverageLocations: 'github.com/${{ github.repository }}/cover.out:gocov'
           prefix: 'github.com/${{ github.repository }}/'
 
   build:
