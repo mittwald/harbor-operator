@@ -38,10 +38,14 @@ spec:
         description: Instance is the Schema for the instances API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -49,7 +53,8 @@ spec:
             description: InstanceSpec defines the desired state of Instance.
             properties:
               garbageCollection:
-                description: GarbageCollectionReq holds request information for a garbage collection schedule.
+                description: GarbageCollectionReq holds request information for a
+                  garbage collection schedule.
                 properties:
                   cron:
                     type: string
@@ -94,10 +99,13 @@ spec:
                       key:
                         type: string
                       secretRef:
-                        description: LocalObjectReference contains enough information to let you locate the referenced object inside the same namespace.
+                        description: LocalObjectReference contains enough information
+                          to let you locate the referenced object inside the same
+                          namespace.
                         properties:
                           name:
-                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?'
                             type: string
                         type: object
                     required:
@@ -109,13 +117,16 @@ spec:
                   subNotes:
                     type: boolean
                   timeout:
-                    description: A Duration represents the elapsed time between two instants as an int64 nanosecond count. The representation limits the largest representable duration to approximately 290 years.
+                    description: A Duration represents the elapsed time between two
+                      instants as an int64 nanosecond count. The representation limits
+                      the largest representable duration to approximately 290 years.
                     format: int64
                     type: integer
                   upgradeCRDs:
                     type: boolean
                   valuesYaml:
-                    description: use string instead of map[string]interface{} https://github.com/kubernetes-sigs/kubebuilder/issues/528#issuecomment-466449483 and https://github.com/kubernetes-sigs/controller-tools/pull/317
+                    description: use string instead of map[string]interface{} https://github.com/kubernetes-sigs/kubebuilder/issues/528#issuecomment-466449483
+                      and https://github.com/kubernetes-sigs/controller-tools/pull/317
                     type: string
                   version:
                     type: string
@@ -131,7 +142,9 @@ spec:
               name:
                 type: string
               type:
-                description: 'can''t use the resulting string-type so this is a simple string and will be casted to an OperatorType in the resolver: error: Hit an unsupported type invalid type for invalid type'
+                description: 'can''t use the resulting string-type so this is a simple
+                  string and will be casted to an OperatorType in the resolver: error:
+                  Hit an unsupported type invalid type for invalid type'
                 type: string
             required:
             - helmChart
