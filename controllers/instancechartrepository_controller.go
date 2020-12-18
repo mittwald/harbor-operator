@@ -20,17 +20,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
+	"github.com/go-logr/logr"
 	"github.com/mittwald/harbor-operator/controllers/config"
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	"helm.sh/helm/v3/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -100,25 +97,14 @@ func (r *InstanceChartRepositoryReconciler) Reconcile(req ctrl.Request) (ctrl.Re
 }
 
 func (r *InstanceChartRepositoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// Create a new controller
-	c, err := controller.New("instancechartrepo-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to primary resource InstanceChartRepo
-	err = c.Watch(&source.Kind{Type: &registriesv1alpha2.InstanceChartRepository{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to secondary resource corev1.Secret and enqueue a request for the owner, InstanceChartRepository
-	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{OwnerType: &registriesv1alpha2.InstanceChartRepository{}})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&registriesv1alpha2.InstanceChartRepository{}).
+		Owns(&corev1.Secret{}).
+		Owns(&corev1.Pod{}).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: 1,
+		}).
+		Complete(r)
 }
 
 // reconcileInstanceChartRepositorySecret fetches the secret specified in an

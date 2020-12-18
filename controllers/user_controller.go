@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"time"
 
 	h "github.com/mittwald/goharbor-client/v3/apiv2"
@@ -31,16 +32,12 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	controllerruntime "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
 )
@@ -59,31 +56,13 @@ const (
 )
 
 func (r *UserReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// Create a new controller
-	c, err := controller.New("user-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to primary resource User
-	err = c.Watch(&source.Kind{Type: &registriesv1alpha2.User{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	// Add a handler to watch for changes in the secondary resource, Secrets
-	watchHandler := &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &registriesv1alpha2.User{},
-	}
-
-	// Watch for changes to secondary resources
-	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, watchHandler)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&registriesv1alpha2.User{}).
+		Owns(&corev1.Secret{}).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: 1,
+		}).
+		Complete(r)
 }
 
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=users,verbs=get;list;watch;create;update;patch;delete

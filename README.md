@@ -74,7 +74,7 @@ make debug
 ```
 This will start a debugging server with the listen address `localhost:2345`.
 
-When making changes to API definitions (located in [./api/v1alpha1](api/v1alpha2)),
+When making changes to API definitions (located in [./api/v1alpha2](api/v1alpha2)),
 make sure to re-generate manifests via:
 ```shell script
 make manifests

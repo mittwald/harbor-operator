@@ -13,10 +13,6 @@ spec:
     kind: Project
     listKind: ProjectList
     plural: project
-    shortNames:
-    - repo
-    - repos
-    - harborrepos
     singular: project
   scope: Namespaced
   versions:
