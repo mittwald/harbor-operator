@@ -13,10 +13,6 @@ spec:
   override: {{ $repl.override }}
   triggerAfterCreation: {{ $repl.triggerAfterCreation }}
 
-  {{- if $repl.id }}
-  id: {{ $repl.id }}
-  {{- end }}
-
   {{- if $repl.description }}
   description: {{ $repl.description }}
   {{- end }}

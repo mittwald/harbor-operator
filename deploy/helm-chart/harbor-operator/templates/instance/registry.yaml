@@ -13,9 +13,6 @@ spec:
   type: {{ $registry.type }}
   url: {{ $registry.url }}
 
-  {{- if $registry.id }}
-  id: {{ $registry.id }}
-  {{- end }}
 
   {{- if $registry.description }}
   description: {{ $registry.description }}

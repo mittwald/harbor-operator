@@ -25,8 +25,10 @@ installHarborChartRepo: true
 
 instances: ~
 #  - name: test-registry
-#    version: v1.3.1
 #    type: manual
+#    garbageCollection:
+#      cron: "0 * * * *"
+#      scheduleType: "Hourly"
 #
 #    users:
 #      - name: harbor-user
@@ -44,10 +46,10 @@ instances: ~
 #          reuseSysSVEWhitelist: false
 #          public: false
 #          preventVul: false
+#          storageLimit: 10
 #
 #    registries:
 #      - name: test-registry
-#        id: 1
 #        parentInstance:
 #          name: test-harbor
 #        type: docker-hub
@@ -60,8 +62,7 @@ instances: ~
 #          type: basic
 #
 #    replications:
-#      - id: 1
-#        name: test-replication-src
+#      - name: test-replication-src
 #        parentInstance:
 #          name: test-harbor
 #        replicateDeletion: false

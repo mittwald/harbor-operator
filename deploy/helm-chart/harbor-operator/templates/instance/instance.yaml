@@ -7,8 +7,11 @@ metadata:
   {{- include "harbor-operator.labels" $ | nindent 4 }}
 spec:
   name: {{ .name }}
-  version: {{ .version }}
   type: {{ .type }}
+  {{- with .garbageCollection }}
+  garbageCollection:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
   {{- if .instanceURL }}
   instanceURL: {{ .instanceURL  }}
   {{- else }}
@@ -24,9 +27,5 @@ spec:
       {{- with .values }}
       {{- toYaml . | nindent 6 }}
       {{- end }}
-  {{- with .options }}
-  options:
-  {{- toYaml . | nindent 4 }}
-  {{- end }}
 ---
 {{- end }}

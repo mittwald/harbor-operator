@@ -14,7 +14,9 @@ spec:
   {{- with $project.metadata }}
   {{- toYaml . | nindent 4 }}
   {{- end }}
-
+  {{- with $project.storageLimit }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
   {{- with $project.memberRequests }}
   memberRequests:
   {{- toYaml . | nindent 4 }}

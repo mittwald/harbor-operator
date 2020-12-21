@@ -8,6 +8,7 @@ spec:
   - role: ProjectAdmin # one of "ProjectAdmin", "Developer", "Guest" or "Master"
     user:
      name: "harbor-user" # reference to a user object
+  storageLimit: 10 # storage quota in GB
   name: repository-1
   parentInstance:
     name: test-harbor
