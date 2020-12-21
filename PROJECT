@@ -1,26 +1,26 @@
 domain: mittwald.de
-layout: go.kubebuilder.io/v2
+layout: go.kubebuilder.io/v3
 projectName: harbor-operator
 repo: github.com/mittwald/harbor-operator
 resources:
 - group: registries
   kind: InstanceChartRepository
-  version: v1alpha1
+  version: v1alpha2
 - group: registries
   kind: Instance
-  version: v1alpha1
+  version: v1alpha2
 - group: registries
   kind: Registry
-  version: v1alpha1
+  version: v1alpha2
 - group: registries
   kind: Replication
-  version: v1alpha1
+  version: v1alpha2
 - group: registries
   kind: User
-  version: v1alpha1
+  version: v1alpha2
 - group: registries
   kind: Project
-  version: v1alpha1
+  version: v1alpha2
 version: 3-alpha
 plugins:
   go.sdk.operatorframework.io/v2-alpha: {}

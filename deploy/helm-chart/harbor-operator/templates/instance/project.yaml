@@ -1,0 +1,26 @@
+{{- range $instance := .Values.instances }}
+  {{- range $project := .projects }}
+apiVersion: registries.mittwald.de/v1alpha2
+kind: Project
+metadata:
+  name: {{ $instance.name }}-{{ $project.name }}
+  labels:
+  {{- include "harbor-operator.labels" $ | nindent 4 }}
+spec:
+  parentInstance:
+    name: {{ $instance.name }}
+  name: {{ $project.name }}
+  metadata:
+  {{- with $project.metadata }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $project.storageLimit }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $project.memberRequests }}
+  memberRequests:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+---
+  {{- end }}
+{{- end }}

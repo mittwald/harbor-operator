@@ -21,15 +21,13 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"strconv"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/mittwald/harbor-operator/controllers/internal"
-
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -49,8 +47,6 @@ import (
 	"github.com/mittwald/harbor-operator/controllers/helper"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // ProjectReconciler reconciles a Project object
@@ -148,31 +144,13 @@ func (r *ProjectReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// Create a new controller
-	c, err := controller.New("project-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to primary resource Project
-	err = c.Watch(&source.Kind{Type: &registriesv1alpha2.Project{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	// Add a handler to watch for changes in the secondary resource, User
-	watchHandler := &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &registriesv1alpha2.Project{},
-	}
-
-	// Watch for changes to secondary resources
-	err = c.Watch(&source.Kind{Type: &registriesv1alpha2.User{}}, watchHandler)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&registriesv1alpha2.Project{}).
+		Owns(&registriesv1alpha2.User{}).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: 1,
+		}).
+		Complete(r)
 }
 
 // updateProjectCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.

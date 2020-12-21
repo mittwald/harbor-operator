@@ -21,6 +21,64 @@ nameOverride: {}
 
 fullnameOverride: {}
 
+installHarborChartRepo: true
+
+instances: ~
+#  - name: test-registry
+#    type: manual
+#    garbageCollection:
+#      cron: "0 * * * *"
+#      scheduleType: "Hourly"
+#
+#    users:
+#      - name: harbor-user
+#        realname: "Harbor User"
+#        email: harbor.user@example.com
+#        adminRole: true
+#        password: my-secret-password
+#
+#    projects:
+#      - name: projects
+#        metadata:
+#          enableContentTrust: false
+#          autoScan: true
+#          severity: "none"
+#          reuseSysSVEWhitelist: false
+#          public: false
+#          preventVul: false
+#          storageLimit: 10
+#
+#    registries:
+#      - name: test-registry
+#        parentInstance:
+#          name: test-harbor
+#        type: docker-hub
+#        url: https://hub.docker.com
+#        insecure: false
+#        credential:
+#          secretRef: test-harbor-test-registry-creds
+#          secretKeyAccessKey: accessKey
+#          secretKeyAccessSecret: accessSecret
+#          type: basic
+#
+#    replications:
+#      - name: test-replication-src
+#        parentInstance:
+#          name: test-harbor
+#        replicateDeletion: false
+#        override: true
+#        enabled: true
+#        srcRegistryName: test-registry
+#        filters:
+#          - type: name
+#            value: alpine
+#          - type: tag
+#            value: latest
+#
+#    values: # harbor helm-chart values
+#      harborAdminPassword: my-admin-secret
+#      externalURL: https://harbor.domain
+
 serviceAccount:
   name: {}
   create: {}

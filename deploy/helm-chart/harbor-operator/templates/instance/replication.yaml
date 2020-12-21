@@ -1,0 +1,57 @@
+{{- range $instance := .Values.instances }}
+  {{- range $repl := .replications }}
+apiVersion: registries.mittwald.de/v1alpha2
+kind: Replication
+metadata:
+  name: {{ $instance.name }}-{{ $repl.name }}
+  labels:
+    {{- include "harbor-operator.labels" $ | nindent 4 }}
+spec:
+  parentInstance:
+    name: {{ $instance.name }}
+  name: {{ $repl.name }}
+  override: {{ $repl.override }}
+  triggerAfterCreation: {{ $repl.triggerAfterCreation }}
+
+  {{- if $repl.description }}
+  description: {{ $repl.description }}
+  {{- end }}
+
+  {{- if $repl.creator }}
+  creator: {{ $repl.creator }}
+  {{- end }}
+
+  {{- if $repl.destNamespace }}
+  destNamespace: {{ $repl.destNamespace }}
+  {{- end }}
+
+  {{- if $repl.srcRegistryName }}
+  srcRegistry:
+    name: {{ $instance.name }}-{{ $repl.srcRegistryName }}
+  {{- end }}
+
+  {{- if $repl.destRegistryName }}
+  destRegistry:
+    name: {{ $instance.name }}-{{ $repl.destRegistryName }}
+  {{- end }}
+
+  {{- if $repl.enabled }}
+  enabled: {{ $repl.enabled }}
+  {{- end }}
+
+  {{- with $repl.trigger }}
+  trigger:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with $repl.filters }}
+  filters:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- if $repl.replicateDeletion }}
+  replicateDeletion: {{ $repl.replicateDeletion }}
+  {{- end }}
+---
+  {{- end }}
+{{- end }}

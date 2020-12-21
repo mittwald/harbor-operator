@@ -1,11 +1,11 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
-- registries_v1alpha1_instancechartrepository.yaml
-- registries_v1alpha1_instance.yaml
-- registries_v1alpha1_project.yaml
-- registries_v1alpha1_registry-dockerhub.yaml
-- registries_v1alpha1_registry-local.yaml
-- registries_v1alpha1_replication_dst.yaml
-- registries_v1alpha1_replication_src.yaml
-- registries_v1alpha1_user.yaml
+- registries_v1alpha2_instancechartrepository.yaml
+- registries_v1alpha2_instance.yaml
+- registries_v1alpha2_project.yaml
+- registries_v1alpha2_registry-dockerhub.yaml
+- registries_v1alpha2_registry-local.yaml
+- registries_v1alpha2_replication_dst.yaml
+- registries_v1alpha2_replication_src.yaml
+- registries_v1alpha2_user.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

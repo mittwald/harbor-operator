@@ -76,7 +76,7 @@ This page covers example usage of all resources supported by this operator.
 ### Instances
 The`Instance`-resource specifies the desired Harbor helm installation:
 
-[registries_v1alpha1_instance.yaml](./registries_v1alpha1_instance.yaml)
+[registries_v1alpha2_instance.yaml](./registries_v1alpha2_instance.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha2
 kind: Instance
@@ -137,7 +137,7 @@ the accompanying controller automatically adds/updates the specified chart in it
 
 An example `InstanceChartRepository`, using the official [goharbor/harbor-helm](https://github.com/goharbor/harbor-helm) chart might look like this:
 
-[registries_v1alpha1_instancechartrepository.yaml](./registries_v1alpha1_instancechartrepository.yaml)
+[registries_v1alpha2_instancechartrepository.yaml](./registries_v1alpha2_instancechartrepository.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha2
 kind: InstanceChartRepository
@@ -191,7 +191,7 @@ NAME           STATUS   ID    PUBLIC
 repository-1   Ready    1     false
 ```
 
-[registries_v1alpha1_project.yaml](./registries_v1alpha1_project.yaml)
+[registries_v1alpha2_project.yaml](./registries_v1alpha2_project.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha2
 kind: Repository
@@ -226,7 +226,7 @@ The available registry types (configurable via `.spec.type`) are:
 `harbor`, `docker-hub`, `docker-registry`, `huawei-SWR`, `google-gcr`, `aws-ecr`,
 `azure-acr`, `ali-acr`, `jfrog-artifactory`, `quay-io`, `gitlab`, `helm-hub`.
 
-[registries_v1alpha1_registry-dockerhub.yaml](./registries_v1alpha1_registry-dockerhub.yaml)
+[registries_v1alpha2_registry-dockerhub.yaml](./registries_v1alpha2_registry-dockerhub.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha2
 kind: Registry
@@ -257,7 +257,7 @@ test-registry         Ready    1
 test-registry-local   Ready    2
 ```
 
-[registries_v1alpha1_registry-local.yaml](./registries_v1alpha1_registry-local.yaml)
+[registries_v1alpha2_registry-local.yaml](./registries_v1alpha2_registry-local.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha2
 kind: Registry
@@ -295,7 +295,7 @@ Specifying a source registry will trigger harbor to _pull_ the specified resourc
 
 Filters and triggers are *optional* fields.
 
-[registries_v1alpha1_replication_src.yaml](./registries_v1alpha1_replication_src.yaml)
+[registries_v1alpha2_replication_src.yaml](./registries_v1alpha2_replication_src.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha2
 kind: Replication
@@ -331,7 +331,7 @@ Specifying a destination registry will trigger harbor to **push** the specified 
 
 Filters and triggers are *optional* fields.
 
-[registries_v1alpha1_replication_dst.yaml](./registries_v1alpha1_replication_dst.yaml)
+[registries_v1alpha2_replication_dst.yaml](./registries_v1alpha2_replication_dst.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha2
 kind: Replication
@@ -366,7 +366,7 @@ The admin role grants full admin access over a harbor instance, toggleable via `
 If `.spec.userSecretRef` specifies a non-existing secret, the strength for a generated secret password value can
  be defined via `.spec.passwordStrength`.
 
-[registries_v1alpha1_user.yaml](./registries_v1alpha1_user.yaml)
+[registries_v1alpha2_user.yaml](./registries_v1alpha2_user.yaml)
 ```yaml
 apiVersion: registries.mittwald.de/v1alpha2
 kind: User
