@@ -1,0 +1,32 @@
+{{- range .Values.instances }}
+apiVersion: registries.mittwald.de/v1alpha2
+kind: Instance
+metadata:
+  name: {{ .name }}
+  labels:
+  {{- include "harbor-operator.labels" $ | nindent 4 }}
+spec:
+  name: {{ .name }}
+  version: {{ .version }}
+  type: {{ .type }}
+  {{- if .instanceURL }}
+  instanceURL: {{ .instanceURL  }}
+  {{- else }}
+  instanceURL: "http://{{ .name }}-harbor-core"
+  {{- end }}
+  helmChart:
+    release: {{ .name }}
+    chart: harbor/harbor
+    version: {{ .version }}
+    namespace: {{ $.Release.Namespace }}
+    wait: {{ .wait }}
+    valuesYaml: |
+      {{- with .values }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+  {{- with .options }}
+  options:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+---
+{{- end }}
