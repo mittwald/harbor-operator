@@ -1,5 +1,6 @@
 domain: mittwald.de
 layout: go.kubebuilder.io/v3
+multigroup: true
 projectName: harbor-operator
 repo: github.com/mittwald/harbor-operator
 resources:
