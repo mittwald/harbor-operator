@@ -388,6 +388,7 @@ func (in *ProjectMetadata) DeepCopy() *ProjectMetadata {
 func (in *ProjectSpec) DeepCopyInto(out *ProjectSpec) {
 	*out = *in
 	out.ParentInstance = in.ParentInstance
+	out.RetentionPolicy = in.RetentionPolicy
 	out.Metadata = in.Metadata
 	if in.MemberRequests != nil {
 		in, out := &in.MemberRequests, &out.MemberRequests

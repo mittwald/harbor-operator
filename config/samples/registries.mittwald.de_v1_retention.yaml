@@ -1,0 +1,7 @@
+apiVersion: registries.mittwald.de.mittwald.de/v1
+kind: Retention
+metadata:
+  name: retention-sample
+spec:
+  # Add fields here
+  foo: bar

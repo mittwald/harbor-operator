@@ -9,19 +9,16 @@ A Kubernetes operator for managing [Goharbor](https://github.com/goharbor/harbor
 [![Go Report Card](https://goreportcard.com/badge/github.com/mittwald/harbor-operator?style=flat-square)](https://goreportcard.com/badge/github.com/mittwald/harbor-operator)
 ![Go](https://github.com/mittwald/harbor-operator/workflows/Go/badge.svg?branch=master)
 
-##### This project is still under development and not stable yet - breaking changes may happen at any time and without notice
 ## Features
 **Easy Harbor deployment & scaling**:
 - Every Harbor instance is bound only to the deployed Custom Resource.
 The operator utilizes a [helm client](https://github.com/mittwald/go-helm-client) library for the management of these instances
 
-**Custom chart repositories**:
-- If you need to install a customized or private Harbor helm chart, the
- `InstanceChartRepository` resource allows you to do so. The official Harbor Helm chart can be found [here](https://github.com/goharbor/harbor-helm)
-
 **Harbor resource reconciliation**:
-- This operator automatically manages Harbor components by utilizing
- a custom [harbor client](https:/github.com/mittwald/goharbor-client).
+- This operator automatically manages Harbor components by utilizing a custom [harbor client](https://github.com/mittwald/goharbor-client).
+
+**Custom chart repositories**:
+- If you need to install a customized or private Harbor helm chart, the `InstanceChartRepository` resource allows you to do so. The official Harbor Helm chart can be found [here](https://github.com/goharbor/harbor-helm).
 
 ### CRDs
 registries.mittwald.de/v1alpha2:

@@ -24,7 +24,12 @@ import (
 	"strconv"
 	"time"
 
+<<<<<<< HEAD:controllers/registries/project_controller.go
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
+=======
+	pc "github.com/mittwald/goharbor-client/v3/apiv2/project"
+	rc "github.com/mittwald/goharbor-client/v3/apiv2/retention"
+>>>>>>> b67739d (wip: implement retention controller):controllers/project_controller.go
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	corev1 "k8s.io/api/core/v1"
@@ -240,7 +245,7 @@ func (r *ProjectReconciler) generateProjectMetadata(
 	enableContentTrust := strconv.FormatBool(projectMeta.EnableContentTrust)
 	preventVul := strconv.FormatBool(projectMeta.PreventVul)
 	public := strconv.FormatBool(projectMeta.Public)
-	reuseSysCVEAllowlist := strconv.FormatBool(projectMeta.ReuseSysSVEWhitelist)
+	reuseSysCVEAllowlist := strconv.FormatBool(projectMeta.ReuseSysCVEAllowlist)
 	retentionID := strconv.Itoa(projectMeta.RetentionID)
 
 	pm := model.ProjectMetadata{
@@ -370,19 +375,104 @@ func (r *ProjectReconciler) getUserCRFromRef(ctx context.Context, userRef v1.Loc
 	return &user, err
 }
 
-// ensureProject triggers reconciliation of project members
-// and compares the state of the CR object with the project held by Harbor
+// reconcileRetentionPolicy fetches a projects retention policy and creates or updates it according to the spec.
+// If no retention policy is specified in spec but observed via the API, it gets disabled.
+// The retention is written into to the project status. // TODO reduce this to only senseful fields
+func (r *ProjectReconciler) reconcileRetentionPolicy(ctx context.Context, harborClient *h.RESTClient,
+	originalProject *registriesv1alpha2.Project, heldProject *model.Project) error {
+
+	// Retention policy is specified in spec, assert that it exists.
+	if originalProject.Spec.RetentionPolicy != nil {
+		// Fetch the retention policy that is referenced in the project metadata.
+		heldRP, err := harborClient.GetRetentionPolicyByProject(ctx, heldProject)
+		if err != nil {
+			// Retention policy does not exist, create it.
+			if errors.Is(&pc.ErrProjectMetadataValueRetentionIDUndefined{}, err) {
+				return r.assertExistingRetentionPolicy(ctx, harborClient, originalProject, originalProject.Spec.RetentionPolicy)
+			}
+			return err
+		}
+		if heldRP == nil {
+			return r.assertExistingRetentionPolicy(ctx, harborClient, originalProject, originalProject.Spec.RetentionPolicy)
+		}
+
+		// If the observed status does not match the desired retention policy, update the policy and status.
+		if !reflect.DeepEqual(originalProject.Spec.RetentionPolicy, originalProject.Status.RetentionPolicy) {
+			// TODO
+
+			r.Client.Status().Update(ctx, originalProject)
+		}
+
+	}
+
+	// Retention policy is only observed in status but not specified in spec, assert that it is disabled.
+	if originalProject.Spec.RetentionPolicy == nil && originalProject.Status.RetentionPolicy != nil {
+		// Fetch the retention policy that is referenced in the project metadata.
+		heldRP, err := harborClient.GetRetentionPolicyByProject(ctx, heldProject)
+		if err != nil {
+			// Retention policy does not exist, update project CR status.
+			if errors.Is(&pc.ErrProjectMetadataValueRetentionIDUndefined{}, err) {
+				originalProject.Status.RetentionPolicy = nil
+				return r.Client.Status().Update(ctx, originalProject)
+			}
+			return err
+		}
+		// The retention policy is not specified in spec, but exists. Disable it and update the project CR's status.
+		if heldRP != nil {
+			return r.assertDisabledRetentionPolicy(ctx, harborClient, originalProject, heldRP)
+		}
+	}
+
+	return nil
+}
+
+// createRetentionPolicy constructs a retention policy object that is passed to the API REST client for creation.
+func (r *ProjectReconciler) assertExistingRetentionPolicy(ctx context.Context, harborClient *h.RESTClient, originalProject *registriesv1alpha2.Project, desiredRp *registriesv1alpha2.RetentionPolicy) error {
+	rp := helper.ToHarborRetentionPolicy(desiredRp)
+
+	// Initially create the retention policy if the project CR's status is empty.
+	if originalProject.Status.RetentionPolicy == nil {
+		err := harborClient.NewRetentionPolicy(ctx, rp)
+		if err != nil {
+			return err
+		}
+		// The retention policy now exists, write the state to the project's status.
+		originalProject.Status.RetentionPolicy = desiredRp
+
+		return r.Client.Status().Update(ctx, originalProject)
+	}
+
+	if originalProject.
+
+}
+
+func (r *ProjectReconciler) assertDisabledRetentionPolicy(ctx context.Context, harborClient *h.RESTClient,
+	originalProject *registriesv1alpha2.Project, rp *legacymodel.RetentionPolicy) error {
+
+	harborClient.DisableRetentionPolicy(ctx, rp)
+
+	// The retention policy is disabled, write the state to the project's status.
+	originalProject.Status.RetentionPolicy = desiredRp
+
+	return r.Client.Status().Update(ctx, originalProject)
+}
+
+// ensureProject triggers reconciliation of project members and tag retention policies.
+// Compares the state of the CR object with the project held by Harbor.
 func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *model.Project,
 	harborClient *h.RESTClient, originalProject *v1alpha2.Project) error {
 	newProject := &model.Project{}
-	// Copy the spec of the project held by Harbor into a new object of the same type *harbor.Project
+	// Copy the spec of the project held by Harbor into a new object of the same type *harbor.Project.
 	err := copier.Copy(&newProject, &heldProject)
 	if err != nil {
 		return err
 	}
 
-	err = r.reconcileProjectMembers(ctx, originalProject, harborClient, heldProject)
-	if err != nil {
+	if err = r.reconcileProjectMembers(ctx, originalProject, harborClient, heldProject); err != nil {
+		return err
+	}
+
+	if err = r.reconcileRetentionPolicy(ctx, harborClient, originalProject, heldProject); err != nil {
 		return err
 	}
 

@@ -89,10 +89,10 @@ spec:
                     description: RetentionID is the id of the project's retention
                       policy
                     type: integer
-                  reuseSysSVEWhitelist:
+                  reuseSysCVEAllowlist:
                     description: Whether this project reuses the system level CVE
-                      whitelist as the whitelist of its own. The valid values are
-                      "true", "false". If set to "true", the actual whitelist associated
+                      allowlist as the allowlist of its own. The valid values are
+                      "true", "false". If set to "true", the actual allowlist associated
                       with this project, if any, will be ignored.
                     type: boolean
                   severity:
@@ -106,7 +106,7 @@ spec:
                 - preventVul
                 - public
                 - retentionID
-                - reuseSysSVEWhitelist
+                - reuseSysCVEAllowlist
                 - severity
                 type: object
               name:
@@ -120,6 +120,10 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
+              retentionPolicies:
+                items:
+                  type: object
+                type: array
               storageLimit:
                 type: integer
             required:

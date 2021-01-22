@@ -42,6 +42,9 @@ type ProjectSpec struct {
 	StorageLimit int `json:"storageLimit"`
 
 	// +kubebuilder:validation:Optional
+	RetentionPolicy corev1.LocalObjectReference `json:"retentionPolicy,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	Metadata ProjectMetadata `json:"metadata,omitempty"`
 
 	// Ref to the name of a 'User' resource
@@ -55,10 +58,10 @@ type ProjectMetadata struct {
 	EnableContentTrust bool `json:"enableContentTrust"`
 	// Whether to scan images automatically when pushing or not
 	AutoScan bool `json:"autoScan"`
-	// Whether this project reuses the system level CVE whitelist as the whitelist of its own.
+	// Whether this project reuses the system level CVE allowlist as the allowlist of its own.
 	// The valid values are "true", "false".
-	// If set to "true", the actual whitelist associated with this project, if any, will be ignored.
-	ReuseSysSVEWhitelist bool `json:"reuseSysSVEWhitelist"`
+	// If set to "true", the actual allowlist associated with this project, if any, will be ignored.
+	ReuseSysCVEAllowlist bool `json:"reuseSysCVEAllowlist"`
 	// Whether to prevent the vulnerable images from running or not. The valid values are "true", "false".
 	PreventVul bool `json:"preventVul"`
 	// Public status of the Project
@@ -109,7 +112,7 @@ type ProjectStatus struct {
 
 	// The project ID is written back from the held project ID.
 	ID int32 `json:"id,omitempty"`
-	// Members is the list of existing project member users as LocalObjectReference
+	// Members is the list of existing project member users as LocalObjectReference.
 	Members []corev1.LocalObjectReference `json:"members,omitempty"`
 }
 

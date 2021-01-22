@@ -210,14 +210,13 @@ spec:
     enableContentTrust:     false
     autoScan:               false
     severity:               "none"
-    reuseSysSVEWhitelist:   false
+    reuseSysCVEAllowlist:   false
     public:                 false
     preventVul:             false
 ```
 
 ### Registries
-Registries (or *registry endpoints*) are user-defined registry endpoints, for example a custom `docker-registry
-`, `docker-hub` or another `harbor` instance.
+Registries (or *registry endpoints*) are user-defined registry endpoints, for example a custom `docker-registry `, `docker-hub` or another `harbor` instance.
 
 This example shows a registry endpoint targeted at [Docker Hub](https://hub.docker.com/):
 

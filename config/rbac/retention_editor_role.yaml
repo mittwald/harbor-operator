@@ -1,0 +1,24 @@
+# permissions for end users to edit retentions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: retention-editor-role
+rules:
+- apiGroups:
+  - operator.mittwald.de
+  resources:
+  - retentions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.mittwald.de
+  resources:
+  - retentions/status
+  verbs:
+  - get
