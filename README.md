@@ -98,7 +98,7 @@ Or via the go test suite:
 go test -v ./...
 ```
 
-_Some_ unit tests require a [mocked controller-runtime client](./controllers/internal/mocks/runtime_client_mock.go).
+_Some_ unit tests require a [mocked controller-runtime client](controllers/registries/internal/mocks/runtime_client_mock.go).
 This mock is generated using: `make mock-runtime-client`.
 
 #### Deploying example resources

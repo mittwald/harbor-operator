@@ -28,14 +28,15 @@ import (
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	registriesv1alpha2 "github.com/mittwald/harbor-operator/api/v1alpha2"
-	"github.com/mittwald/harbor-operator/controllers"
-	opconfig "github.com/mittwald/harbor-operator/controllers/config"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
+	controllers "github.com/mittwald/harbor-operator/controllers/registries"
+	opconfig "github.com/mittwald/harbor-operator/controllers/registries/config"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -93,7 +94,7 @@ func main() {
 
 	if err = (&controllers.InstanceChartRepositoryReconciler{
 		Client:             mgr.GetClient(),
-		Log:                ctrl.Log.WithName("controllers").WithName("InstanceChartRepository"),
+		Log:                ctrl.Log.WithName("controllers").WithName("registries").WithName("InstanceChartRepository"),
 		Scheme:             mgr.GetScheme(),
 		HelmClientReceiver: AddHelmClientReceiver(mgr),
 	}).SetupWithManager(mgr); err != nil {
@@ -102,7 +103,7 @@ func main() {
 	}
 	if err = (&controllers.InstanceReconciler{
 		Client:             mgr.GetClient(),
-		Log:                ctrl.Log.WithName("controllers").WithName("Instance"),
+		Log:                ctrl.Log.WithName("controllers").WithName("registries").WithName("Instance"),
 		Scheme:             mgr.GetScheme(),
 		HelmClientReceiver: AddHelmClientReceiver(mgr),
 	}).SetupWithManager(mgr); err != nil {
@@ -111,7 +112,7 @@ func main() {
 	}
 	if err = (&controllers.RegistryReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Registry"),
+		Log:    ctrl.Log.WithName("controllers").WithName("registries").WithName("Registry"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Registry")
@@ -119,7 +120,7 @@ func main() {
 	}
 	if err = (&controllers.ReplicationReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Replication"),
+		Log:    ctrl.Log.WithName("controllers").WithName("registries").WithName("Replication"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Replication")
@@ -127,7 +128,7 @@ func main() {
 	}
 	if err = (&controllers.UserReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("User"),
+		Log:    ctrl.Log.WithName("controllers").WithName("registries").WithName("User"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "User")
@@ -135,7 +136,7 @@ func main() {
 	}
 	if err = (&controllers.ProjectReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Project"),
+		Log:    ctrl.Log.WithName("controllers").WithName("registries").WithName("Project"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Project")
