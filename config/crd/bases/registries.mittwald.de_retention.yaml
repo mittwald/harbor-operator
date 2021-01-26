@@ -1,0 +1,178 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: retention.registries.mittwald.de
+spec:
+  group: registries.mittwald.de
+  names:
+    kind: Retention
+    listKind: RetentionList
+    plural: retention
+    singular: retention
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: phase
+      jsonPath: .status.phase
+      name: Status
+      type: string
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: Retention is the Schema for the retentions API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              algorithm:
+                description: The algorithm used for the retention policy.
+                type: string
+              name:
+                type: string
+              parentInstance:
+                description: ParentInstance is a LocalObjectReference to the name
+                  of the harbor instance the Retention is created for.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+              projectReferences:
+                description: ProjectReferences is a a list of LocalObjectReferences
+                  to individual project resources. Retentions are created for each
+                  project contained in the list. If it is empty, however, no operation
+                  is performed.
+                items:
+                  description: LocalObjectReference contains enough information to
+                    let you locate the referenced object inside the same namespace.
+                  properties:
+                    name:
+                      description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?'
+                      type: string
+                  type: object
+                type: array
+              rules:
+                description: A list of retention rules to a maximum of 15 items. See
+                  https://goharbor.io/docs/2.1.0/working-with-projects/working-with-images/create-tag-retention-rules/
+                items:
+                  properties:
+                    action:
+                      description: action
+                      type: string
+                    disabled:
+                      description: disabled
+                      type: boolean
+                    params:
+                      additionalProperties:
+                        type: string
+                      description: 'TODO: One of the valid params has to be provided
+                        "latestPushedK" etc. params'
+                      type: object
+                    priority:
+                      description: priority
+                      format: int64
+                      type: integer
+                    scope_selectors:
+                      additionalProperties:
+                        items:
+                          type: string
+                        type: array
+                      description: scope selectors
+                      type: object
+                    tag_selectors:
+                      description: tag selectors
+                      items:
+                        type: string
+                      type: array
+                    template:
+                      description: template
+                      type: string
+                  required:
+                  - tag_selectors
+                  type: object
+                maxItems: 15
+                type: array
+              scope:
+                properties:
+                  level:
+                    type: string
+                  ref:
+                    format: int64
+                    type: integer
+                type: object
+              trigger:
+                properties:
+                  kind:
+                    type: string
+                  references:
+                    type: string
+                  settings:
+                    type: string
+                type: object
+            required:
+            - name
+            - parentInstance
+            type: object
+          status:
+            description: ProjectStatus defines the state of a single project
+            properties:
+              lastTransition:
+                description: Time of last observed transition into this state
+                format: date-time
+                type: string
+              message:
+                type: string
+              name:
+                type: string
+              phase:
+                type: string
+              projectReferences:
+                description: ProjectReference is a list of ProjectReferences
+                items:
+                  description: ProjectReference presents the observed meta information
+                    about a single project that this retention has been created for.
+                  properties:
+                    name:
+                      type: string
+                    projectID:
+                      format: int32
+                      type: integer
+                    retentionID:
+                      format: int32
+                      type: integer
+                  type: object
+                type: array
+            required:
+            - message
+            - name
+            - phase
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

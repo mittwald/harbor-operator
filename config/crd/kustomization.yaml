@@ -10,6 +10,7 @@ resources:
 - bases/registries.mittwald.de_projects.yaml
 - bases/operator.mittwald.de_retentions.yaml
 - bases/registries.mittwald.de.mittwald.de_retentions.yaml
+- bases/registries.mittwald.de_retentions.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

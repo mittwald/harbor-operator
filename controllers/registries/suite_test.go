@@ -22,10 +22,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -38,6 +39,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	registriesv1alpha2 "github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -89,6 +92,9 @@ var _ = BeforeSuite(func(done Done) {
 
 	err = v1alpha2.AddToScheme(scheme.Scheme)
 	Ω(err).ToNot(HaveOccurred())
+
+	err = registriesv1alpha2.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})

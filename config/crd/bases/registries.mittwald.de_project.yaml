@@ -120,10 +120,15 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
-              retentionPolicies:
-                items:
-                  type: object
-                type: array
+              retentionPolicy:
+                description: LocalObjectReference contains enough information to let
+                  you locate the referenced object inside the same namespace.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
               storageLimit:
                 type: integer
             required:
@@ -144,7 +149,7 @@ spec:
                 type: string
               members:
                 description: Members is the list of existing project member users
-                  as LocalObjectReference
+                  as LocalObjectReference.
                 items:
                   description: LocalObjectReference contains enough information to
                     let you locate the referenced object inside the same namespace.

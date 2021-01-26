@@ -42,7 +42,7 @@ type ProjectSpec struct {
 	StorageLimit int `json:"storageLimit"`
 
 	// +kubebuilder:validation:Optional
-	RetentionPolicy corev1.LocalObjectReference `json:"retentionPolicy,omitempty"`
+	RetentionPolicy *corev1.LocalObjectReference `json:"retentionPolicy,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	Metadata ProjectMetadata `json:"metadata,omitempty"`
@@ -114,8 +114,4 @@ type ProjectStatus struct {
 	ID int32 `json:"id,omitempty"`
 	// Members is the list of existing project member users as LocalObjectReference.
 	Members []corev1.LocalObjectReference `json:"members,omitempty"`
-}
-
-func init() {
-	SchemeBuilder.Register(&Project{}, &ProjectList{})
 }
