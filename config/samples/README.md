@@ -210,8 +210,8 @@ spec:
     enableContentTrust:     false
     autoScan:               false
     severity:               "none"
-    reuseSysSVEWhitelist:   false
-    public:                 false
+    reuseSysCVEAllowlist:   false
+    public:                 false # 'public' is the only required field
     preventVul:             false
 ```
 

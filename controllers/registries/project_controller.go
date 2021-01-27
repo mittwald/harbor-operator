@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strconv"
 	"time"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
@@ -233,29 +232,6 @@ func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborCli
 	return r.ensureProject(ctx, heldRepo, harborClient, project)
 }
 
-// generateProjectMetadata constructs the project metadata for a Harbor project
-func (r *ProjectReconciler) generateProjectMetadata(
-	projectMeta *v1alpha2.ProjectMetadata) *model.ProjectMetadata {
-	autoScan := strconv.FormatBool(projectMeta.AutoScan)
-	enableContentTrust := strconv.FormatBool(projectMeta.EnableContentTrust)
-	preventVul := strconv.FormatBool(projectMeta.PreventVul)
-	public := strconv.FormatBool(projectMeta.Public)
-	reuseSysCVEAllowlist := strconv.FormatBool(projectMeta.ReuseSysSVEWhitelist)
-	retentionID := strconv.Itoa(projectMeta.RetentionID)
-
-	pm := model.ProjectMetadata{
-		AutoScan:             &autoScan,
-		EnableContentTrust:   &enableContentTrust,
-		PreventVul:           &preventVul,
-		Public:               public,
-		ReuseSysCveAllowlist: &reuseSysCVEAllowlist,
-		Severity:             &projectMeta.Severity,
-		RetentionID:          &retentionID,
-	}
-
-	return &pm
-}
-
 func (r *ProjectReconciler) projectMemberExists(members []*legacymodel.ProjectMemberEntity, requestedMember *v1alpha2.User) bool {
 	for i := range members {
 		if members[i].EntityName == requestedMember.Spec.Name {
@@ -393,7 +369,7 @@ func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *mode
 		}
 	}
 
-	newProject.Metadata = r.generateProjectMetadata(&originalProject.Spec.Metadata)
+	newProject.Metadata = internal.GenerateProjectMetadata(&originalProject.Spec.Metadata)
 
 	if newProject != heldProject {
 		return harborClient.UpdateProject(ctx, newProject, originalProject.Spec.StorageLimit)

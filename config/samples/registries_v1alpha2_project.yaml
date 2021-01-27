@@ -16,6 +16,6 @@ spec:
 #    enableContentTrust:     false
 #    autoScan:               false
 #    severity:               "none"
-#    reuseSysSVEWhitelist:   false
+#    reuseSysCVEAllowlist:   false
 #    public:                 false
 #    preventVul:             false
