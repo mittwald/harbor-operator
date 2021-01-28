@@ -52,22 +52,26 @@ type ProjectSpec struct {
 type ProjectMetadata struct {
 	// Whether content trust is enabled or not
 	// If it is, users can not pull unsigned images from this project
-	EnableContentTrust bool `json:"enableContentTrust"`
+	// +kubebuilder:validation:Optional
+	EnableContentTrust bool `json:"enableContentTrust,omitempty"`
 	// Whether to scan images automatically when pushing or not
-	AutoScan bool `json:"autoScan"`
-	// Whether this project reuses the system level CVE whitelist as the whitelist of its own.
+	// +kubebuilder:validation:Optional
+	AutoScan bool `json:"autoScan,omitempty"`
+	// Whether this project reuses the system level CVE allowlist as the allowlist of its own.
 	// The valid values are "true", "false".
-	// If set to "true", the actual whitelist associated with this project, if any, will be ignored.
-	ReuseSysSVEWhitelist bool `json:"reuseSysSVEWhitelist"`
-	// Whether to prevent the vulnerable images from running or not. The valid values are "true", "false".
-	PreventVul bool `json:"preventVul"`
+	// If set to "true", the actual allowlist associated with this project, if any, will be ignored.
+	// +kubebuilder:validation:Optional
+	ReuseSysCVEAllowlist bool `json:"reuseSysCVEAllowlist,omitempty"`
+	// Whether to prevent the vulnerable images from running or not.
+	// +kubebuilder:validation:Optional
+	PreventVul bool `json:"preventVul,omitempty"`
 	// Public status of the Project
+	// +kubebuilder:validation:Required
 	Public bool `json:"public"`
 	// If a vulnerability's severity is higher than the severity defined here,
 	// images can't be pulled. Valid values are "none", "low", "medium", "high", "critical".
-	Severity string `json:"severity"`
-	// RetentionID is the id of the project's retention policy
-	RetentionID int `json:"retentionID"`
+	// +kubebuilder:validation:Optional
+	Severity *string `json:"severity,omitempty"`
 }
 
 type MemberRequest struct {

@@ -80,19 +80,15 @@ spec:
                     type: boolean
                   preventVul:
                     description: Whether to prevent the vulnerable images from running
-                      or not. The valid values are "true", "false".
+                      or not.
                     type: boolean
                   public:
                     description: Public status of the Project
                     type: boolean
-                  retentionID:
-                    description: RetentionID is the id of the project's retention
-                      policy
-                    type: integer
-                  reuseSysSVEWhitelist:
+                  reuseSysCVEAllowlist:
                     description: Whether this project reuses the system level CVE
-                      whitelist as the whitelist of its own. The valid values are
-                      "true", "false". If set to "true", the actual whitelist associated
+                      allowlist as the allowlist of its own. The valid values are
+                      "true", "false". If set to "true", the actual allowlist associated
                       with this project, if any, will be ignored.
                     type: boolean
                   severity:
@@ -101,13 +97,7 @@ spec:
                       are "none", "low", "medium", "high", "critical".
                     type: string
                 required:
-                - autoScan
-                - enableContentTrust
-                - preventVul
                 - public
-                - retentionID
-                - reuseSysSVEWhitelist
-                - severity
                 type: object
               name:
                 type: string

@@ -43,7 +43,7 @@ instances: ~
 #          enableContentTrust: false
 #          autoScan: true
 #          severity: "none"
-#          reuseSysSVEWhitelist: false
+#          reuseSysCVEAllowlist: false
 #          public: false
 #          preventVul: false
 #          storageLimit: 10
