@@ -21,7 +21,7 @@ func GenerateProjectMetadata(projectMeta *v1alpha2.ProjectMetadata) *model.Proje
 		PreventVul:           &preventVul,
 		Public:               public,
 		ReuseSysCveAllowlist: &reuseSysCVEAllowlist,
-		Severity:             &projectMeta.Severity,
+		Severity:             projectMeta.Severity,
 	}
 
 	return &pm

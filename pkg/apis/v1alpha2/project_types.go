@@ -71,7 +71,7 @@ type ProjectMetadata struct {
 	// If a vulnerability's severity is higher than the severity defined here,
 	// images can't be pulled. Valid values are "none", "low", "medium", "high", "critical".
 	// +kubebuilder:validation:Optional
-	Severity string `json:"severity,omitempty"`
+	Severity *string `json:"severity,omitempty"`
 }
 
 type MemberRequest struct {
