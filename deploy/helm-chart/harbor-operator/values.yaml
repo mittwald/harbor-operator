@@ -34,11 +34,12 @@ instances: ~
 #      - name: harbor-user
 #        realname: "Harbor User"
 #        email: harbor.user@example.com
-#        adminRole: true
+#        sysAdmin: true
 #        password: my-secret-password
 #
 #    projects:
 #      - name: projects
+#        storageLimit: 10
 #        metadata:
 #          enableContentTrust: false
 #          autoScan: true
@@ -46,7 +47,6 @@ instances: ~
 #          reuseSysCVEAllowlist: false
 #          public: false
 #          preventVul: false
-#          storageLimit: 10
 #
 #    registries:
 #      - name: test-registry
@@ -56,7 +56,8 @@ instances: ~
 #        url: https://hub.docker.com
 #        insecure: false
 #        credential:
-#          secretRef: test-harbor-test-registry-creds
+#          secretRef:
+#            name: test-harbor-test-registry-creds
 #          secretKeyAccessKey: accessKey
 #          secretKeyAccessSecret: accessSecret
 #          type: basic

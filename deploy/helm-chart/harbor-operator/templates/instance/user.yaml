@@ -25,7 +25,11 @@ spec:
   name: {{ $user.name }}
   realname: {{ $user.realname }}
   email: {{ $user.email }}
-  adminRole: {{ $user.adminRole }}
+  {{- if $user.sysAdmin }}
+  sysAdmin: {{ $user.sysAdmin }}
+  {{- else }}
+  sysAdmin: false
+  {{- end }}
   {{- if $user.passwordStrength }}
   passwordStrength: {{ $user.passwordStrength }}
   {{- else }}
