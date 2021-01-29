@@ -29,6 +29,46 @@ rules:
 - apiGroups:
   - registries.mittwald.de
   resources:
+  - instances
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - instances/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - projects
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - projects/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - registries.mittwald.de
+  resources:
   - registries
   verbs:
   - create
@@ -82,26 +122,6 @@ rules:
   - registries.mittwald.de
   resources:
   - users/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - registries.registries.mittwald.de
-  resources:
-  - projects
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - registries.registries.mittwald.de
-  resources:
-  - projects/status
   verbs:
   - get
   - patch
