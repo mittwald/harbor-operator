@@ -56,14 +56,14 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // blank assignment to verify that InstanceReconciler implements reconcile.Reconciler.
 var _ reconcile.Reconciler = &InstanceReconciler{}
 
+// +kubebuilder:rbac:groups=registries.mittwald.de,resources=instances,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=registries.mittwald.de,resources=instances/status,verbs=get;update;patch
+
 // Reconcile reads that state of the cluster for a Instance object and makes changes based on the state read
 // and what is in the Instance.Spec
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-
-// +kubebuilder:rbac:groups=registries.mittwald.de,resources=instances,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=registries.mittwald.de,resources=instances/status,verbs=get;update;patch
 func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("instance", req.NamespacedName)
 	reqLogger.Info("Reconciling Instance")
