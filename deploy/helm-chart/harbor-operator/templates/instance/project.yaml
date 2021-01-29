@@ -11,7 +11,7 @@ spec:
     name: {{ $instance.name }}
   name: {{ $project.name }}
 {{- if $project.storageLimit }}
-{{- toYaml . | nindent 2 }}
+  storageLimit: {{ $project.storageLimit }}
 {{- else }}
   storageLimit: 10
 {{- end }}
