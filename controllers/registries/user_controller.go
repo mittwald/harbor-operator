@@ -273,7 +273,13 @@ func (r *UserReconciler) ensureUser(ctx context.Context, harborClient *h.RESTCli
 	newUsr.Username = desiredUser.Spec.Name
 	newUsr.Email = desiredUser.Spec.Email
 	newUsr.Realname = desiredUser.Spec.RealName
-	newUsr.SysadminFlag = desiredUser.Spec.SysAdmin
+
+	// Default the 'sysAdmin' toggle to false, if no value is provided.
+	if desiredUser.Spec.SysAdmin != nil {
+		newUsr.SysadminFlag = *desiredUser.Spec.SysAdmin
+	} else {
+		newUsr.SysadminFlag = false
+	}
 
 	if isUserRequestEqual(heldUser, newUsr) {
 		return nil

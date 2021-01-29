@@ -81,9 +81,7 @@ spec:
             - email
             - name
             - parentInstance
-            - passwordStrength
             - realname
-            - sysAdmin
             - userSecretRef
             type: object
           status:

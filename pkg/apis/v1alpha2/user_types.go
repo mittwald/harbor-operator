@@ -15,10 +15,12 @@ const (
 )
 
 type UserSpec struct {
-	SysAdmin bool `json:"sysAdmin"`
+	// +kubebuilder:validation:Optional
+	SysAdmin *bool `json:"sysAdmin"`
 	// The effective length of the generated user password
 	// +kubebuilder:validation:Minimum=8
 	// +kubebuilder:validation:Maximum=128
+	// +kubebuilder:validation:Optional
 	PasswordStrength int32 `json:"passwordStrength"`
 	// ParentInstance is a LocalObjectReference to the
 	// name of the harbor instance the user is created for

@@ -10,11 +10,13 @@ spec:
   parentInstance:
     name: {{ $instance.name }}
   name: {{ $project.name }}
+{{- if $project.storageLimit }}
+  storageLimit: {{ $project.storageLimit }}
+{{- else }}
+  storageLimit: 10
+{{- end }}
   metadata:
   {{- with $project.metadata }}
-  {{- toYaml . | nindent 4 }}
-  {{- end }}
-  {{- with $project.storageLimit }}
   {{- toYaml . | nindent 4 }}
   {{- end }}
   {{- with $project.memberRequests }}

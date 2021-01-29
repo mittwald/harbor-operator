@@ -8,6 +8,7 @@ import (
 
 // CreateUser returns a user object with sample values.
 func CreateUser(name, namespace, instanceRef string) *v1alpha2.User {
+	boolPtr := false
 	u := v1alpha2.User{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -21,7 +22,7 @@ func CreateUser(name, namespace, instanceRef string) *v1alpha2.User {
 			RealName:         "harbor user",
 			Email:            "test@example.com",
 			UserSecretRef:    corev1.LocalObjectReference{},
-			SysAdmin:         false,
+			SysAdmin:         &boolPtr,
 			PasswordStrength: 8,
 		},
 	}
