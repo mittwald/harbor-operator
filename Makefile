@@ -52,7 +52,7 @@ manifests: controller-gen
 		./deploy/helm-chart/harbor-operator/templates/role.yaml \
 		./deploy/helm-chart/harbor-operator/templates/role_binding.yaml
 	sed 's/manager-role/{{ include "harbor-operator.name" . }}/g' ./config/rbac/role.yaml >> ./deploy/helm-chart/harbor-operator/templates/role.yaml
-	sed 's/manager-rolebinding/{{ include "harbor-operator.name" . }}/g; s/manager-role/{{ include "harbor-operator.name" . }}/g' \
+	sed 's/manager-rolebinding/{{ include "harbor-operator.name" . }}/g; s/manager-role/{{ include "harbor-operator.name" . }}/g; s/default/{{ include "harbor-operator.name" . }}/g; s/system/{{ .Release.Namespace }}/g' \
 		./config/rbac/role_binding.yaml >> ./deploy/helm-chart/harbor-operator/templates/role_binding.yaml
 
 # Run go fmt against code
