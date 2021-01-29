@@ -46,6 +46,9 @@ type InstanceChartRepositoryReconciler struct {
 
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=instancechartrepositories,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=instancechartrepositories/status,verbs=get;update;patch
+
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
 func (r *InstanceChartRepositoryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("instancechartrepository", req.NamespacedName)
 
