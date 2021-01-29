@@ -58,6 +58,9 @@ type ProjectReconciler struct {
 
 // +kubebuilder:rbac:groups=registries.registries.mittwald.de,resources=projects,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=registries.registries.mittwald.de,resources=projects/status,verbs=get;update;patch
+
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
 func (r *ProjectReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
 	reqLogger.Info("Reconciling Project")

@@ -26,3 +26,83 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - registries
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - registries/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - replications
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - replications/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - users
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - registries.mittwald.de
+  resources:
+  - users/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - registries.registries.mittwald.de
+  resources:
+  - projects
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - registries.registries.mittwald.de
+  resources:
+  - projects/status
+  verbs:
+  - get
+  - patch
+  - update

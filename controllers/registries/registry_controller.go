@@ -57,6 +57,9 @@ func (r *RegistryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=registries,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=registries/status,verbs=get;update;patch
+
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
 func (r *RegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("registry", req.NamespacedName)
 	reqLogger.Info("Reconciling Registry")
