@@ -224,7 +224,7 @@ This example shows a registry endpoint targeted at [Docker Hub](https://hub.dock
 The available registry types (configurable via `.spec.type`) are:
 
 `harbor`, `docker-hub`, `docker-registry`, `huawei-SWR`, `google-gcr`, `aws-ecr`,
-`azure-acr`, `ali-acr`, `jfrog-artifactory`, `quay-io`, `gitlab`, `helm-hub`.
+`azure-acr`, `ali-acr`, `jfrog-artifactory`, `quay`, `gitlab`, `helm-hub`.
 
 [registries_v1alpha2_registry-dockerhub.yaml](./registries_v1alpha2_registry-dockerhub.yaml)
 ```yaml
