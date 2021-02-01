@@ -8,6 +8,26 @@ metadata:
   name: {{ include "harbor-operator.name" . }}
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - secrets
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
   - registries.mittwald.de
   resources:
   - instancechartrepositories

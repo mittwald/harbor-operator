@@ -6,13 +6,13 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: project.registries.mittwald.de
+  name: projects.registries.mittwald.de
 spec:
   group: registries.mittwald.de
   names:
     kind: Project
     listKind: ProjectList
-    plural: project
+    plural: projects
     singular: project
   scope: Namespaced
   versions:
