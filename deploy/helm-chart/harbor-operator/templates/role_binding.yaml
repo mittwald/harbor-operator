@@ -9,5 +9,5 @@ roleRef:
   name: {{ include "harbor-operator.name" . }}
 subjects:
 - kind: ServiceAccount
-  name: default
-  namespace: system
+  name: {{ include "harbor-operator.name" . }}
+  namespace: {{ .Release.Namespace }}
