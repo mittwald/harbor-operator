@@ -60,8 +60,8 @@ var _ reconcile.Reconciler = &InstanceReconciler{}
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=instances/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;delete
-// +kubebuilder:rbac:groups="apps",resources=deployments;statefulsets,verbs=get;list;watch;create;update;delete
-// +kubebuilder:rbac:groups="networking.k8s.io",resources=ingresses,verbs=get;list;watch;create;update;delete
+// +kubebuilder:rbac:groups="apps",resources=deployments;statefulsets;replicasets,verbs=get;list;watch;create;update;delete;patch
+// +kubebuilder:rbac:groups="networking.k8s.io",resources=ingresses,verbs=get;list;watch;create;update;delete;patch
 
 // Reconcile reads that state of the cluster for a Instance object and makes changes based on the state read
 // and what is in the Instance.Spec

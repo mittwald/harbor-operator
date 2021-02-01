@@ -67,7 +67,7 @@ func (r *UserReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=users,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=users/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups="",resources=secrets;configmaps,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="",resources=secrets;configmaps,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;delete;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to

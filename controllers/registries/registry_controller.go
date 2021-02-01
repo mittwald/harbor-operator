@@ -232,7 +232,7 @@ func enumRegistryType(receivedRegistryType v1alpha2.RegistryType) (v1alpha2.Regi
 		v1alpha2.RegistryTypeAzureECR,
 		v1alpha2.RegistryTypeAliACR,
 		v1alpha2.RegistryTypeJfrogArtifactory,
-		v1alpha2.RegistryTypeQuayIo,
+		v1alpha2.RegistryTypeQuay,
 		v1alpha2.RegistryTypeGitlab,
 		v1alpha2.RegistryTypeHelmHub:
 		return receivedRegistryType, nil
