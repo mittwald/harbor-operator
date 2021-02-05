@@ -82,6 +82,7 @@ type MemberRequest struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // Project is the Schema for the projects API
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:path=projects,scope=Namespaced
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="phase"
 // +kubebuilder:printcolumn:name="ID",type="integer",JSONPath=".status.id",description="harbor replication id"
 // +kubebuilder:printcolumn:name="Public",type="boolean",JSONPath=".spec.metadata.public",description="harbor replication id"
