@@ -225,7 +225,8 @@ func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborCli
 	heldRepo, err := harborClient.GetProjectByName(ctx, project.Spec.Name)
 
 	if errors.Is(err, &projectapi.ErrProjectNotFound{}) {
-		_, err := harborClient.NewProject(ctx, project.Spec.Name, project.Spec.StorageLimit)
+		storageLimit := int64(project.Spec.StorageLimit)
+		_, err := harborClient.NewProject(ctx, project.Spec.Name, &storageLimit)
 
 		return err
 	} else if err != nil {
@@ -375,7 +376,8 @@ func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *mode
 	newProject.Metadata = internal.GenerateProjectMetadata(&originalProject.Spec.Metadata)
 
 	if newProject != heldProject {
-		return harborClient.UpdateProject(ctx, newProject, originalProject.Spec.StorageLimit)
+		storageLimit := int64(originalProject.Spec.StorageLimit)
+		return harborClient.UpdateProject(ctx, newProject, &storageLimit)
 	}
 
 	return nil
