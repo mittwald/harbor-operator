@@ -233,11 +233,7 @@ func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborCli
 		return err
 	}
 
-	if !reflect.DeepEqual(project.Spec, originalProject.Spec) {
-		return r.ensureProject(ctx, heldRepo, harborClient, project, originalProject)
-	}
-
-	return nil
+	return r.ensureProject(ctx, heldRepo, harborClient, project)
 }
 
 func (r *ProjectReconciler) projectMemberExists(members []*legacymodel.ProjectMemberEntity, requestedMember *v1alpha2.User) bool {
@@ -357,7 +353,7 @@ func (r *ProjectReconciler) getUserCRFromRef(ctx context.Context, userRef v1.Loc
 // ensureProject triggers reconciliation of project members
 // and compares the state of the CR object with the project held by Harbor
 func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *model.Project,
-	harborClient *h.RESTClient, project, originalProject *v1alpha2.Project) error {
+	harborClient *h.RESTClient, project *v1alpha2.Project) error {
 	newProject := &model.Project{}
 	// Copy the spec of the project held by Harbor into a new object of the same type *harbor.Project
 	err := copier.Copy(&newProject, &heldProject)
@@ -365,17 +361,17 @@ func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *mode
 		return err
 	}
 
-	err = r.reconcileProjectMembers(ctx, originalProject, harborClient, heldProject)
+	err = r.reconcileProjectMembers(ctx, project, harborClient, heldProject)
 	if err != nil {
 		return err
 	}
 
-	originalProject.Status.ID = heldProject.ProjectID
-	if err := r.Client.Status().Update(ctx, originalProject); err != nil {
+	project.Status.ID = heldProject.ProjectID
+	if err := r.Client.Status().Update(ctx, project); err != nil {
 		return err
 	}
 
-	newProject.Metadata = internal.GenerateProjectMetadata(&originalProject.Spec.Metadata)
+	newProject.Metadata = internal.GenerateProjectMetadata(&project.Spec.Metadata)
 
 	// The "storageLimit" of a Harbor project is not contained in it's metadata,
 	// so it has to be compared to the previously set storage limit on the project CR.
