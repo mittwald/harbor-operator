@@ -370,21 +370,15 @@ func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *mode
 		return err
 	}
 
-	if originalProject.Status.ID != heldProject.ProjectID {
-		originalProject.Status.ID = heldProject.ProjectID
-		if err := r.Client.Status().Update(ctx, originalProject); err != nil {
-			return err
-		}
+	originalProject.Status.ID = heldProject.ProjectID
+	if err := r.Client.Status().Update(ctx, originalProject); err != nil {
+		return err
 	}
 
 	newProject.Metadata = internal.GenerateProjectMetadata(&originalProject.Spec.Metadata)
 
 	// The "storageLimit" of a Harbor project is not contained in it's metadata,
 	// so it has to be compared to the previously set storage limit on the project CR.
-	if project.Spec.StorageLimit != originalProject.Spec.StorageLimit {
-		storageLimit := int64(project.Spec.StorageLimit)
-		return harborClient.UpdateProject(ctx, newProject, &storageLimit)
-	}
-
-	return nil
+	storageLimit := int64(project.Spec.StorageLimit)
+	return harborClient.UpdateProject(ctx, newProject, &storageLimit)
 }
