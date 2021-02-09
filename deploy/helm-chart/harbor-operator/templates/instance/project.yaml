@@ -13,7 +13,7 @@ spec:
 {{- if $project.storageLimit }}
   storageLimit: {{ $project.storageLimit }}
 {{- else }}
-  storageLimit: 10
+  storageLimit: -1
 {{- end }}
   metadata:
   {{- with $project.metadata }}
