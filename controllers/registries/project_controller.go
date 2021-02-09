@@ -121,7 +121,7 @@ func (r *ProjectReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		project.Status = v1alpha2.ProjectStatus{Phase: v1alpha2.ProjectStatusPhaseCreating}
 
 	case v1alpha2.ProjectStatusPhaseCreating:
-		if err := r.assertExistingProject(ctx, harborClient, project, originalProject); err != nil {
+		if err := r.assertExistingProject(ctx, harborClient, project); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -130,7 +130,7 @@ func (r *ProjectReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		project.Status = v1alpha2.ProjectStatus{Phase: v1alpha2.ProjectStatusPhaseReady}
 
 	case v1alpha2.ProjectStatusPhaseReady:
-		err := r.assertExistingProject(ctx, harborClient, project, originalProject)
+		err := r.assertExistingProject(ctx, harborClient, project)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -220,8 +220,7 @@ func (r *ProjectReconciler) assertDeletedProject(ctx context.Context, log logr.L
 // assertExistingProject
 // Check Harbor projects and their components for their existence,
 // create and delete either of those to match the specification.
-func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborClient *h.RESTClient,
-	project, originalProject *v1alpha2.Project) error {
+func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborClient *h.RESTClient, project *v1alpha2.Project) error {
 	heldRepo, err := harborClient.GetProjectByName(ctx, project.Spec.Name)
 
 	if errors.Is(err, &projectapi.ErrProjectNotFound{}) {
