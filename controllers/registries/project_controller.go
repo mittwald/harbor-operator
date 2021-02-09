@@ -121,7 +121,7 @@ func (r *ProjectReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		project.Status = v1alpha2.ProjectStatus{Phase: v1alpha2.ProjectStatusPhaseCreating}
 
 	case v1alpha2.ProjectStatusPhaseCreating:
-		if err := r.assertExistingProject(ctx, harborClient, project); err != nil {
+		if err := r.assertExistingProject(ctx, harborClient, project, originalProject); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -130,7 +130,7 @@ func (r *ProjectReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		project.Status = v1alpha2.ProjectStatus{Phase: v1alpha2.ProjectStatusPhaseReady}
 
 	case v1alpha2.ProjectStatusPhaseReady:
-		err := r.assertExistingProject(ctx, harborClient, project)
+		err := r.assertExistingProject(ctx, harborClient, project, originalProject)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -221,7 +221,7 @@ func (r *ProjectReconciler) assertDeletedProject(ctx context.Context, log logr.L
 // Check Harbor projects and their components for their existence,
 // create and delete either of those to match the specification.
 func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborClient *h.RESTClient,
-	project *v1alpha2.Project) error {
+	project, originalProject *v1alpha2.Project) error {
 	heldRepo, err := harborClient.GetProjectByName(ctx, project.Spec.Name)
 
 	if errors.Is(err, &projectapi.ErrProjectNotFound{}) {
@@ -233,7 +233,7 @@ func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborCli
 		return err
 	}
 
-	return r.ensureProject(ctx, heldRepo, harborClient, project)
+	return r.ensureProject(ctx, heldRepo, harborClient, project, originalProject)
 }
 
 func (r *ProjectReconciler) projectMemberExists(members []*legacymodel.ProjectMemberEntity, requestedMember *v1alpha2.User) bool {
@@ -353,7 +353,7 @@ func (r *ProjectReconciler) getUserCRFromRef(ctx context.Context, userRef v1.Loc
 // ensureProject triggers reconciliation of project members
 // and compares the state of the CR object with the project held by Harbor
 func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *model.Project,
-	harborClient *h.RESTClient, originalProject *v1alpha2.Project) error {
+	harborClient *h.RESTClient, project, originalProject *v1alpha2.Project) error {
 	newProject := &model.Project{}
 	// Copy the spec of the project held by Harbor into a new object of the same type *harbor.Project
 	err := copier.Copy(&newProject, &heldProject)
@@ -375,8 +375,10 @@ func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *mode
 
 	newProject.Metadata = internal.GenerateProjectMetadata(&originalProject.Spec.Metadata)
 
-	if newProject != heldProject {
-		storageLimit := int64(originalProject.Spec.StorageLimit)
+	// The "storageLimit" of a Harbor project is not contained in it's metadata,
+	// so it has to be compared to the previously set storage limit on the project CR.
+	if project.Spec.StorageLimit != originalProject.Spec.StorageLimit {
+		storageLimit := int64(project.Spec.StorageLimit)
 		return harborClient.UpdateProject(ctx, newProject, &storageLimit)
 	}
 
