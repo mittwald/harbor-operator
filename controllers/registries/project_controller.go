@@ -220,8 +220,7 @@ func (r *ProjectReconciler) assertDeletedProject(ctx context.Context, log logr.L
 // assertExistingProject
 // Check Harbor projects and their components for their existence,
 // create and delete either of those to match the specification.
-func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborClient *h.RESTClient,
-	project *v1alpha2.Project) error {
+func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborClient *h.RESTClient, project *v1alpha2.Project) error {
 	heldRepo, err := harborClient.GetProjectByName(ctx, project.Spec.Name)
 
 	if errors.Is(err, &projectapi.ErrProjectNotFound{}) {
@@ -353,7 +352,7 @@ func (r *ProjectReconciler) getUserCRFromRef(ctx context.Context, userRef v1.Loc
 // ensureProject triggers reconciliation of project members
 // and compares the state of the CR object with the project held by Harbor
 func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *model.Project,
-	harborClient *h.RESTClient, originalProject *v1alpha2.Project) error {
+	harborClient *h.RESTClient, project *v1alpha2.Project) error {
 	newProject := &model.Project{}
 	// Copy the spec of the project held by Harbor into a new object of the same type *harbor.Project
 	err := copier.Copy(&newProject, &heldProject)
@@ -361,24 +360,20 @@ func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *mode
 		return err
 	}
 
-	err = r.reconcileProjectMembers(ctx, originalProject, harborClient, heldProject)
+	err = r.reconcileProjectMembers(ctx, project, harborClient, heldProject)
 	if err != nil {
 		return err
 	}
 
-	if originalProject.Status.ID != heldProject.ProjectID {
-		originalProject.Status.ID = heldProject.ProjectID
-		if err := r.Client.Status().Update(ctx, originalProject); err != nil {
-			return err
-		}
+	project.Status.ID = heldProject.ProjectID
+	if err := r.Client.Status().Update(ctx, project); err != nil {
+		return err
 	}
 
-	newProject.Metadata = internal.GenerateProjectMetadata(&originalProject.Spec.Metadata)
+	newProject.Metadata = internal.GenerateProjectMetadata(&project.Spec.Metadata)
 
-	if newProject != heldProject {
-		storageLimit := int64(originalProject.Spec.StorageLimit)
-		return harborClient.UpdateProject(ctx, newProject, &storageLimit)
-	}
-
-	return nil
+	// The "storageLimit" of a Harbor project is not contained in it's metadata,
+	// so it has to be compared to the previously set storage limit on the project CR.
+	storageLimit := int64(project.Spec.StorageLimit)
+	return harborClient.UpdateProject(ctx, newProject, &storageLimit)
 }
