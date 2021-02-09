@@ -233,7 +233,11 @@ func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborCli
 		return err
 	}
 
-	return r.ensureProject(ctx, heldRepo, harborClient, project, originalProject)
+	if !reflect.DeepEqual(project.Spec, originalProject.Spec) {
+		return r.ensureProject(ctx, heldRepo, harborClient, project, originalProject)
+	}
+
+	return nil
 }
 
 func (r *ProjectReconciler) projectMemberExists(members []*legacymodel.ProjectMemberEntity, requestedMember *v1alpha2.User) bool {
