@@ -378,13 +378,12 @@ func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *mode
 	// the UpdateProject method. We have to use UpdateStorageQuotaByProjectID instead.
 	storageLimit := int64(project.Spec.StorageLimit)
 
-	if storageLimit > 0 {
-		return harborClient.UpdateProject(ctx, newProject, &storageLimit)
+	if storageLimit <= 0 {
+		if err := harborClient.UpdateStorageQuotaByProjectID(ctx, int64(heldProject.ProjectID), storageLimit); err != nil {
+		    return err
+		}
+          	storageLimit = nil
 	}
 
-	if err := harborClient.UpdateProject(ctx, newProject, nil); err != nil {
-		return err
-	}
-
-	return harborClient.UpdateStorageQuotaByProjectID(ctx, int64(heldProject.ProjectID), storageLimit)
+	return harborClient.UpdateProject(ctx, newProject, storageLimit)
 }
