@@ -377,13 +377,14 @@ func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *mode
 	// If set to a negative value (e.g. -1 for unlimited), it cannot be updated via
 	// the UpdateProject method. We have to use UpdateStorageQuotaByProjectID instead.
 	storageLimit := int64(project.Spec.StorageLimit)
+	storagePtr := &storageLimit
 
 	if storageLimit <= 0 {
 		if err := harborClient.UpdateStorageQuotaByProjectID(ctx, int64(heldProject.ProjectID), storageLimit); err != nil {
-		    return err
+			return err
 		}
-          	storageLimit = nil
+		storagePtr = nil
 	}
 
-	return harborClient.UpdateProject(ctx, newProject, storageLimit)
+	return harborClient.UpdateProject(ctx, newProject, storagePtr)
 }
