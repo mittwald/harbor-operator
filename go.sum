@@ -542,8 +542,8 @@ github.com/mitchellh/reflectwalk v1.0.0 h1:9D+8oIskB4VJBN5SFlmc27fSlIBZaov1Wpk/I
 github.com/mitchellh/reflectwalk v1.0.0/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
 github.com/mittwald/go-helm-client v0.4.1 h1:J/Pegb+48zy59AibIMBc/g889ySCjK6/Su5wBhCvBRI=
 github.com/mittwald/go-helm-client v0.4.1/go.mod h1:S1kW0ZRHgufDz1Wu9/edvll59GwkF86trOSQGsA3zi8=
-github.com/mittwald/goharbor-client/v3 v3.1.3 h1:F1ng9dNqza5Vdt5Y5lDDuIlLDH7UUAaM/cU6PU02zS0=
-github.com/mittwald/goharbor-client/v3 v3.1.3/go.mod h1:B6DcW8mCOdRr3gYxZ5OIaM5S3P89VBNadTtrgunAj5Q=
+github.com/mittwald/goharbor-client/v3 v3.2.0 h1:PbqbzbtV5Y7WFC3c+KGoeanE0MCQTi54O1XszFvf4Yw=
+github.com/mittwald/goharbor-client/v3 v3.2.0/go.mod h1:B6DcW8mCOdRr3gYxZ5OIaM5S3P89VBNadTtrgunAj5Q=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=

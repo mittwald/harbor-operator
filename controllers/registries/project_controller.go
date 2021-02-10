@@ -374,6 +374,16 @@ func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *mode
 
 	// The "storageLimit" of a Harbor project is not contained in it's metadata,
 	// so it has to be compared to the previously set storage limit on the project CR.
+	// If set to a negative value (e.g. -1 for unlimited), it cannot be updated via
+	// the UpdateProject method. We have to use UpdateStorageQuotaByProjectID instead.
 	storageLimit := int64(project.Spec.StorageLimit)
-	return harborClient.UpdateProject(ctx, newProject, &storageLimit)
+
+	if storageLimit <= 0 {
+		if err := harborClient.UpdateStorageQuotaByProjectID(ctx, int64(heldProject.ProjectID), storageLimit); err != nil {
+		    return err
+		}
+          	storageLimit = nil
+	}
+
+	return harborClient.UpdateProject(ctx, newProject, storageLimit)
 }
