@@ -59,6 +59,7 @@ spec:
                     type: string
                 type: object
               url:
+                description: The URL of the chart repository to use
                 type: string
             required:
             - url

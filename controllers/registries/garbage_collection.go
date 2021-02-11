@@ -20,7 +20,7 @@ func (r *InstanceReconciler) reconcileGarbageCollection(ctx context.Context, har
 		return err
 	}
 
-	harborClient, err := internal.BuildClient(ctx, r, harbor)
+	harborClient, err := internal.BuildClient(ctx, r.Client, harbor)
 	if err != nil {
 		return err
 	}

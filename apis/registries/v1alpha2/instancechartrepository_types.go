@@ -14,6 +14,7 @@ const (
 
 // InstanceChartRepositorySpec defines the desired state of an InstanceChartRepository.
 type InstanceChartRepositorySpec struct {
+	// The URL of the chart repository to use
 	URL string `json:"url"`
 
 	// +kubebuilder:validation:Optional

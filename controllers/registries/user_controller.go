@@ -72,12 +72,11 @@ func (r *UserReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *UserReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, err error) {
+func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, err error) {
 	reqLogger := r.Log.WithValues("user", req.NamespacedName)
 	reqLogger.Info("Reconciling User")
 
 	now := metav1.Now()
-	ctx := context.Background()
 
 	// Fetch the User instance
 	user := &v1alpha2.User{}

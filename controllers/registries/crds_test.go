@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
@@ -22,7 +22,7 @@ var _ = Describe("CRDInstallation", func() {
 			Ω(err).ToNot(HaveOccurred())
 			Ω(crds).ToNot(BeNil())
 
-			err = envtest.WaitForCRDs(cfg, []runtime.Object{
+			err = envtest.WaitForCRDs(cfg, []client.Object{
 				&apiextensions.CustomResourceDefinition{
 					Spec: apiextensions.CustomResourceDefinitionSpec{
 						Group:    "registries.mittwald.de",

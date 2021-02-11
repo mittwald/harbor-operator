@@ -51,6 +51,7 @@ func init() {
 
 	utilruntime.Must(registriesv1alpha2.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
+
 }
 
 func main() {

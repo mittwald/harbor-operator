@@ -1,10 +1,10 @@
 apiVersion: registries.mittwald.de/v1alpha2
 kind: Registry
 metadata:
-  name: test-registry
+  name: test-registry-dockerhub
   namespace: harbor-operator
 spec:
-  name: test-registry
+  name: test-registry-dockerhub
   parentInstance:
     name: test-harbor
   type: docker-hub
