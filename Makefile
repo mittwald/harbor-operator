@@ -129,4 +129,4 @@ mock-runtime-client:
 	git clone https://github.com/kubernetes-sigs/controller-runtime -q --branch $(CONTROLLER_RUNTIME_VERSION) $(TMP)
 	cd $(TMP) && mockery --dir pkg/client/ --name Client --structname MockClient \
 	--filename=runtime_client_mock.go --output "$(PWD)/controllers/registries/internal/mocks"
-	rm -rf $(TMP)
+	rm -rf $(TMP) && go mod tidy
