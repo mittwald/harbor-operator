@@ -83,9 +83,10 @@ controller-gen:
 	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
 
 # Download kustomize locally if necessary
-KUSTOMIZE = $(shell pwd)/bin/kustomize
+KUSTOMIZE = $(which kustomize)
 kustomize:
 	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -117,14 +118,15 @@ bundle-build:
 # Mock generation for the controller runtime client used by some unit tests
 CONTROLLER_RUNTIME_VERSION=$(shell echo `find . -maxdepth 1 -name 'go.mod' | xargs awk '$$1 == "sigs.k8s.io/controller-runtime"{print $$2}'`)
 
+MOCKERY_VERSION=v2.6.0
+
 mock-runtime-client:
+	@echo installing mockery $(MOCKERY_VERSION)
+	go get github.com/vektra/mockery/v2/.../@$(MOCKERY_VERSION)
 	@echo generating mocked k8s runtime client via
 	@echo sigs.k8s.io/controller-runtime@$(CONTROLLER_RUNTIME_VERSION)/pkg/client.Client
-	$(eval WORKDIR := $(shell pwd))
 	$(eval TMP := $(shell mktemp -d))
-	echo $(WORKDIR)
 	git clone https://github.com/kubernetes-sigs/controller-runtime -q --branch $(CONTROLLER_RUNTIME_VERSION) $(TMP)
-	cd $(TMP); mockery --dir $(TMP)/pkg/client/ --name Client --structname MockClient \
-	--filename=runtime_client_mock.go --output "$(PWD)/controllers/internal/mocks"
+	cd $(TMP) && mockery --dir pkg/client/ --name Client --structname MockClient \
+	--filename=runtime_client_mock.go --output "$(PWD)/controllers/registries/internal/mocks"
 	rm -rf $(TMP)
-
