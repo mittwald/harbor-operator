@@ -7,15 +7,16 @@ spec:
   memberRequests:
   - role: ProjectAdmin # one of "ProjectAdmin", "Developer", "Guest" or "Master"
     user:
-     name: "harbor-user" # reference to a user object
-  storageLimit: 10 # storage quota in GB
-  name: repository-1
+      name: "harbor-user" # reference to a user object
+  storageLimit: -1 # storage quota in GB
+  name: harbor-project
   parentInstance:
     name: test-harbor
-#  metadata:
+    # All project metadata fields but 'public' are optional
+    metadata:
+      public:                 false
 #    enableContentTrust:     false
 #    autoScan:               false
 #    severity:               "none"
 #    reuseSysCVEAllowlist:   false
-#    public:                 false
 #    preventVul:             false

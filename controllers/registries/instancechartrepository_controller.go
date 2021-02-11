@@ -49,12 +49,10 @@ type InstanceChartRepositoryReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *InstanceChartRepositoryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *InstanceChartRepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("instancechartrepository", req.NamespacedName)
 
 	reqLogger.Info("Reconciling InstanceChartRepository")
-
-	ctx := context.Background()
 
 	// Fetch the InstanceChartRepository instance
 	instance := &v1alpha2.InstanceChartRepository{}
@@ -71,8 +69,10 @@ func (r *InstanceChartRepositoryReconciler) Reconcile(req ctrl.Request) (ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	if err := r.reconcileInstanceChartRepositorySecret(ctx, instance); err != nil {
-		return ctrl.Result{}, err
+	if instance.Spec.SecretRef != nil {
+		if err := r.reconcileInstanceChartRepositorySecret(ctx, instance); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	entry, err := r.specToRepoEntry(ctx, instance)
@@ -114,20 +114,18 @@ func (r *InstanceChartRepositoryReconciler) SetupWithManager(mgr ctrl.Manager) e
 // InstanceChartRepository's spec and sets an OwnerReference to the owned Object.
 // Returns nil when the OwnerReference has been successfully set, or when no secret is specified.
 func (r *InstanceChartRepositoryReconciler) reconcileInstanceChartRepositorySecret(ctx context.Context, i *v1alpha2.InstanceChartRepository) error {
-	if i.Spec.SecretRef != nil {
-		secret, err := r.getSecret(ctx, i)
+	secret, err := r.getSecret(ctx, i)
+	if err != nil {
+		return err
+	}
+
+	if len(secret.OwnerReferences) == 0 {
+		err = ctrl.SetControllerReference(i, secret, r.Scheme)
 		if err != nil {
 			return err
 		}
-
-		if len(secret.OwnerReferences) == 0 {
-			err = ctrl.SetControllerReference(i, secret, r.Scheme)
-			if err != nil {
-				return err
-			}
-			if err = r.Client.Update(ctx, secret); err != nil {
-				return err
-			}
+		if err = r.Client.Update(ctx, secret); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -193,7 +191,7 @@ func (r *InstanceChartRepositoryReconciler) getSecret(ctx context.Context,
 	cr *v1alpha2.InstanceChartRepository) (*corev1.Secret, error) {
 	var secret corev1.Secret
 
-	existing, err := helper.ObjExists(ctx, r, cr.Spec.SecretRef.Name, cr.Namespace, &secret)
+	existing, err := helper.ObjExists(ctx, r.Client, cr.Spec.SecretRef.Name, cr.Namespace, &secret)
 	if err != nil {
 		return nil, err
 	}

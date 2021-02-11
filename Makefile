@@ -29,7 +29,7 @@ all: manager
 ENVTEST_ASSETS_DIR = $(shell pwd)/testbin
 test: generate fmt vet manifests
 	mkdir -p $(ENVTEST_ASSETS_DIR)
-	test -f $(ENVTEST_ASSETS_DIR)/setup-envtest.sh || curl -sSLo $(ENVTEST_ASSETS_DIR)/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.6.3/hack/setup-envtest.sh
+	test -f $(ENVTEST_ASSETS_DIR)/setup-envtest.sh || curl -sSLo $(ENVTEST_ASSETS_DIR)/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.1/hack/setup-envtest.sh
 	source $(ENVTEST_ASSETS_DIR)/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
 
 # Build manager binary
@@ -64,7 +64,7 @@ vet:
 	go vet $$(go list ./...)
 
 # Generate code
-generate: controller-gen
+generate: controller-gen mock-runtime-client
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./apis/registries/..."
 	rm -r ./pkg/apis/v* && cp -rf ./apis/registries/* ./pkg/apis/
 	cd pkg/apis && go mod tidy

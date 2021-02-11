@@ -60,12 +60,11 @@ func (r *RegistryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *RegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("registry", req.NamespacedName)
 	reqLogger.Info("Reconciling Registry")
 
 	now := metav1.Now()
-	ctx := context.Background()
 
 	// Fetch the Registry instance
 	registry := &v1alpha2.Registry{}
@@ -106,7 +105,7 @@ func (r *RegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Build a client to connect to the harbor API
-	harborClient, err := internal.BuildClient(ctx, r, harbor)
+	harborClient, err := internal.BuildClient(ctx, r.Client, harbor)
 	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}

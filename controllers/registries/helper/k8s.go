@@ -6,13 +6,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ObjExists returns a boolean value based on the existence of a runtime object.
-func ObjExists(ctx context.Context, client client.Client, name, namespace string, obj runtime.Object) (bool, error) {
+func ObjExists(ctx context.Context, client client.Client, name, namespace string, obj client.Object) (bool, error) {
 	err := client.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, obj)
 	if err != nil {
 		if errors.IsNotFound(err) {

@@ -56,12 +56,11 @@ var _ reconcile.Reconciler = &ReplicationReconciler{}
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *ReplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("replication", req.NamespacedName)
 	reqLogger.Info("Reconciling Replication")
 
 	now := metav1.Now()
-	ctx := context.Background()
 
 	// Fetch the Replication instance
 	replication := &v1alpha2.Replication{}

@@ -61,12 +61,11 @@ type ProjectReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *ProjectReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
 	reqLogger.Info("Reconciling Project")
 
 	now := metav1.Now()
-	ctx := context.Background()
 
 	// Fetch the Project instance
 	project := &v1alpha2.Project{}
@@ -94,7 +93,7 @@ func (r *ProjectReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Fetch the Instance
 	harbor, err := internal.FetchReadyHarborInstance(ctx, project.Namespace,
-		project.Spec.ParentInstance.Name, r)
+		project.Spec.ParentInstance.Name, r.Client)
 	if err != nil {
 		if _, ok := err.(internal.ErrInstanceNotFound); ok {
 			helper.PullFinalizer(project, internal.FinalizerName)
@@ -108,7 +107,7 @@ func (r *ProjectReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Build a client to connect to the harbor API
-	harborClient, err := internal.BuildClient(ctx, r, harbor)
+	harborClient, err := internal.BuildClient(ctx, r.Client, harbor)
 	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}

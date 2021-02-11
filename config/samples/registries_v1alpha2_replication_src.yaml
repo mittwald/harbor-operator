@@ -1,6 +1,6 @@
 # Replication example with a source registry
 # Using a source registry equals using the 'Pull-based' option for 'Replication Mode'
-# This pulls the specified resources from the remote registry to the local registry
+# This pulls the specified resources from the remote registry to the local registry (which is optionally created beforehand)
 # Filters and triggers are optional
 apiVersion: registries.mittwald.de/v1alpha2
 kind: Replication
@@ -11,12 +11,12 @@ spec:
   name: test-replication-src
   parentInstance:
     name: test-harbor
-  replicateDeletion: false
-  override: true
+  replicateDeletion: false # do not replicate deletion operations
+  override: true # override the resources on the destination registry
   enabled: true
-  triggerAfterCreation: true
-  srcRegistry: # you have to create the srcRegistry via a registry custom resource first
-    name: test-registry
+  triggerAfterCreation: true # trigger this replication after its creation
+  srcRegistry: # it is optional to create the srcRegistry via a registry custom resource
+    name: test-registry-local
   filters:
     - type: name
       value: alpine

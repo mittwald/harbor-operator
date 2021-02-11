@@ -11,8 +11,8 @@ spec:
   name: test-replication-dst
   parentInstance:
     name: test-harbor
-  replicateDeletion: false
-  override: true
+  replicateDeletion: false # do not replicate deletion operations
+  override: true # override the resources on the destination registry
   enabled: true
   triggerAfterCreation: true
   destRegistry: # you have to create the destRegistry via a registry custom resource first

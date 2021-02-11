@@ -1,6 +1,6 @@
 # Harbor Operator
 
-A Kubernetes operator for managing [Goharbor](https://github.com/goharbor/harbor) instances
+A Kubernetes operator for automated management of [Goharbor](https://github.com/goharbor/harbor) instances
 
 [![GitHub license](https://img.shields.io/github/license/mittwald/harbor-operator.svg?style=flat-square)](https://github.com/mittwald/harbor-operator/blob/master/LICENSE)
 [![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/mittwald/harbor-operator)
@@ -9,22 +9,96 @@ A Kubernetes operator for managing [Goharbor](https://github.com/goharbor/harbor
 [![Go Report Card](https://goreportcard.com/badge/github.com/mittwald/harbor-operator?style=flat-square)](https://goreportcard.com/badge/github.com/mittwald/harbor-operator)
 ![Go](https://github.com/mittwald/harbor-operator/workflows/Go/badge.svg?branch=master)
 
-##### This project is still under development and not stable yet - breaking changes may happen at any time and without notice
-## Features
-**Easy Harbor deployment & scaling**:
-- Every Harbor instance is bound only to the deployed Custom Resource.
-The operator utilizes a [helm client](https://github.com/mittwald/go-helm-client) library for the management of these instances
+## Table of contents
+- [Installation](#Installation)
+- [Architecture](#Architecture)
+- [CRDs](#CRDs)
+- [Documentation](#Documentation)
+  - [Local Development](#Local-Development)
+  - [Testing](#Testing)
+- [Example Deployment](#Example-Deployment)
 
-**Custom chart repositories**:
-- If you need to install a customized or private Harbor helm chart, the
- `InstanceChartRepository` resource allows you to do so. The official Harbor Helm chart can be found [here](https://github.com/goharbor/harbor-helm)
+### Installation
+Install this operator using Helm:
+```shell script
+helm repo add mittwald https://helm.mittwald.de
+helm repo update
+helm install harbor-operator mittwald/harbor-operator --namespace my-namespace
+```
 
-**Harbor resource reconciliation**:
-- This operator automatically manages Harbor components by utilizing
- a custom [harbor client](https:/github.com/mittwald/goharbor-client).
+The helm chart of this operator can be found under [./deploy/helm-chart/harbor-operator](./deploy/helm-chart/harbor-operator).
+
+Alternatively, you can refer to the [mittwald/helm-charts](https://github.com/mittwald/helm-charts) repository.
+
+### Architecture
+
+- The operator manages the deployment of [goharbor/harbor](https://github.com/goharbor/harbor) instances
+  
+- Many components / features of Harbor can be accessed by creating _Custom Resource Definitons_.
+  Resource changes are reconciled in the main controller loop.
+    > For a full list of Harbor's features, please refer to [goharbor/harbor#features](https://github.com/goharbor/harbor#features)
+  
+- The operator manages Harbor components by utilizing the [mittwald/goharbor-client](https:/github.com/mittwald/goharbor-client) API client
+
+- Customized or private Harbor helm charts are supported via the `InstanceChartRepository` resource
+  > The official Harbor Helm chart can be found [here](https://github.com/goharbor/harbor-helm)
+
+```
+ 0
+/|\ User
+/ \
+
+ |
+ |      creates         ┌───────────────────────────────┐
+ ├────────────────────▶ |    InstanceChartRepository    |
+ |                      |       (Custom Resource)       |
+ |                      └───────────────────────────────┘
+ |                                             ▲
+ |      creates         ┌───────────────────┐  |
+ ├────────────────────▶ |      Instance     |  |
+ |                      | (Custom Resource) |  |
+ |                      └───────────────────┘  | watches
+ |                                    ▲        |
+ |                                    |        |
+ |                            watches |        |
+ |                                    |        |           creates & updates
+ |                                  ┌─┴────────┴──────┐      (via Instance)      
+ |                                  │ Harbor Operator ├──────────────────────────┐
+ |                                  └─────────┬─────┬─┘                          |
+ |                                            ╎     |                            |
+ |                                    watches ╎     |                            |
+ |                                            ╎     |                            |
+ |      creates         ┌─────────────────┐   ╎     |         ┌─────────┐  ┌─────┴──────┐
+ ├────────────────────▶ |     Project     ├ - ┼ - - └─────── ▶| Harbor  ├──┤   Harbor   |
+ |                      |(Custom Resource)|   ╎      perform  |   API   |  |Helm Release|
+ |                      └─────────────────┘   ╎      CRUD     └─────────┘  └────────────┘
+ |                              ▲             ╎      via the CRs on the left
+ |                              |             ╎
+ |           has access through |             ╎
+ |               membership     |             ╎
+ |                              |             ╎
+ |      creates         ┌───────┴─────────┐   ╎
+ ├────────────────────▶ |      User       ├ - ┤
+ |                      |(Custom Resource)|   ╎
+ |                      └─────────────────┘   ╎
+ |      creates         ┌─────────────────┐   ╎
+ ├────────────────────▶ |    Registry     ├ - ┤
+ |                      |(Custom Resource)|   ╎
+ |                      └─────────────────┘   ╎
+ |                              ▲             ╎
+ |                              |             ╎
+ |                  is owned by |             ╎
+ |                              |             ╎
+ |      creates         ┌───────┴─────────┐   ╎
+ └────────────────────▶ |    Replication  ├ - ┘
+                        |(Custom Resource)|
+                        └─────────────────┘
+```
 
 ### CRDs
-registries.mittwald.de/v1alpha2:
+
+The following _Custom Resource Definitions_ can be used to create / configure Harbor components:
+
 - [InstanceChartRepositories](./config/samples/README.md#InstanceChartRepositories)
 - [Instances](./config/samples/README.md#Instances)
 - [Projects](./config/samples/README.md#Projects)
@@ -35,32 +109,8 @@ registries.mittwald.de/v1alpha2:
 To get an overview of the individual resources that come with this operator,
 take a look at the [samples directory](./config/samples).
 
-## Installation
-### Helm
-The helm chart of this operator can be found under [./deploy/helm-chart/harbor-operator](./deploy/helm-chart/harbor-operator).
-
-Alternatively, you can use the the [Mittwald Kubernetes Helm Charts](https://github.com/mittwald/helm-charts) repository:
-```shell script
-helm repo add mittwald https://helm.mittwald.de
-helm repo update
-helm install harbor-operator mittwald/harbor-operator --namespace my-namespace
-```
-
 ## Documentation
 For more specific documentation, please refer to the [godoc](https://pkg.go.dev/github.com/mittwald/harbor-operator) of this repository.
-
-#### Web UI
-For a trouble-free experience with created instances, a valid TLS certificate is required.
-
-However, local installations can be accessed via `http://`.
-
-**Automatic certificate creation** can be configured via the `Instance` resource:
-
- `.spec.helmChart.valuesYaml.expose.ingress.annotations`.
-
-Example annotation value using cert-manager as the cluster-issuer:
-
-`cert-manager.io/cluster-issuer: "letsencrypt-issuer"`
 
 ### Local Development
 To start the operator locally, run:
@@ -74,13 +124,15 @@ make debug
 ```
 This will start a debugging server with the listen address `localhost:2345`.
 
-When making changes to API definitions (located in [./api/v1alpha2](api/v1alpha2)),
+Local installations can be accessed via `http://`
+
+When making changes to API definitions (located in [./apis/registries/v1alpha2](/apis/registries/v1alpha2)),
 make sure to re-generate manifests via:
 ```shell script
 make manifests
 ```
 
-#### Testing
+### Testing
 To test the operator, simply run:
 ```shell script
 make test
@@ -101,19 +153,18 @@ go test -v ./...
 _Some_ unit tests require a [mocked controller-runtime client](controllers/registries/internal/mocks/runtime_client_mock.go).
 This mock is generated using: `make mock-runtime-client`.
 
-#### Deploying example resources
-Note: When using the provided examples and running the operator locally, an entry to your `/etc/hosts` is
- needed:
-```shell script
-127.0.0.1 core.harbor.domain
-```
+### Example Deployment
+> Note: If you want to test a local setup using an URL, you will need to append it to your `/etc/hosts`:
+> ```shell script
+> 127.0.0.1 core.harbor.domain
+> ```
 
 Example resources can be deployed using the files provided in the [samples directory](./config/samples).
 
-To start testing, simply apply these after starting the operator:
+To start testing, simply apply these after the operator has started:
 
 ```
-k create -f config/samples/
+kubectl create -f config/samples/
 ```
 
 After a successful installation, the Harbor portal may be accessed either by `localhost:30002` or `core.harbor.domain:30002`.
