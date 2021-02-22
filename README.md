@@ -19,16 +19,12 @@ A Kubernetes operator for automated management of [Goharbor](https://github.com/
 - [Example Deployment](#Example-Deployment)
 
 ### Installation
-Install this operator using Helm:
-```shell script
-helm repo add mittwald https://helm.mittwald.de
-helm repo update
-helm install harbor-operator mittwald/harbor-operator --namespace my-namespace
-```
 
 The helm chart of this operator can be found under [./deploy/helm-chart/harbor-operator](./deploy/helm-chart/harbor-operator).
-
-Alternatively, you can refer to the [mittwald/helm-charts](https://github.com/mittwald/helm-charts) repository.
+Install this operator using Helm:
+```shell script
+helm install harbor-operator . --namespace my-namespace
+```
 
 ### Architecture
 
