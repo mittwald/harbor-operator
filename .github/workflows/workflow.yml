@@ -13,8 +13,7 @@ env:
   KUBECONFIG: /tmp/kubeconfig
   IMAGE_NAME: quay.io/mittwald/harbor-operator
   REGISTRY_URL: quay.io/mittwald
-  GOLANGCI_LINT_VERSION: v1.36.0
-  BUMP_APP_VERSION_ACTION_VERSION: v0.2.1
+  GOLANGCI_LINT_VERSION: v1.37.1
 
 jobs:
   lint:
@@ -120,10 +119,11 @@ jobs:
       - name: Push images
         run: docker push "$IMAGE_NAME:latest" && docker push "$IMAGE_NAME:${GITHUB_REF##*/}"
 
-      - name: Run chart version bump
-        uses: mittwald/bump-app-version-action@"${BUMP_APP_VERSION_ACTION_VERSION}"
+      - name: Bump chart version
+        uses: mittwald/bump-app-version-action@v1
         with:
           mode: 'publish'
           chartYaml: './deploy/helm-chart/harbor-operator/Chart.yaml'
         env:
-          GITHUB_TOKEN: "${{ secrets.githubToken }}"
+          GITHUB_TOKEN: "${{ secrets.GITHUBTOKEN }}"
+          HELM_REPO_PASSWORD: "${{ secrets.HELM_REPO_PASSWORD }}"
