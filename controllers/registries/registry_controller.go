@@ -107,7 +107,7 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Build a client to connect to the harbor API
 	harborClient, err := internal.BuildClient(ctx, r.Client, harbor)
 	if err != nil {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 
 	switch registry.Status.Phase {
@@ -169,7 +169,7 @@ func (r *RegistryReconciler) updateRegistryCR(ctx context.Context, parentInstanc
 	}
 
 	if err := r.Update(ctx, originalRegistry); err != nil {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil

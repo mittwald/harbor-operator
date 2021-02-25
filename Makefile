@@ -64,7 +64,7 @@ vet:
 	go vet $$(go list ./...)
 
 # Generate code
-generate: controller-gen mock-runtime-client
+generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./apis/registries/..."
 	rm -r ./pkg/apis/v* && cp -rf ./apis/registries/* ./pkg/apis/
 	cd pkg/apis && go mod tidy
@@ -114,19 +114,3 @@ bundle: manifests
 .PHONY: bundle-build
 bundle-build:
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
-
-# Mock generation for the controller runtime client used by some unit tests
-CONTROLLER_RUNTIME_VERSION=$(shell echo `find . -maxdepth 1 -name 'go.mod' | xargs awk '$$1 == "sigs.k8s.io/controller-runtime"{print $$2}'`)
-
-MOCKERY_VERSION=v2.6.0
-
-mock-runtime-client:
-	@echo installing mockery $(MOCKERY_VERSION)
-	go get github.com/vektra/mockery/v2/.../@$(MOCKERY_VERSION)
-	@echo generating mocked k8s runtime client via
-	@echo sigs.k8s.io/controller-runtime@$(CONTROLLER_RUNTIME_VERSION)/pkg/client.Client
-	$(eval TMP := $(shell mktemp -d))
-	git clone https://github.com/kubernetes-sigs/controller-runtime -q --branch $(CONTROLLER_RUNTIME_VERSION) $(TMP)
-	cd $(TMP) && mockery --dir pkg/client/ --name Client --structname MockClient \
-	--filename=runtime_client_mock.go --output "$(PWD)/controllers/registries/internal/mocks"
-	rm -rf $(TMP) && go mod tidy

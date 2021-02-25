@@ -7,12 +7,12 @@ import (
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 
 	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func ToHarborRegistryCredential(ctx context.Context, c client.Client, namespace string, regcred v1alpha2.RegistryCredential) (*legacymodel.RegistryCredential, error) {
-	var secret v1.Secret
+	var secret corev1.Secret
 	if err := c.Get(ctx, client.ObjectKey{Name: regcred.SecretRef.Name, Namespace: namespace}, &secret); err != nil {
 		return nil, err
 	}

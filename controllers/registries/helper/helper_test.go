@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	helmclient "github.com/mittwald/go-helm-client"
-	"github.com/mittwald/harbor-operator/controllers/registries/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -161,18 +161,12 @@ func TestObjExists(t *testing.T) {
 		},
 	}
 
-	mockClient := &mocks.MockClient{}
+	fakeClient := fake.NewClientBuilder().WithObjects(sec).Build()
 
 	t.Run("ExistingObject", func(t *testing.T) {
-		mockClient.On("Get", ctx, types.NamespacedName{
-			Namespace: sec.Namespace,
-			Name:      sec.Name,
-		}, sec).Return(nil)
-
-		exists, err := helper.ObjExists(ctx, mockClient, sec.Name, sec.Namespace, sec)
+		exists, err := helper.ObjExists(ctx, fakeClient, sec.Name, sec.Namespace, sec)
 
 		assert.NoError(t, err)
-		assert.Equal(t, exists, true)
-		mockClient.AssertExpectations(t)
+		assert.Equal(t, true, exists)
 	})
 }

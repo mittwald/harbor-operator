@@ -225,7 +225,7 @@ func (r *InstanceReconciler) updateInstanceCR(ctx context.Context, originalInsta
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{}, nil
 }
 
 // updateHelmRepos updates helm chart repositories.

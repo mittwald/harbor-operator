@@ -10,7 +10,7 @@ import (
 	helmclient "github.com/mittwald/go-helm-client"
 	"sigs.k8s.io/yaml"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -71,10 +71,10 @@ func enrichChartWithSecretValues(ctx context.Context, c client.Client, instance 
 	return nil
 }
 
-func getValuesSecret(ctx context.Context, c client.Client, instance *v1alpha2.Instance) (*v1.Secret, error) {
+func getValuesSecret(ctx context.Context, c client.Client, instance *v1alpha2.Instance) (*corev1.Secret, error) {
 	secName := instance.Spec.HelmChart.SecretValues.SecretRef.Name
 
-	var secret v1.Secret
+	var secret corev1.Secret
 
 	existing, err := ObjExists(ctx, c,
 		secName,
