@@ -36,7 +36,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -67,7 +66,7 @@ func (r *UserReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=users,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=users/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups="",resources=secrets;configmaps,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets;configmaps,verbs=get;list;watch;create;update;delete;patch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;delete;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -184,7 +183,7 @@ func (r *UserReconciler) updateUserCR(ctx context.Context, parentInstance *v1alp
 
 	// set owner
 	if len(user.OwnerReferences) == 0 && parentInstance != nil {
-		if err := controllerruntime.SetControllerReference(parentInstance, user, r.Scheme); err != nil {
+		if err := ctrl.SetControllerReference(parentInstance, user, r.Scheme); err != nil {
 			return ctrl.Result{}, err
 		}
 	}

@@ -36,7 +36,7 @@ import (
 
 	registriesv1alpha2 "github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	controllers "github.com/mittwald/harbor-operator/controllers/registries"
-	opconfig "github.com/mittwald/harbor-operator/controllers/registries/config"
+	config "github.com/mittwald/harbor-operator/controllers/registries/config"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -51,17 +51,16 @@ func init() {
 
 	utilruntime.Must(registriesv1alpha2.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
-
 }
 
 func main() {
-	pflag.String(opconfig.FlagMetricsAddress, ":8080", "The address the metric endpoint binds to.")
-	pflag.Bool(opconfig.FlagEnableLeaderElection, false,
+	pflag.String(config.FlagMetricsAddress, ":8080", "The address the metric endpoint binds to.")
+	pflag.Bool(config.FlagEnableLeaderElection, false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	pflag.String(opconfig.FlagHelmClientRepoCachePath,
+	pflag.String(config.FlagHelmClientRepoCachePath,
 		"/tmp/.helmcache", "helm client repository cache path")
-	pflag.String(opconfig.FlagHelmClientRepoConfPath,
+	pflag.String(config.FlagHelmClientRepoConfPath,
 		"/tmp/.helmconfig", "helm client repository config path")
 
 	pflag.Parse()
@@ -77,15 +76,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	opconfig.FromViper()
+	config.FromViper()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
-		MetricsBindAddress: opconfig.MetricsAddr,
+		MetricsBindAddress: config.MetricsAddr,
 		Port:               9443,
-		LeaderElection:     opconfig.EnableLeaderElection,
+		LeaderElection:     config.EnableLeaderElection,
 		LeaderElectionID:   "a1e7caa2.mittwald.de",
 	})
 	if err != nil {

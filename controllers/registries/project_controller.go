@@ -39,8 +39,6 @@ import (
 	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
 	projectapi "github.com/mittwald/goharbor-client/v3/apiv2/project"
 
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/go-logr/logr"
 	"github.com/jinzhu/copier"
 	h "github.com/mittwald/goharbor-client/v3/apiv2"
@@ -109,7 +107,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Build a client to connect to the harbor API
 	harborClient, err := internal.BuildClient(ctx, r.Client, harbor)
 	if err != nil {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 
 	switch project.Status.Phase {
@@ -186,7 +184,7 @@ func (r *ProjectReconciler) updateProjectCR(ctx context.Context, parentInstance 
 	}
 
 	if err := r.Client.Update(ctx, originalProject); err != nil {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
@@ -340,7 +338,7 @@ func (r *ProjectReconciler) reconcileProjectMembers(ctx context.Context, project
 	return nil
 }
 
-func (r *ProjectReconciler) getUserCRFromRef(ctx context.Context, userRef v1.LocalObjectReference,
+func (r *ProjectReconciler) getUserCRFromRef(ctx context.Context, userRef corev1.LocalObjectReference,
 	namespace string) (*v1alpha2.User, error) {
 	var user v1alpha2.User
 	err := r.Client.Get(ctx, client.ObjectKey{Name: userRef.Name, Namespace: namespace}, &user)

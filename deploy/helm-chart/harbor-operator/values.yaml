@@ -26,6 +26,8 @@ installHarborChartRepo: true
 instances: ~
 #  - name: test-registry
 #    type: manual
+#    version: v1.5.3
+#    wait: true
 #    garbageCollection:
 #      cron: "0 * * * *"
 #      scheduleType: "Hourly"
@@ -70,6 +72,7 @@ instances: ~
 #        override: true
 #        enabled: true
 #        srcRegistryName: test-registry
+#        triggerAfterCreation: false
 #        filters:
 #          - type: name
 #            value: alpine
@@ -82,4 +85,4 @@ instances: ~
 
 serviceAccount:
   name: {}
-  create: {}
+  create: true

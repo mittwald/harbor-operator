@@ -23,14 +23,13 @@ import (
 	"reflect"
 	"time"
 
+	h "github.com/mittwald/goharbor-client/v3/apiv2"
 	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
 	replicationapi "github.com/mittwald/goharbor-client/v3/apiv2/replication"
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
-	v1 "k8s.io/api/core/v1"
-
-	h "github.com/mittwald/goharbor-client/v3/apiv2"
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
+	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -104,7 +103,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// Build a client to connect to the harbor API
 	harborClient, err := internal.BuildClient(ctx, r.Client, harbor)
 	if err != nil {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 
 	switch replication.Status.Phase {
@@ -281,7 +280,7 @@ func (r *ReplicationReconciler) updateReplicationCR(ctx context.Context, parentI
 	}
 
 	if err := r.Client.Update(ctx, originalReplication); err != nil {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
@@ -484,7 +483,7 @@ func addReplicationFilters(originalFilters []v1alpha2.ReplicationFilter) (
 }
 
 // getHarborRegistryFromRef retrieves the registryRef and returns a pointer to a goharbor-client Registry Object
-func (r *ReplicationReconciler) getHarborRegistryFromRef(ctx context.Context, registryRef *v1.LocalObjectReference,
+func (r *ReplicationReconciler) getHarborRegistryFromRef(ctx context.Context, registryRef *corev1.LocalObjectReference,
 	namespace string) (*legacymodel.Registry, error) {
 	var registry v1alpha2.Registry
 
