@@ -65,7 +65,7 @@ vet:
 
 # Generate code
 generate: controller-gen
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./apis/registries/..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./apis/..."
 	rm -r ./pkg/apis/v* && cp -rf ./apis/registries/* ./pkg/apis/
 	cd pkg/apis && go mod tidy
 
