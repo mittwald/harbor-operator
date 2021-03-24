@@ -21,10 +21,13 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -38,13 +41,13 @@ import (
 	"github.com/mittwald/goharbor-client/v3/apiv2/model"
 	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
 	projectapi "github.com/mittwald/goharbor-client/v3/apiv2/project"
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 
 	"github.com/go-logr/logr"
 	"github.com/jinzhu/copier"
 	h "github.com/mittwald/goharbor-client/v3/apiv2"
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ProjectReconciler reconciles a Project object
@@ -62,8 +65,6 @@ type ProjectReconciler struct {
 func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
 	reqLogger.Info("Reconciling Project")
-
-	now := metav1.Now()
 
 	// Fetch the Project instance
 	project := &v1alpha2.Project{}
@@ -90,24 +91,33 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// Fetch the Instance
-	harbor, err := internal.FetchReadyHarborInstance(ctx, project.Namespace,
-		project.Spec.ParentInstance.Name, r.Client)
-	if err != nil {
-		if _, ok := err.(internal.ErrInstanceNotFound); ok {
-			helper.PullFinalizer(project, internal.FinalizerName)
-		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, err
-		} else {
-			project.Status = v1alpha2.ProjectStatus{LastTransition: &now}
-		}
+	harbor := v1alpha2.Instance{}
+	harborInstanceName := project.Spec.ParentInstance.Name
+	harborInstanceNamespace := project.Namespace
 
-		return r.updateProjectCR(ctx, nil, originalProject, project)
+	instanceExists, err := helper.ObjExists(ctx, r.Client, harborInstanceName, harborInstanceNamespace, &harbor)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !instanceExists {
+		helper.PullFinalizer(project, internal.FinalizerName)
+		return ctrl.Result{}, controllererrors.ErrInstanceNotFound(
+			strings.Join([]string{harborInstanceName, harborInstanceNamespace}, "/"))
 	}
 
 	// Build a client to connect to the harbor API
-	harborClient, err := internal.BuildClient(ctx, r.Client, harbor)
+	harborClient, err := internal.BuildClient(ctx, r.Client, &harbor)
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	// Check the Harbor API if it's reporting as healthy
+	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient, &harbor)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !instanceIsHealthy {
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	switch project.Status.Phase {
@@ -140,13 +150,16 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	return r.updateProjectCR(ctx, harbor, originalProject, project)
+	return r.updateProjectCR(ctx, &harbor, originalProject, project)
 }
 
 func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha2.Project{}).
-		Owns(&v1alpha2.User{}).
+		Watches(&source.Kind{Type: &v1alpha2.User{}}, &handler.EnqueueRequestForOwner{
+			OwnerType:    &v1alpha2.Project{},
+			IsController: true,
+		}).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 1,
 		}).
@@ -190,22 +203,47 @@ func (r *ProjectReconciler) updateProjectCR(ctx context.Context, parentInstance 
 	return ctrl.Result{}, nil
 }
 
-// assertDeletedProject deletes a Harbor project, first ensuring its existence.
-func (r *ProjectReconciler) assertDeletedProject(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
-	project *v1alpha2.Project) error {
-	p, err := harborClient.GetProjectByName(ctx, project.Name)
+func FetchHarborProjectIfExists(ctx context.Context, harborClient *h.RESTClient, projectName string) (*model.Project, bool, error) {
+	p, err := harborClient.GetProjectByName(ctx, projectName)
 	if err != nil {
 		if errors.Is(&projectapi.ErrProjectUnknownResource{}, err) {
+			return nil, false, nil
+		}
+		if errors.Is(&projectapi.ErrProjectNotFound{}, err) {
+			return nil, false, nil
+		}
+		return p, false, err
+	}
+
+	return p, true, nil
+}
+
+func DeleteHarborProject(ctx context.Context, harborClient *h.RESTClient, p *model.Project) error {
+	if err := harborClient.DeleteProject(ctx, p); err != nil {
+		if errors.Is(&projectapi.ErrProjectMismatch{}, err) {
+			return nil
+		}
+		if errors.Is(&projectapi.ErrProjectNotFound{}, err) {
 			return nil
 		}
 		return err
 	}
 
-	if err := harborClient.DeleteProject(ctx, p); err != nil {
-		if errors.Is(&projectapi.ErrProjectMismatch{}, err) {
-			return nil
-		}
+	return nil
+}
+
+// assertDeletedProject deletes a Harbor project, first ensuring its existence.
+func (r *ProjectReconciler) assertDeletedProject(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
+	project *v1alpha2.Project) error {
+	p, exists, err := FetchHarborProjectIfExists(ctx, harborClient, project.Name)
+	if err != nil {
 		return err
+	}
+
+	if exists {
+		if err := DeleteHarborProject(ctx, harborClient, p); err != nil {
+			return err
+		}
 	}
 
 	log.Info("pulling finalizers", project.Name, project.Namespace)

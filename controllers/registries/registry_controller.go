@@ -21,20 +21,20 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/go-logr/logr"
 	h "github.com/mittwald/goharbor-client/v3/apiv2"
 	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
 	registryapi "github.com/mittwald/goharbor-client/v3/apiv2/registry"
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -64,8 +64,6 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	reqLogger := r.Log.WithValues("registry", req.NamespacedName)
 	reqLogger.Info("Reconciling Registry")
 
-	now := metav1.Now()
-
 	// Fetch the Registry instance
 	registry := &v1alpha2.Registry{}
 
@@ -91,23 +89,33 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	// Fetch the Instance
-	harbor, err := internal.FetchReadyHarborInstance(ctx, registry.Namespace, registry.Spec.ParentInstance.Name, r.Client)
-	if err != nil {
-		if _, ok := err.(internal.ErrInstanceNotFound); ok {
-			helper.PullFinalizer(registry, internal.FinalizerName)
-		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, err
-		} else {
-			registry.Status = v1alpha2.RegistryStatus{LastTransition: &now}
-		}
+	harbor := v1alpha2.Instance{}
+	harborInstanceName := registry.Spec.ParentInstance.Name
+	harborInstanceNamespace := registry.Namespace
 
-		return r.updateRegistryCR(ctx, nil, originalRegistry, registry)
+	instanceExists, err := helper.ObjExists(ctx, r.Client, harborInstanceName, harborInstanceNamespace, &harbor)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !instanceExists {
+		helper.PullFinalizer(registry, internal.FinalizerName)
+		return ctrl.Result{}, controllererrors.ErrInstanceNotFound(
+			strings.Join([]string{harborInstanceName, harborInstanceNamespace}, "/"))
 	}
 
 	// Build a client to connect to the harbor API
-	harborClient, err := internal.BuildClient(ctx, r.Client, harbor)
+	harborClient, err := internal.BuildClient(ctx, r.Client, &harbor)
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	// Check the Harbor API if it's reporting as healthy
+	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient, &harbor)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !instanceIsHealthy {
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	switch registry.Status.Phase {
@@ -138,7 +146,7 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	return r.updateRegistryCR(ctx, harbor, originalRegistry, registry)
+	return r.updateRegistryCR(ctx, &harbor, originalRegistry, registry)
 }
 
 // updateRegistryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
