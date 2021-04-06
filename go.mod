@@ -7,7 +7,7 @@ require (
 	github.com/imdario/mergo v0.3.11
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/mittwald/go-helm-client v0.4.3
-	github.com/mittwald/goharbor-client/v3 v3.2.2-0.20210324085604-665832d010d8
+	github.com/mittwald/goharbor-client/v3 v3.2.2
 	github.com/onsi/ginkgo v1.15.2
 	github.com/onsi/gomega v1.11.0
 	github.com/spf13/pflag v1.0.5
