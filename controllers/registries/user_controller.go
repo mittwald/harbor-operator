@@ -18,9 +18,9 @@ package registries
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
@@ -38,7 +38,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // UserReconciler reconciles a User object
@@ -95,32 +94,32 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 	if user.ObjectMeta.DeletionTimestamp != nil && user.Status.Phase != v1alpha2.UserStatusPhaseTerminating {
 		user.Status = v1alpha2.UserStatus{Phase: v1alpha2.UserStatusPhaseTerminating}
 
-		return ctrl.Result{}, r.updateUserCR(ctx, nil, originalUser, user, res)
+		return r.updateUserCR(ctx, nil, originalUser, user)
 	}
 
-	// Fetch the Instance
-	harbor := v1alpha2.Instance{}
-	harborInstanceName := user.Spec.ParentInstance.Name
-	harborInstanceNamespace := user.Namespace
-
-	instanceExists, err := helper.ObjExists(ctx, r.Client, harborInstanceName, harborInstanceNamespace, &harbor)
+	// Fetch the goharbor instance if it exists and is properly set up.
+	// If the above does not apply, pull the finalizer from the user object.
+	harbor, err := helper.GetOperationalHarborInstance(ctx, client.ObjectKey{
+		Namespace: user.Namespace,
+		Name:      user.Spec.ParentInstance.Name,
+	}, r.Client)
 	if err != nil {
+		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
+			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
+			helper.PullFinalizer(user, internal.FinalizerName)
+			return r.updateUserCR(ctx, harbor, originalUser, user)
+		}
 		return ctrl.Result{}, err
-	}
-	if !instanceExists {
-		helper.PullFinalizer(user, internal.FinalizerName)
-		return ctrl.Result{}, controllererrors.ErrInstanceNotFound(
-			strings.Join([]string{harborInstanceName, harborInstanceNamespace}, "/"))
 	}
 
 	// Build a client to connect to the harbor API
-	harborClient, err := internal.BuildClient(ctx, r.Client, &harbor)
+	harborClient, err := internal.BuildClient(ctx, r.Client, harbor)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// Check the Harbor API if it's reporting as healthy
-	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient, &harbor)
+	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -176,37 +175,37 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 		res = ctrl.Result{}
 	}
 
-	return ctrl.Result{}, r.updateUserCR(ctx, &harbor, originalUser, user, res)
+	return r.updateUserCR(ctx, harbor, originalUser, user)
 }
 
 // updateUserCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
 func (r *UserReconciler) updateUserCR(ctx context.Context, parentInstance *v1alpha2.Instance, originalUser,
-	user *v1alpha2.User, result reconcile.Result) error {
+	user *v1alpha2.User) (ctrl.Result, error) {
 	if originalUser == nil || user == nil {
-		return fmt.Errorf("cannot update user because the original user has not been set")
+		return ctrl.Result{}, fmt.Errorf("cannot update user because the original user has not been set")
 	}
 
 	// Update Status
 	if !reflect.DeepEqual(originalUser.Status, user.Status) {
 		if err := r.Client.Status().Update(ctx, user); err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 	}
 
 	// set owner
 	if len(user.OwnerReferences) == 0 && parentInstance != nil {
 		if err := ctrl.SetControllerReference(parentInstance, user, r.Scheme); err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 	}
 
 	if !reflect.DeepEqual(originalUser, user) {
 		if err := r.Client.Update(ctx, user); err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
 // assertExistingUser ensures the specified user's existence.

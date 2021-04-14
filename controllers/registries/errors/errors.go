@@ -1,31 +1,36 @@
 package errors
 
-import "fmt"
+const (
+	ErrInstanceNotFoundMsg     = "instance not found"
+	ErrInstanceNotInstalledMsg = "instance is not installed"
+	ErrInstanceNotHealthyMsg   = "instance is not healthy"
+	ErrRegistryNotReadyMsg     = "instance is not ready"
+)
 
 // ErrInstanceNotFound is called when the corresponding Harbor instance could not be found.
-type ErrInstanceNotFound string
+type ErrInstanceNotFound struct{}
+
+func (e *ErrInstanceNotFound) Error() string {
+	return ErrInstanceNotFoundMsg
+}
 
 // ErrInstanceNotInstalled is called when the corresponding Harbor instance is not yet installed properly.
-type ErrInstanceNotInstalled string
+type ErrInstanceNotInstalled struct{}
+
+func (e *ErrInstanceNotInstalled) Error() string {
+	return ErrInstanceNotInstalledMsg
+}
 
 // ErrInstanceNotHealthy is called when the corresponding Harbor instance is not yet reporting healthy.
-type ErrInstanceNotHealthy string
+type ErrInstanceNotHealthy struct{}
+
+func (e *ErrInstanceNotHealthy) Error() string {
+	return ErrInstanceNotHealthyMsg
+}
 
 // ErrRegistryNotReady is called when the corresponding RegistryCR (registries.Registry) is not ready.
-type ErrRegistryNotReady string
+type ErrRegistryNotReady struct{}
 
-func (e ErrInstanceNotFound) Error() string {
-	return fmt.Sprintf("instance '%s' not found", string(e))
-}
-
-func (e ErrInstanceNotInstalled) Error() string {
-	return fmt.Sprintf("instance '%s' is not yet installed", string(e))
-}
-
-func (e ErrRegistryNotReady) Error() string {
-	return fmt.Sprintf("registry '%s' not ready", string(e))
-}
-
-func (e ErrInstanceNotHealthy) Error() string {
-	return fmt.Sprintf("instance '%s' is not yet healthy", string(e))
+func (e *ErrRegistryNotReady) Error() string {
+	return ErrRegistryNotReadyMsg
 }

@@ -18,10 +18,10 @@ package registries
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
@@ -88,29 +88,29 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return r.updateRegistryCR(ctx, nil, originalRegistry, registry)
 	}
 
-	// Fetch the Instance
-	harbor := v1alpha2.Instance{}
-	harborInstanceName := registry.Spec.ParentInstance.Name
-	harborInstanceNamespace := registry.Namespace
-
-	instanceExists, err := helper.ObjExists(ctx, r.Client, harborInstanceName, harborInstanceNamespace, &harbor)
+	// Fetch the goharbor instance if it exists and is properly set up.
+	// If the above does not apply, pull the finalizer from the registry object.
+	harbor, err := helper.GetOperationalHarborInstance(ctx, client.ObjectKey{
+		Namespace: registry.Namespace,
+		Name:      registry.Spec.ParentInstance.Name,
+	}, r.Client)
 	if err != nil {
+		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
+			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
+			helper.PullFinalizer(registry, internal.FinalizerName)
+			return r.updateRegistryCR(ctx, harbor, originalRegistry, registry)
+		}
 		return ctrl.Result{}, err
-	}
-	if !instanceExists {
-		helper.PullFinalizer(registry, internal.FinalizerName)
-		return ctrl.Result{}, controllererrors.ErrInstanceNotFound(
-			strings.Join([]string{harborInstanceName, harborInstanceNamespace}, "/"))
 	}
 
 	// Build a client to connect to the harbor API
-	harborClient, err := internal.BuildClient(ctx, r.Client, &harbor)
+	harborClient, err := internal.BuildClient(ctx, r.Client, harbor)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// Check the Harbor API if it's reporting as healthy
-	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient, &harbor)
+	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -146,7 +146,7 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	return r.updateRegistryCR(ctx, &harbor, originalRegistry, registry)
+	return r.updateRegistryCR(ctx, harbor, originalRegistry, registry)
 }
 
 // updateRegistryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.

@@ -21,10 +21,10 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -38,14 +38,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/mittwald/goharbor-client/v3/apiv2/model"
-	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
-	projectapi "github.com/mittwald/goharbor-client/v3/apiv2/project"
-	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
-
 	"github.com/go-logr/logr"
 	"github.com/jinzhu/copier"
 	h "github.com/mittwald/goharbor-client/v3/apiv2"
+	"github.com/mittwald/goharbor-client/v3/apiv2/model"
+	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
+	projectapi "github.com/mittwald/goharbor-client/v3/apiv2/project"
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 )
@@ -90,29 +88,29 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return r.updateProjectCR(ctx, nil, originalProject, project)
 	}
 
-	// Fetch the Instance
-	harbor := v1alpha2.Instance{}
-	harborInstanceName := project.Spec.ParentInstance.Name
-	harborInstanceNamespace := project.Namespace
-
-	instanceExists, err := helper.ObjExists(ctx, r.Client, harborInstanceName, harborInstanceNamespace, &harbor)
+	// Fetch the goharbor instance if it exists and is properly set up.
+	// If the above does not apply, pull the finalizer from the project object.
+	harbor, err := helper.GetOperationalHarborInstance(ctx, client.ObjectKey{
+		Namespace: project.Namespace,
+		Name:      project.Spec.ParentInstance.Name,
+	}, r.Client)
 	if err != nil {
+		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
+			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
+			helper.PullFinalizer(project, internal.FinalizerName)
+			return r.updateProjectCR(ctx, harbor, originalProject, project)
+		}
 		return ctrl.Result{}, err
-	}
-	if !instanceExists {
-		helper.PullFinalizer(project, internal.FinalizerName)
-		return ctrl.Result{}, controllererrors.ErrInstanceNotFound(
-			strings.Join([]string{harborInstanceName, harborInstanceNamespace}, "/"))
 	}
 
 	// Build a client to connect to the harbor API
-	harborClient, err := internal.BuildClient(ctx, r.Client, &harbor)
+	harborClient, err := internal.BuildClient(ctx, r.Client, harbor)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// Check the Harbor API if it's reporting as healthy
-	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient, &harbor)
+	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -150,7 +148,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	return r.updateProjectCR(ctx, &harbor, originalProject, project)
+	return r.updateProjectCR(ctx, harbor, originalProject, project)
 }
 
 func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -206,10 +204,8 @@ func (r *ProjectReconciler) updateProjectCR(ctx context.Context, parentInstance 
 func FetchHarborProjectIfExists(ctx context.Context, harborClient *h.RESTClient, projectName string) (*model.Project, bool, error) {
 	p, err := harborClient.GetProjectByName(ctx, projectName)
 	if err != nil {
-		if errors.Is(&projectapi.ErrProjectUnknownResource{}, err) {
-			return nil, false, nil
-		}
-		if errors.Is(&projectapi.ErrProjectNotFound{}, err) {
+		if errors.Is(&projectapi.ErrProjectUnknownResource{}, err) ||
+			errors.Is(&projectapi.ErrProjectNotFound{}, err) {
 			return nil, false, nil
 		}
 		return p, false, err

@@ -13,8 +13,5 @@ func AdminUserExists(ctx context.Context, harborClient *h.RESTClient) (bool, err
 	if err != nil {
 		return false, err
 	}
-	if a != nil {
-		return true, nil
-	}
-	return false, nil
+	return a != nil, nil
 }
