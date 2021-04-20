@@ -170,3 +170,13 @@ func TestObjExists(t *testing.T) {
 		assert.Equal(t, true, exists)
 	})
 }
+
+func TestGenerateHashFromInterfaces(t *testing.T) {
+	h, err := helper.GenerateHashFromInterfaces([]interface{}{"test", 1})
+	assert.NoError(t, err)
+	h2, err := helper.GenerateHashFromInterfaces([]interface{}{"test", 1})
+	assert.NoError(t, err)
+	if assert.NotEmpty(t, h) && assert.NotEmpty(t, h2) {
+		assert.Equal(t, h, h2)
+	}
+}

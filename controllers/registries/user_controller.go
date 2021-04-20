@@ -18,13 +18,16 @@ package registries
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
+	"github.com/go-logr/logr"
 	h "github.com/mittwald/goharbor-client/v3/apiv2"
 	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
 	userapi "github.com/mittwald/goharbor-client/v3/apiv2/user"
@@ -32,13 +35,9 @@ import (
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // UserReconciler reconciles a User object
@@ -75,8 +74,6 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 	reqLogger := r.Log.WithValues("user", req.NamespacedName)
 	reqLogger.Info("Reconciling User")
 
-	now := metav1.Now()
-
 	// Fetch the User instance
 	user := &v1alpha2.User{}
 
@@ -96,32 +93,38 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 
 	if user.ObjectMeta.DeletionTimestamp != nil && user.Status.Phase != v1alpha2.UserStatusPhaseTerminating {
 		user.Status = v1alpha2.UserStatus{Phase: v1alpha2.UserStatusPhaseTerminating}
-		res = ctrl.Result{Requeue: true}
 
-		return r.updateUserCR(ctx, nil, originalUser, user, res)
+		return r.updateUserCR(ctx, nil, originalUser, user)
 	}
 
-	// Fetch the Instance
-	harbor, err := internal.FetchReadyHarborInstance(ctx, user.Namespace, user.Spec.ParentInstance.Name, r.Client)
+	// Fetch the goharbor instance if it exists and is properly set up.
+	// If the above does not apply, pull the finalizer from the user object.
+	harbor, err := helper.GetOperationalHarborInstance(ctx, client.ObjectKey{
+		Namespace: user.Namespace,
+		Name:      user.Spec.ParentInstance.Name,
+	}, r.Client)
 	if err != nil {
-		if _, ok := err.(internal.ErrInstanceNotFound); ok {
+		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
+			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
 			helper.PullFinalizer(user, internal.FinalizerName)
-
-			res = ctrl.Result{}
-		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, err
-		} else {
-			user.Status = v1alpha2.UserStatus{LastTransition: &now}
-			res = ctrl.Result{RequeueAfter: 120 * time.Second}
+			return r.updateUserCR(ctx, harbor, originalUser, user)
 		}
-
-		return r.updateUserCR(ctx, nil, originalUser, user, res)
+		return ctrl.Result{}, err
 	}
 
 	// Build a client to connect to the harbor API
 	harborClient, err := internal.BuildClient(ctx, r.Client, harbor)
 	if err != nil {
-		return reconcile.Result{Requeue: true}, err
+		return ctrl.Result{}, err
+	}
+
+	// Check the Harbor API if it's reporting as healthy
+	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !instanceIsHealthy {
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	// Handle user reconciliation
@@ -134,9 +137,18 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 		if err := r.Client.Status().Update(ctx, user); err != nil {
 			return ctrl.Result{}, err
 		}
-		return reconcile.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, nil
 
 	case v1alpha2.UserStatusPhaseCreating:
+		// Prior to handling operations on the user instance, the harbor 'admin' user has to exist.
+		adminUserExists, err := helper.AdminUserExists(ctx, harborClient)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if !adminUserExists {
+			r.Log.Info("harbor admin user does not yet exist")
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
 		if err := r.assertExistingUser(ctx, harborClient, user); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -144,7 +156,7 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 		helper.PushFinalizer(user, internal.FinalizerName)
 
 		user.Status.Phase = v1alpha2.UserStatusPhaseReady
-		res = reconcile.Result{Requeue: true}
+		res = ctrl.Result{Requeue: true}
 
 	case v1alpha2.UserStatusPhaseReady:
 		err := r.assertExistingUser(ctx, harborClient, user)
@@ -163,15 +175,14 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 		res = ctrl.Result{}
 	}
 
-	return r.updateUserCR(ctx, harbor, originalUser, user, res)
+	return r.updateUserCR(ctx, harbor, originalUser, user)
 }
 
 // updateUserCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
 func (r *UserReconciler) updateUserCR(ctx context.Context, parentInstance *v1alpha2.Instance, originalUser,
-	user *v1alpha2.User, result reconcile.Result) (ctrl.Result, error) {
+	user *v1alpha2.User) (ctrl.Result, error) {
 	if originalUser == nil || user == nil {
-		return ctrl.Result{},
-			fmt.Errorf("cannot update user because the original user has not been set")
+		return ctrl.Result{}, fmt.Errorf("cannot update user because the original user has not been set")
 	}
 
 	// Update Status
@@ -194,7 +205,7 @@ func (r *UserReconciler) updateUserCR(ctx context.Context, parentInstance *v1alp
 		}
 	}
 
-	return result, nil
+	return ctrl.Result{}, nil
 }
 
 // assertExistingUser ensures the specified user's existence.

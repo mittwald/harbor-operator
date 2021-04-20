@@ -27,11 +27,11 @@ import (
 	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
 	replicationapi "github.com/mittwald/goharbor-client/v3/apiv2/replication"
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -59,8 +59,6 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	reqLogger := r.Log.WithValues("replication", req.NamespacedName)
 	reqLogger.Info("Reconciling Replication")
 
-	now := metav1.Now()
-
 	// Fetch the Replication instance
 	replication := &v1alpha2.Replication{}
 
@@ -83,27 +81,34 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return r.updateReplicationCR(ctx, nil, originalReplication, replication)
 	}
 
-	// Fetch the Instance
-	harbor, err := internal.FetchReadyHarborInstance(ctx,
-		replication.Namespace,
-		replication.Spec.ParentInstance.Name,
-		r.Client)
+	// Fetch the goharbor instance if it exists and is properly set up.
+	// If the above does not apply, pull the finalizer from the replication object.
+	harbor, err := helper.GetOperationalHarborInstance(ctx, client.ObjectKey{
+		Namespace: replication.Namespace,
+		Name:      replication.Spec.ParentInstance.Name,
+	}, r.Client)
 	if err != nil {
-		if _, ok := err.(internal.ErrInstanceNotFound); ok {
+		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
+			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
 			helper.PullFinalizer(replication, internal.FinalizerName)
-		} else if _, ok := err.(internal.ErrInstanceNotReady); ok {
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, err
-		} else {
-			replication.Status = v1alpha2.ReplicationStatus{LastTransition: &now}
+			return r.updateReplicationCR(ctx, harbor, originalReplication, replication)
 		}
-
-		return r.updateReplicationCR(ctx, nil, originalReplication, replication)
+		return ctrl.Result{}, err
 	}
 
 	// Build a client to connect to the harbor API
 	harborClient, err := internal.BuildClient(ctx, r.Client, harbor)
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	// Check the Harbor API if it's reporting as healthy
+	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !instanceIsHealthy {
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	switch replication.Status.Phase {
@@ -493,7 +498,7 @@ func (r *ReplicationReconciler) getHarborRegistryFromRef(ctx context.Context, re
 	}
 
 	if registry.Status.Phase != v1alpha2.RegistryStatusPhaseReady {
-		return nil, internal.ErrRegistryNotReady(registry.Name)
+		return nil, &controllererrors.ErrRegistryNotReady{}
 	}
 
 	var credential *legacymodel.RegistryCredential

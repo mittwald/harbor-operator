@@ -13,8 +13,8 @@ spec:
   parentInstance:
     name: test-harbor
     # All project metadata fields but 'public' are optional
-    metadata:
-      public:                 false
+  metadata:
+    public:                 false
 #    enableContentTrust:     false
 #    autoScan:               false
 #    severity:               "none"
