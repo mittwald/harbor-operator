@@ -4,24 +4,48 @@ multigroup: true
 projectName: harbor-operator
 repo: github.com/mittwald/harbor-operator
 resources:
-- group: registries
+-
+  controller: true
+  domain: mittwald.de
+  group: registries
   kind: InstanceChartRepository
+  path: github.com/mittwald/harbor-operator/apis/registries/v1alpha2
   version: v1alpha2
-- group: registries
+-
+  controller: true
+  domain: mittwald.de
+  group: registries
   kind: Instance
+  path: github.com/mittwald/harbor-operator/apis/registries/v1alpha2
   version: v1alpha2
-- group: registries
+-
+  controller: true
+  domain: mittwald.de
+  group: registries
   kind: Registry
+  path: github.com/mittwald/harbor-operator/apis/registries/v1alpha2
   version: v1alpha2
-- group: registries
+-
+  controller: true
+  domain: mittwald.de
+  group: registries
   kind: Replication
+  path: github.com/mittwald/harbor-operator/apis/registries/v1alpha2
   version: v1alpha2
-- group: registries
+-
+  controller: true
+  domain: mittwald.de
+  group: registries
   kind: User
+  path: github.com/mittwald/harbor-operator/apis/registries/v1alpha2
   version: v1alpha2
-- group: registries
+-
+  controller: true
+  domain: mittwald.de
+  group: registries
   kind: Project
+  path: github.com/mittwald/harbor-operator/apis/registries/v1alpha2
   version: v1alpha2
-version: 3-alpha
+version: "3"
 plugins:
   go.sdk.operatorframework.io/v2-alpha: {}

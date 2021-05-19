@@ -23,6 +23,10 @@ func PushFinalizer(o metav1.Object, finalizer string) {
 
 func PullFinalizer(o metav1.Object, finalizer string) {
 	finalizers := o.GetFinalizers()
+	if len(finalizers) == 0 {
+		return
+	}
+
 	newFinalizers := make([]string, 0, len(finalizers))
 
 	for _, f := range finalizers {

@@ -98,6 +98,7 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
 			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
 			helper.PullFinalizer(registry, internal.FinalizerName)
+			helper.PullFinalizer(registry, internal.OldFinalizerName)
 			return r.updateRegistryCR(ctx, harbor, originalRegistry, registry)
 		}
 		return ctrl.Result{}, err
@@ -336,6 +337,7 @@ func (r *RegistryReconciler) assertDeletedRegistry(ctx context.Context, log logr
 		}
 		log.Info("pulling finalizers")
 		helper.PullFinalizer(registry, internal.FinalizerName)
+		helper.PullFinalizer(registry, internal.OldFinalizerName)
 	}
 
 	return nil

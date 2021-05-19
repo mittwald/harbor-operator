@@ -91,6 +91,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
 			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
 			helper.PullFinalizer(replication, internal.FinalizerName)
+			helper.PullFinalizer(replication, internal.OldFinalizerName)
 			return r.updateReplicationCR(ctx, harbor, originalReplication, replication)
 		}
 		return ctrl.Result{}, err
@@ -527,6 +528,7 @@ func (r *ReplicationReconciler) assertDeletedReplication(ctx context.Context, lo
 
 	log.Info("pulling finalizers")
 	helper.PullFinalizer(replication, internal.FinalizerName)
+	helper.PullFinalizer(replication, internal.OldFinalizerName)
 
 	return nil
 }

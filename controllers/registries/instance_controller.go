@@ -128,7 +128,6 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		harbor.Status.Phase.Name = v1alpha2.InstanceStatusPhaseInstalled
-		harbor.Status.Version = harbor.Spec.HelmChart.Version
 
 		// Creating a spec hash of the chart spec pre-installation
 		// ensures that it is set in "InstanceStatusPhaseInstalled", preventing the controller
@@ -196,6 +195,7 @@ func (r *InstanceReconciler) reconcileTerminatingInstance(ctx context.Context, l
 
 	log.Info("pulling finalizers")
 	helper.PullFinalizer(harbor, internal.FinalizerName)
+	helper.PullFinalizer(harbor, internal.OldFinalizerName)
 
 	return nil
 }

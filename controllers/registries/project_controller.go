@@ -98,6 +98,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
 			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
 			helper.PullFinalizer(project, internal.FinalizerName)
+			helper.PullFinalizer(project, internal.OldFinalizerName)
 			return r.updateProjectCR(ctx, harbor, originalProject, project)
 		}
 		return ctrl.Result{}, err
@@ -244,6 +245,7 @@ func (r *ProjectReconciler) assertDeletedProject(ctx context.Context, log logr.L
 
 	log.Info("pulling finalizers", project.Name, project.Namespace)
 	helper.PullFinalizer(project, internal.FinalizerName)
+	helper.PullFinalizer(project, internal.OldFinalizerName)
 
 	return nil
 }

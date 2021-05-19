@@ -24,10 +24,6 @@ spec:
       jsonPath: .status.phase.name
       name: Status
       type: string
-    - description: instance version
-      jsonPath: .spec.version
-      name: Version
-      type: string
     - description: harbor instance url
       jsonPath: .spec.instanceURL
       name: URL
@@ -172,8 +168,6 @@ spec:
                 - name
                 type: object
               specHash:
-                type: string
-              version:
                 type: string
             required:
             - phase
