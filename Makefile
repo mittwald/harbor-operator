@@ -55,6 +55,14 @@ manifests: controller-gen
 	sed 's/manager-rolebinding/{{ include "harbor-operator.name" . }}/g; s/manager-role/{{ include "harbor-operator.name" . }}/g; s/default/{{ include "harbor-operator.name" . }}/g; s/system/{{ .Release.Namespace }}/g' \
 		./config/rbac/role_binding.yaml >> ./deploy/helm-chart/harbor-operator/templates/role_binding.yaml
 
+UNAME := $(shell uname -s)
+
+ifeq ($(UNAME),Darwin)
+SED=gsed
+else
+SED=sed
+endif
+
 # Run go fmt against code
 fmt:
 	go fmt $$(go list ./...)

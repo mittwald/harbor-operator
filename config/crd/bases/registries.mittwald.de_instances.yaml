@@ -53,8 +53,8 @@ spec:
             description: InstanceSpec defines the desired state of Instance.
             properties:
               garbageCollection:
-                description: GarbageCollectionReq holds request information for a
-                  garbage collection schedule.
+                description: GarbageCollection holds request information for a garbage
+                  collection schedule.
                 properties:
                   cron:
                     type: string

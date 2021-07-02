@@ -70,7 +70,7 @@ type InstanceSpec struct {
 	GarbageCollection *GarbageCollection `json:"garbageCollection,omitempty"`
 }
 
-// GarbageCollectionReq holds request information for a garbage collection schedule.
+// GarbageCollection holds request information for a garbage collection schedule.
 type GarbageCollection struct {
 	// +kubebuilder:validation:Optional
 	Cron string `json:"cron,omitempty"`

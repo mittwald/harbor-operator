@@ -29,9 +29,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/go-logr/logr"
-	h "github.com/mittwald/goharbor-client/v3/apiv2"
-	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
-	registryapi "github.com/mittwald/goharbor-client/v3/apiv2/registry"
+	h "github.com/mittwald/goharbor-client/v4/apiv2"
+	legacymodel "github.com/mittwald/goharbor-client/v4/apiv2/model/legacy"
+	registryapi "github.com/mittwald/goharbor-client/v4/apiv2/registry"
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"

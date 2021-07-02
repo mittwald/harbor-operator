@@ -3,7 +3,7 @@ package internal
 import (
 	"strconv"
 
-	"github.com/mittwald/goharbor-client/v3/apiv2/model"
+	"github.com/mittwald/goharbor-client/v4/apiv2/model"
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 )
 

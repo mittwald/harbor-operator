@@ -1,7 +1,7 @@
 package helper
 
 import (
-	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
+	legacymodel "github.com/mittwald/goharbor-client/v4/apiv2/model/legacy"
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 )
 

@@ -24,12 +24,13 @@ import (
 	"time"
 
 	helmclient "github.com/mittwald/go-helm-client"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	"github.com/mittwald/harbor-operator/controllers/registries/config"
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -247,7 +248,13 @@ func (r *InstanceReconciler) installOrUpgradeHelmChart(ctx context.Context, helm
 		return err
 	}
 
-	return helmClient.InstallOrUpgradeChart(ctx, helmChart)
+	helmChart.Timeout = 5 * time.Minute
+
+	if _, err = helmClient.InstallOrUpgradeChart(ctx, helmChart); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // uninstallHelmRelease uninstalls a helm release.
