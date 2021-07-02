@@ -109,6 +109,7 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
 			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
 			helper.PullFinalizer(user, internal.FinalizerName)
+			helper.PullFinalizer(user, internal.OldFinalizerName)
 			return r.updateUserCR(ctx, harbor, originalUser, user)
 		}
 		return ctrl.Result{}, err
@@ -341,6 +342,7 @@ func (r *UserReconciler) assertDeletedUser(ctx context.Context, log logr.Logger,
 
 	log.Info("pulling finalizers")
 	helper.PullFinalizer(user, internal.FinalizerName)
+	helper.PullFinalizer(user, internal.OldFinalizerName)
 
 	return nil
 }

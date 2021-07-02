@@ -24,21 +24,23 @@ import (
 	"reflect"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
-	corev1 "k8s.io/api/core/v1"
 
 	"github.com/go-logr/logr"
 	h "github.com/mittwald/goharbor-client/v4/apiv2"
 	legacymodel "github.com/mittwald/goharbor-client/v4/apiv2/model/legacy"
 	registryapi "github.com/mittwald/goharbor-client/v4/apiv2/registry"
-	"github.com/mittwald/harbor-operator/controllers/registries/helper"
-	"github.com/mittwald/harbor-operator/controllers/registries/internal"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	"github.com/mittwald/harbor-operator/controllers/registries/helper"
+	"github.com/mittwald/harbor-operator/controllers/registries/internal"
 )
 
 // RegistryReconciler reconciles a Registry object
@@ -98,6 +100,7 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
 			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
 			helper.PullFinalizer(registry, internal.FinalizerName)
+			helper.PullFinalizer(registry, internal.OldFinalizerName)
 			return r.updateRegistryCR(ctx, harbor, originalRegistry, registry)
 		}
 		return ctrl.Result{}, err
@@ -336,6 +339,7 @@ func (r *RegistryReconciler) assertDeletedRegistry(ctx context.Context, log logr
 		}
 		log.Info("pulling finalizers")
 		helper.PullFinalizer(registry, internal.FinalizerName)
+		helper.PullFinalizer(registry, internal.OldFinalizerName)
 	}
 
 	return nil
