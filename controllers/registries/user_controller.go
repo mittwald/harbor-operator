@@ -23,21 +23,23 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
-	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
+	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
+
 	"github.com/go-logr/logr"
-	h "github.com/mittwald/goharbor-client/v3/apiv2"
-	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
-	userapi "github.com/mittwald/goharbor-client/v3/apiv2/user"
-	"github.com/mittwald/harbor-operator/controllers/registries/helper"
-	"github.com/mittwald/harbor-operator/controllers/registries/internal"
+	h "github.com/mittwald/goharbor-client/v4/apiv2"
+	legacymodel "github.com/mittwald/goharbor-client/v4/apiv2/model/legacy"
+	userapi "github.com/mittwald/goharbor-client/v4/apiv2/user"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/mittwald/harbor-operator/controllers/registries/helper"
+	"github.com/mittwald/harbor-operator/controllers/registries/internal"
 )
 
 // UserReconciler reconciles a User object
@@ -107,6 +109,7 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
 			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
 			helper.PullFinalizer(user, internal.FinalizerName)
+			helper.PullFinalizer(user, internal.OldFinalizerName)
 			return r.updateUserCR(ctx, harbor, originalUser, user)
 		}
 		return ctrl.Result{}, err
@@ -339,6 +342,7 @@ func (r *UserReconciler) assertDeletedUser(ctx context.Context, log logr.Logger,
 
 	log.Info("pulling finalizers")
 	helper.PullFinalizer(user, internal.FinalizerName)
+	helper.PullFinalizer(user, internal.OldFinalizerName)
 
 	return nil
 }

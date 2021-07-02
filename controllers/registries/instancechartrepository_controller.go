@@ -21,18 +21,20 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
+	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
+
 	"github.com/go-logr/logr"
-	"github.com/mittwald/harbor-operator/controllers/registries/config"
-	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	"helm.sh/helm/v3/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/mittwald/harbor-operator/controllers/registries/config"
+	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 )
 
 // InstanceChartRepositoryReconciler reconciles a InstanceChartRepository object
@@ -182,6 +184,7 @@ func (r *InstanceChartRepositoryReconciler) specToRepoEntry(ctx context.Context,
 	entry.CertFile = string(secret.Data["certFile"])
 	entry.KeyFile = string(secret.Data["keyFile"])
 	entry.CAFile = string(secret.Data["caFile"])
+	entry.PassCredentialsAll = true
 
 	return &entry, nil
 }

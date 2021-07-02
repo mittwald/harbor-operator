@@ -23,15 +23,17 @@ import (
 	"reflect"
 	"time"
 
-	h "github.com/mittwald/goharbor-client/v3/apiv2"
-	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
-	replicationapi "github.com/mittwald/goharbor-client/v3/apiv2/replication"
+	h "github.com/mittwald/goharbor-client/v4/apiv2"
+	"github.com/mittwald/goharbor-client/v4/apiv2/model"
+	legacymodel "github.com/mittwald/goharbor-client/v4/apiv2/model/legacy"
+	replicationapi "github.com/mittwald/goharbor-client/v4/apiv2/replication"
+	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
-	corev1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -91,6 +93,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
 			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
 			helper.PullFinalizer(replication, internal.FinalizerName)
+			helper.PullFinalizer(replication, internal.OldFinalizerName)
 			return r.updateReplicationCR(ctx, harbor, originalReplication, replication)
 		}
 		return ctrl.Result{}, err
@@ -125,9 +128,8 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 		helper.PushFinalizer(replication, internal.FinalizerName)
 		if replication.Spec.TriggerAfterCreation {
-			replExec := &legacymodel.ReplicationExecution{
+			replExec := &model.StartReplicationExecution{
 				PolicyID: replication.Status.ID,
-				Trigger:  v1alpha2.ReplicationTriggerTypeManual,
 			}
 
 			if err := harborClient.TriggerReplicationExecution(ctx, replExec); err != nil {
@@ -187,7 +189,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 // the replication and checks, whether it is still running or not.
 // Returns an error, if no replication execution could be found for the replication policy.
 func (r *ReplicationReconciler) reconcileRunningReplicationExecution(ctx context.Context, replication *v1alpha2.Replication, harborClient *h.RESTClient) (bool, error) {
-	replExec := &legacymodel.ReplicationExecution{
+	replExec := &model.ReplicationExecution{
 		PolicyID: replication.Status.ID,
 		Trigger:  v1alpha2.ReplicationTriggerTypeManual,
 	}
@@ -213,7 +215,7 @@ func (r *ReplicationReconciler) reconcileRunningReplicationExecution(ctx context
 
 // reconcileFinishedReplicationExecution fetches the latest finished replication execution and returns an error when it has failed.
 func (r *ReplicationReconciler) reconcileFinishedReplicationExecution(ctx context.Context, replication *v1alpha2.Replication, harborClient *h.RESTClient) error {
-	replExec := &legacymodel.ReplicationExecution{
+	replExec := &model.ReplicationExecution{
 		PolicyID: replication.Status.ID,
 		Trigger:  v1alpha2.ReplicationTriggerTypeManual,
 	}
@@ -244,7 +246,7 @@ func (r *ReplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // getNewestReplicationExecutionID takes a slice of replication executions and returns the one with the highest ID.
-func getNewestReplicationExecutionID(executions []*legacymodel.ReplicationExecution) int64 {
+func getNewestReplicationExecutionID(executions []*model.ReplicationExecution) int64 {
 	max := executions[0].ID
 	for i := range executions {
 		if max < executions[i].ID {
@@ -527,6 +529,7 @@ func (r *ReplicationReconciler) assertDeletedReplication(ctx context.Context, lo
 
 	log.Info("pulling finalizers")
 	helper.PullFinalizer(replication, internal.FinalizerName)
+	helper.PullFinalizer(replication, internal.OldFinalizerName)
 
 	return nil
 }

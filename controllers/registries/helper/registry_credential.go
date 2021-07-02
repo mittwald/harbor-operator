@@ -6,7 +6,7 @@ import (
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 
-	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
+	legacymodel "github.com/mittwald/goharbor-client/v4/apiv2/model/legacy"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

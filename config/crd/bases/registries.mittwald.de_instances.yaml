@@ -24,10 +24,6 @@ spec:
       jsonPath: .status.phase.name
       name: Status
       type: string
-    - description: instance version
-      jsonPath: .spec.version
-      name: Version
-      type: string
     - description: harbor instance url
       jsonPath: .spec.instanceURL
       name: URL
@@ -53,8 +49,8 @@ spec:
             description: InstanceSpec defines the desired state of Instance.
             properties:
               garbageCollection:
-                description: GarbageCollectionReq holds request information for a
-                  garbage collection schedule.
+                description: GarbageCollection holds request information for a garbage
+                  collection schedule.
                 properties:
                   cron:
                     type: string
@@ -172,8 +168,6 @@ spec:
                 - name
                 type: object
               specHash:
-                type: string
-              version:
                 type: string
             required:
             - phase

@@ -2,14 +2,15 @@ package registries
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 
-	"github.com/mittwald/goharbor-client/v3/apiv2/system"
+	gcapi "github.com/mittwald/goharbor-client/v4/apiv2/gc"
+	model "github.com/mittwald/goharbor-client/v4/apiv2/model"
+
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
-
-	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
 )
 
 // reconcileGarbageCollection reads the state of a configured garbage collection schedule and compares it to the user
@@ -25,29 +26,26 @@ func (r *InstanceReconciler) reconcileGarbageCollection(ctx context.Context, har
 		return err
 	}
 
-	newGc := legacymodel.AdminJobSchedule{
-		Schedule: &legacymodel.AdminJobScheduleObj{
+	newGc := model.Schedule{
+		Parameters: nil,
+		Schedule: &model.ScheduleObj{
 			Cron: harbor.Spec.GarbageCollection.Cron,
 			Type: string(scheduleType),
 		},
 	}
 
-	gc, err := harborClient.GetSystemGarbageCollection(ctx)
-	if err != nil && err.Error() == system.ErrSystemGcUndefinedMsg {
-		if _, err := harborClient.NewSystemGarbageCollection(
-			ctx,
-			newGc.Schedule.Cron,
-			newGc.Schedule.Type,
-		); err != nil {
-			return err
+	gc, err := harborClient.GetGarbageCollectionSchedule(ctx)
+	if err != nil {
+		if errors.Is(&gcapi.ErrSystemGcScheduleUndefined{}, err) {
+			// The initial GC schedule is always undefined, set it to the desired schedule.
+			return harborClient.NewGarbageCollection(ctx, &newGc)
 		}
-	} else {
 		return err
 	}
 
 	// Compare the constructed garbage collection to the existing one and update accordingly
-	if !reflect.DeepEqual(newGc, gc) {
-		err = harborClient.UpdateSystemGarbageCollection(ctx, newGc.Schedule)
+	if !reflect.DeepEqual(newGc.Schedule, gc.Schedule) {
+		err = harborClient.UpdateGarbageCollection(ctx, &newGc)
 		if err != nil {
 			return err
 		}

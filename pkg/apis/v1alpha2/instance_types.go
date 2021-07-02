@@ -33,7 +33,6 @@ const (
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=instances,scope=Namespaced,shortName=harborinstance;harbor
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase.name",description="phase"
-// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.version",description="instance version"
 // +kubebuilder:printcolumn:name="URL",type="string",JSONPath=".spec.instanceURL", description="harbor instance url"
 type Instance struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -70,7 +69,7 @@ type InstanceSpec struct {
 	GarbageCollection *GarbageCollection `json:"garbageCollection,omitempty"`
 }
 
-// GarbageCollectionReq holds request information for a garbage collection schedule.
+// GarbageCollection holds request information for a garbage collection schedule.
 type GarbageCollection struct {
 	// +kubebuilder:validation:Optional
 	Cron string `json:"cron,omitempty"`
@@ -95,9 +94,6 @@ type InstanceHelmChartSecretValues struct {
 // InstanceStatus defines the observed state of Instance.
 type InstanceStatus struct {
 	Phase InstanceStatusPhase `json:"phase"`
-
-	// +kubebuilder:validation:Optional
-	Version string `json:"version"`
 
 	SpecHash string `json:"specHash"`
 }

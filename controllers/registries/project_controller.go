@@ -23,11 +23,12 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
-	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -40,12 +41,13 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/jinzhu/copier"
-	h "github.com/mittwald/goharbor-client/v3/apiv2"
-	"github.com/mittwald/goharbor-client/v3/apiv2/model"
-	legacymodel "github.com/mittwald/goharbor-client/v3/apiv2/model/legacy"
-	projectapi "github.com/mittwald/goharbor-client/v3/apiv2/project"
-	"github.com/mittwald/harbor-operator/controllers/registries/helper"
+	h "github.com/mittwald/goharbor-client/v4/apiv2"
+	"github.com/mittwald/goharbor-client/v4/apiv2/model"
+	legacymodel "github.com/mittwald/goharbor-client/v4/apiv2/model/legacy"
+	projectapi "github.com/mittwald/goharbor-client/v4/apiv2/project"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+
+	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 )
 
 // ProjectReconciler reconciles a Project object
@@ -98,6 +100,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
 			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
 			helper.PullFinalizer(project, internal.FinalizerName)
+			helper.PullFinalizer(project, internal.OldFinalizerName)
 			return r.updateProjectCR(ctx, harbor, originalProject, project)
 		}
 		return ctrl.Result{}, err
@@ -202,7 +205,7 @@ func (r *ProjectReconciler) updateProjectCR(ctx context.Context, parentInstance 
 }
 
 func FetchHarborProjectIfExists(ctx context.Context, harborClient *h.RESTClient, projectName string) (*model.Project, bool, error) {
-	p, err := harborClient.GetProjectByName(ctx, projectName)
+	p, err := harborClient.GetProject(ctx, projectName)
 	if err != nil {
 		if errors.Is(&projectapi.ErrProjectUnknownResource{}, err) ||
 			errors.Is(&projectapi.ErrProjectNotFound{}, err) {
@@ -244,6 +247,7 @@ func (r *ProjectReconciler) assertDeletedProject(ctx context.Context, log logr.L
 
 	log.Info("pulling finalizers", project.Name, project.Namespace)
 	helper.PullFinalizer(project, internal.FinalizerName)
+	helper.PullFinalizer(project, internal.OldFinalizerName)
 
 	return nil
 }
@@ -252,7 +256,7 @@ func (r *ProjectReconciler) assertDeletedProject(ctx context.Context, log logr.L
 // Check Harbor projects and their components for their existence,
 // create and delete either of those to match the specification.
 func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborClient *h.RESTClient, project *v1alpha2.Project) error {
-	heldRepo, err := harborClient.GetProjectByName(ctx, project.Spec.Name)
+	heldRepo, err := harborClient.GetProject(ctx, project.Spec.Name)
 
 	if errors.Is(err, &projectapi.ErrProjectNotFound{}) {
 		storageLimit := int64(project.Spec.StorageLimit)

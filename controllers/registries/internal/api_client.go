@@ -3,7 +3,7 @@ package internal
 import (
 	"context"
 
-	h "github.com/mittwald/goharbor-client/v3/apiv2"
+	h "github.com/mittwald/goharbor-client/v4/apiv2"
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	corev1 "k8s.io/api/core/v1"
