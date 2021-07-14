@@ -241,6 +241,7 @@ func (r *InstanceReconciler) updateHelmRepos() error {
 }
 
 // installOrUpgradeHelmChart installs and upgrades a helm chart.
+// If the install/upgrade operation fails however, a rollback to the latest release will be performed.
 func (r *InstanceReconciler) installOrUpgradeHelmChart(ctx context.Context, helmChart *helmclient.ChartSpec) error {
 	helmClient, err := r.HelmClientReceiver(config.Config.HelmClientRepositoryCachePath,
 		config.Config.HelmClientRepositoryConfigPath, helmChart.Namespace)
@@ -250,8 +251,15 @@ func (r *InstanceReconciler) installOrUpgradeHelmChart(ctx context.Context, helm
 
 	helmChart.Timeout = 5 * time.Minute
 
-	if _, err = helmClient.InstallOrUpgradeChart(ctx, helmChart); err != nil {
-		return err
+	upgradedRelease, upgradeErr := helmClient.InstallOrUpgradeChart(ctx, helmChart)
+	if upgradeErr != nil {
+		if upgradedRelease != nil {
+			rollbackErr := helmClient.RollbackRelease(helmChart, 0)
+			if rollbackErr != nil {
+				return fmt.Errorf("rollback failed: (%s), upgrade failed: %w", rollbackErr, upgradeErr)
+			}
+		}
+		return upgradeErr
 	}
 
 	return nil
