@@ -95,6 +95,7 @@ type InstanceHelmChartSecretValues struct {
 type InstanceStatus struct {
 	Phase InstanceStatusPhase `json:"phase"`
 
+	// +optional
 	SpecHash string `json:"specHash"`
 }
 

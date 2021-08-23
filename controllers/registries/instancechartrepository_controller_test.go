@@ -1,12 +1,13 @@
 package registries_test
 
 import (
-	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
-	registriestesting "github.com/mittwald/harbor-operator/controllers/registries/testing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
+	registriestesting "github.com/mittwald/harbor-operator/controllers/registries/testing"
 )
 
 var _ = Describe("InstanceChartRepositoryController", func() {
@@ -14,7 +15,7 @@ var _ = Describe("InstanceChartRepositoryController", func() {
 		name = testInstanceChartRepositoryName
 		namespace = testNamespaceName
 		request = ctrl.Request{
-			NamespacedName: types.NamespacedName{
+			NamespacedName: client.ObjectKey{
 				Name:      name,
 				Namespace: namespace,
 			},
@@ -26,7 +27,7 @@ var _ = Describe("InstanceChartRepositoryController", func() {
 			BeforeEach(func() {
 				instanceChartRepository = registriestesting.CreateInstanceChartRepository(name, namespace)
 				Ω(k8sClient.Create(ctx, instanceChartRepository)).Should(Succeed())
-				Ω(k8sClient.Get(ctx, types.NamespacedName{
+				Ω(k8sClient.Get(ctx, client.ObjectKey{
 					Name:      name,
 					Namespace: namespace,
 				},

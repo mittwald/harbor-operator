@@ -104,7 +104,6 @@ type ProjectList struct {
 
 // ProjectStatus defines the state of a single project
 type ProjectStatus struct {
-	Name    string                 `json:"name"`
 	Phase   ProjectStatusPhaseName `json:"phase"`
 	Message string                 `json:"message"`
 	// Time of last observed transition into this state

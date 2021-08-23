@@ -114,13 +114,10 @@ spec:
                 type: string
               message:
                 type: string
-              name:
-                type: string
               phase:
                 type: string
             required:
             - message
-            - name
             - phase
             type: object
         type: object

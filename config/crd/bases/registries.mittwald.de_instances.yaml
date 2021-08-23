@@ -171,7 +171,6 @@ spec:
                 type: string
             required:
             - phase
-            - specHash
             type: object
         type: object
     served: true

@@ -143,13 +143,10 @@ spec:
                 type: array
               message:
                 type: string
-              name:
-                type: string
               phase:
                 type: string
             required:
             - message
-            - name
             - phase
             type: object
         type: object

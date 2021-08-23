@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 
@@ -59,6 +60,8 @@ func (r *InstanceChartRepositoryReconciler) Reconcile(ctx context.Context, req c
 	// Fetch the InstanceChartRepository instance
 	instance := &v1alpha2.InstanceChartRepository{}
 
+	patch := client.MergeFrom(instance.DeepCopy())
+
 	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
@@ -79,7 +82,8 @@ func (r *InstanceChartRepositoryReconciler) Reconcile(ctx context.Context, req c
 
 	entry, err := r.specToRepoEntry(ctx, instance)
 	if err != nil {
-		return r.setErrStatus(ctx, instance, err)
+		instance.Status.State = v1alpha2.RepoStateError
+		return ctrl.Result{}, r.Client.Status().Patch(ctx, instance, patch)
 	}
 
 	helmClient, err := r.HelmClientReceiver(config.HelmClientRepoCachePath,
@@ -90,15 +94,13 @@ func (r *InstanceChartRepositoryReconciler) Reconcile(ctx context.Context, req c
 
 	err = helmClient.AddOrUpdateChartRepo(*entry)
 	if err != nil {
-		return r.setErrStatus(ctx, instance, err)
+		instance.Status.State = v1alpha2.RepoStateError
+		return ctrl.Result{}, r.Client.Status().Patch(ctx, instance, patch)
 	}
 
 	instance.Status.State = v1alpha2.RepoStateReady
-	if err = r.Client.Status().Update(ctx, instance); err != nil {
-		return ctrl.Result{}, err
-	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, r.Client.Status().Patch(ctx, instance, patch)
 }
 
 func (r *InstanceChartRepositoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -115,42 +117,17 @@ func (r *InstanceChartRepositoryReconciler) SetupWithManager(mgr ctrl.Manager) e
 // reconcileInstanceChartRepositorySecret fetches the secret specified in an
 // InstanceChartRepository's spec and sets an OwnerReference to the owned Object.
 // Returns nil when the OwnerReference has been successfully set, or when no secret is specified.
-func (r *InstanceChartRepositoryReconciler) reconcileInstanceChartRepositorySecret(ctx context.Context, i *v1alpha2.InstanceChartRepository) error {
+func (r *InstanceChartRepositoryReconciler) reconcileInstanceChartRepositorySecret(ctx context.Context,
+	i *v1alpha2.InstanceChartRepository) error {
 	secret, err := r.getSecret(ctx, i)
 	if err != nil {
 		return err
 	}
 
-	if len(secret.OwnerReferences) == 0 {
-		err = ctrl.SetControllerReference(i, secret, r.Scheme)
-		if err != nil {
-			return err
-		}
-		if err = r.Client.Update(ctx, secret); err != nil {
-			return err
-		}
-	}
-	return nil
+	return controllerutil.SetOwnerReference(i, secret, r.Scheme)
 }
 
-// setErrStatus sets the error status of an InstanceChartRepository object.
-func (r *InstanceChartRepositoryReconciler) setErrStatus(ctx context.Context,
-	cr *v1alpha2.InstanceChartRepository, err error) (ctrl.Result, error) {
-	if cr == nil {
-		return ctrl.Result{}, errors.New("no instance chart repo provided")
-	}
-
-	cr.Status.State = v1alpha2.RepoStateError
-
-	updateErr := r.Status().Update(ctx, cr)
-	if updateErr != nil {
-		return ctrl.Result{}, updateErr
-	}
-
-	return ctrl.Result{}, err
-}
-
-// specToRepoEntry constructs and returns a repository entry from an instancechartrepo CR object.
+// specToRepoEntry constructs and returns a repository entry from an instancechartrepository CR object.
 func (r *InstanceChartRepositoryReconciler) specToRepoEntry(ctx context.Context,
 	cr *v1alpha2.InstanceChartRepository) (*repo.Entry, error) {
 	if cr == nil {
@@ -189,17 +166,17 @@ func (r *InstanceChartRepositoryReconciler) specToRepoEntry(ctx context.Context,
 	return &entry, nil
 }
 
-// getSecret gets and returns a kubernetes secret.
+// getSecret gets and returns the kubernetes secret that is held in an instancechartrepositories spec.
 func (r *InstanceChartRepositoryReconciler) getSecret(ctx context.Context,
 	cr *v1alpha2.InstanceChartRepository) (*corev1.Secret, error) {
 	var secret corev1.Secret
 
-	existing, err := helper.ObjExists(ctx, r.Client, cr.Spec.SecretRef.Name, cr.Namespace, &secret)
+	exists, err := helper.ObjExists(ctx, r.Client, cr.Spec.SecretRef.Name, cr.Namespace, &secret)
 	if err != nil {
 		return nil, err
 	}
 
-	if !existing {
+	if !exists {
 		return nil, fmt.Errorf("secret %s not found, namespace: %s", cr.Spec.SecretRef.Name, cr.Namespace)
 	}
 

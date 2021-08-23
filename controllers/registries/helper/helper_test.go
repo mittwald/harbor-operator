@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 
 	helmclient "github.com/mittwald/go-helm-client"
 	"github.com/stretchr/testify/assert"
@@ -125,31 +126,6 @@ func TestCreateSpecHash(t *testing.T) {
 	if assert.NotNil(t, hash3) {
 		assert.NotEqual(t, hash, hash3)
 	}
-}
-
-func TestPushFinalizer(t *testing.T) {
-	o := &corev1.Pod{}
-	finalizer := testStr
-	// Push finalizer twice to cover already existing finalizers
-	helper.PushFinalizer(o, finalizer)
-	helper.PushFinalizer(o, finalizer)
-}
-
-func TestPullFinalizer(t *testing.T) {
-	finalizer := testStr
-	finalizer2 := "bar"
-	o := &corev1.Pod{}
-
-	t.Run("existing finalizer", func(t *testing.T) {
-		// Add the finalizer before pulling
-		helper.PushFinalizer(o, finalizer)
-		helper.PullFinalizer(o, finalizer)
-	})
-
-	t.Run("non existent finalizer", func(t *testing.T) {
-		helper.PushFinalizer(o, finalizer)
-		helper.PullFinalizer(o, finalizer2)
-	})
 }
 
 func TestObjExists(t *testing.T) {

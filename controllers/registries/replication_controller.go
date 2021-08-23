@@ -29,9 +29,9 @@ import (
 	replicationapi "github.com/mittwald/goharbor-client/v4/apiv2/replication"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
-	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
 
@@ -39,7 +39,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // ReplicationReconciler reconciles a Replication object
@@ -48,9 +47,6 @@ type ReplicationReconciler struct {
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
-
-// blank assignment to verify that ReplicationReconciler implements reconcile.Reconciler.
-var _ reconcile.Reconciler = &ReplicationReconciler{}
 
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=replications,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=replications/status,verbs=get;update;patch
@@ -76,26 +72,23 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	originalReplication := replication.DeepCopy()
+	patch := client.MergeFrom(replication.DeepCopy())
 
 	if replication.ObjectMeta.DeletionTimestamp != nil && replication.Status.Phase != v1alpha2.ReplicationStatusPhaseTerminating {
 		replication.Status.Phase = v1alpha2.ReplicationStatusPhaseTerminating
-		return r.updateReplicationCR(ctx, nil, originalReplication, replication)
+		return ctrl.Result{}, r.Client.Status().Patch(ctx, replication, patch)
 	}
 
 	// Fetch the goharbor instance if it exists and is properly set up.
 	// If the above does not apply, pull the finalizer from the replication object.
-	harbor, err := helper.GetOperationalHarborInstance(ctx, client.ObjectKey{
+	harbor, err := internal.GetOperationalHarborInstance(ctx, client.ObjectKey{
 		Namespace: replication.Namespace,
 		Name:      replication.Spec.ParentInstance.Name,
 	}, r.Client)
 	if err != nil {
-		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
-			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
-			helper.PullFinalizer(replication, internal.FinalizerName)
-			helper.PullFinalizer(replication, internal.OldFinalizerName)
-			return r.updateReplicationCR(ctx, harbor, originalReplication, replication)
-		}
+		r.Log.Info("harbor instance is not operational", err.Error())
+		controllerutil.RemoveFinalizer(replication, internal.FinalizerName)
+
 		return ctrl.Result{}, err
 	}
 
@@ -117,16 +110,49 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	switch replication.Status.Phase {
 	default:
 		return ctrl.Result{}, nil
-	case v1alpha2.ReplicationStatusPhaseUnknown:
 
+	case v1alpha2.ReplicationStatusPhaseUnknown:
 		replication.Status.Phase = v1alpha2.ReplicationStatusPhaseCreating
+		replication.Status.Message = "replication is about to be created"
 
 	case v1alpha2.ReplicationStatusPhaseCreating:
-		if err := r.assertExistingReplication(ctx, harborClient, replication); err != nil {
+		// Fetch the parent registry the replication should be owned by.
+		registry := v1alpha2.Registry{}
+		var registryName string
+		if replication.Spec.SrcRegistry != nil {
+			registryName = replication.Spec.SrcRegistry.Name
+		} else if replication.Spec.DestRegistry != nil {
+			registryName = replication.Spec.DestRegistry.Name
+		}
+
+		err = r.Client.Get(ctx, client.ObjectKey{Namespace: replication.Namespace, Name: registryName}, &registry)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		helper.PushFinalizer(replication, internal.FinalizerName)
+		if registry.Status.Phase == v1alpha2.RegistryStatusPhaseTerminating {
+			replication.Status.Phase = v1alpha2.ReplicationStatusPhaseTerminating
+			return ctrl.Result{}, r.Client.Status().Patch(ctx, replication, patch)
+		}
+
+		// Set OwnerReference to the parent (source- or destination) registry
+		err = ctrl.SetControllerReference(&registry, replication, r.Scheme)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if err := r.assertExistingReplication(ctx, harborClient, replication, patch); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if !controllerutil.ContainsFinalizer(replication, internal.FinalizerName) {
+			controllerutil.AddFinalizer(replication, internal.FinalizerName)
+			err := r.Client.Patch(ctx, replication, patch)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
 		if replication.Spec.TriggerAfterCreation {
 			replExec := &model.StartReplicationExecution{
 				PolicyID: replication.Status.ID,
@@ -139,7 +165,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 			replication.Status.Phase = v1alpha2.ReplicationStatusPhaseManualExecutionRunning
 
-			return r.updateReplicationCR(ctx, harbor, originalReplication, replication)
+			return ctrl.Result{}, r.Client.Status().Patch(ctx, replication, patch)
 		}
 
 		replication.Status.Phase = v1alpha2.ReplicationStatusPhaseCompleted
@@ -150,12 +176,10 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			reqLogger.Info(fmt.Sprintf("replication execution failed: %s", err))
 			replication.Status.Phase = v1alpha2.ReplicationStatusPhaseManualExecutionFailed
 		}
-		if running {
-			return ctrl.Result{RequeueAfter: 1 * time.Minute}, nil
-		}
 		if !running {
 			replication.Status.Phase = v1alpha2.ReplicationStatusPhaseManualExecutionFinished
 		}
+		return ctrl.Result{RequeueAfter: 1 * time.Minute}, r.Client.Status().Patch(ctx, replication, patch)
 
 	case v1alpha2.ReplicationStatusPhaseManualExecutionFinished:
 		err := r.reconcileFinishedReplicationExecution(ctx, replication, harborClient)
@@ -169,25 +193,27 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		replication.Status.Phase = v1alpha2.ReplicationStatusPhaseCreating
 
 	case v1alpha2.ReplicationStatusPhaseCompleted:
-		err := r.assertExistingReplication(ctx, harborClient, replication)
+		err := r.assertExistingReplication(ctx, harborClient, replication, patch)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
 	case v1alpha2.ReplicationStatusPhaseTerminating:
 		// Delete the replication via harbor API
-		err := r.assertDeletedReplication(ctx, reqLogger, harborClient, replication)
+		err := internal.AssertDeletedReplication(ctx, reqLogger, harborClient, replication)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+
+		return ctrl.Result{}, r.Client.Patch(ctx, replication, patch)
 	}
 
-	return r.updateReplicationCR(ctx, harbor, originalReplication, replication)
+	return ctrl.Result{}, r.Client.Status().Patch(ctx, replication, patch)
 }
 
 // reconcileRunningReplicationExecution fetches the newest replication execution of
-// the replication and checks, whether it is still running or not.
-// Returns an error, if no replication execution could be found for the replication policy.
+// the replication and checks whether it is still running or not.
+// Returns an error if no replication execution could be found for the replication policy.
 func (r *ReplicationReconciler) reconcileRunningReplicationExecution(ctx context.Context, replication *v1alpha2.Replication, harborClient *h.RESTClient) (bool, error) {
 	replExec := &model.ReplicationExecution{
 		PolicyID: replication.Status.ID,
@@ -222,7 +248,7 @@ func (r *ReplicationReconciler) reconcileFinishedReplicationExecution(ctx contex
 
 	executions, err := harborClient.GetReplicationExecutions(ctx, replExec)
 	if err != nil {
-		return fmt.Errorf("fetching successful replication executions failed for replication policy %s: %s", replication.Status.Name, err)
+		return fmt.Errorf("fetching successful replication executions failed for replication policy %s: %s", replication.Name, err)
 	}
 
 	newestReplExecID := getNewestReplicationExecutionID(executions)
@@ -256,51 +282,15 @@ func getNewestReplicationExecutionID(executions []*model.ReplicationExecution) i
 	return max
 }
 
-// updateReplicationCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly
-func (r *ReplicationReconciler) updateReplicationCR(ctx context.Context, parentInstance *v1alpha2.Instance,
-	originalReplication, replication *v1alpha2.Replication) (ctrl.Result, error) {
-	if originalReplication == nil {
-		return ctrl.Result{},
-			fmt.Errorf("cannot update replication '%s' because the original replication is nil",
-				replication.Spec.Name)
-	}
-
-	// Set owner
-	if (len(originalReplication.OwnerReferences) == 0) && parentInstance != nil {
-		err := ctrl.SetControllerReference(parentInstance, originalReplication, r.Scheme)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Update finalizer
-	if !reflect.DeepEqual(originalReplication.Finalizers, replication.Finalizers) {
-		originalReplication.SetFinalizers(replication.Finalizers)
-	}
-
-	// Update status
-	if !reflect.DeepEqual(originalReplication.Status.Phase, replication.Status.Phase) {
-		originalReplication.Status.Phase = replication.Status.Phase
-		if err := r.Client.Status().Update(ctx, originalReplication); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	if err := r.Client.Update(ctx, originalReplication); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
-}
-
 // assertExistingReplication checks a harbor replication for existence and creates it accordingly.
 func (r *ReplicationReconciler) assertExistingReplication(ctx context.Context, harborClient *h.RESTClient,
-	originalReplication *v1alpha2.Replication) error {
-	_, err := harborClient.GetReplicationPolicy(ctx, originalReplication.Spec.Name)
+	replication *v1alpha2.Replication, patch client.Patch) error {
+
+	_, err := harborClient.GetReplicationPolicy(ctx, replication.Spec.Name)
 	if err != nil {
 		switch err.Error() {
 		case replicationapi.ErrReplicationNotFoundMsg:
-			rReq, err := r.buildReplicationFromCR(originalReplication)
+			rReq, err := r.buildReplicationFromCR(replication)
 			if err != nil {
 				return err
 			}
@@ -324,7 +314,34 @@ func (r *ReplicationReconciler) assertExistingReplication(ctx context.Context, h
 		}
 	}
 
-	return r.ensureReplication(ctx, harborClient, originalReplication)
+	// Get the replication held by harbor
+	heldReplication, err := harborClient.GetReplicationPolicy(ctx, replication.Spec.Name)
+	if err != nil {
+		return err
+	}
+
+	replication.Status.ID = heldReplication.ID
+
+	if replication.Spec.DestRegistry != nil {
+		replication.Status.Destination = heldReplication.DestRegistry.Name
+		replication.Status.Source = "harbor"
+	} else if replication.Spec.SrcRegistry != nil {
+		replication.Status.Source = heldReplication.SrcRegistry.Name
+		replication.Status.Destination = "harbor"
+	}
+
+	// Construct a replication from the CR spec
+	newRep, err := r.buildReplicationFromCR(replication)
+	if err != nil {
+		return err
+	}
+
+	// Compare the replications and update accordingly
+	if !reflect.DeepEqual(heldReplication, newRep) {
+		return harborClient.UpdateReplicationPolicy(ctx, newRep)
+	}
+
+	return r.Client.Status().Patch(ctx, replication, patch)
 }
 
 func enumReplicationTrigger(receivedTrigger string) (string, error) {
@@ -354,57 +371,6 @@ func enumReplicationFilterType(filterType string) (string, error) {
 	default:
 		return "", fmt.Errorf("invalid replication filter type provided: '%s'", filterType)
 	}
-}
-
-// ensureReplication gets and compares the spec of the replication held
-// by the harbor API with the spec of the existing CR.
-func (r *ReplicationReconciler) ensureReplication(ctx context.Context, harborClient *h.RESTClient,
-	originalReplication *v1alpha2.Replication) error {
-	// Get the replication held by harbor
-	heldReplication, err := harborClient.GetReplicationPolicy(ctx, originalReplication.Spec.Name)
-	if err != nil {
-		return err
-	}
-
-	if originalReplication.Status.ID != heldReplication.ID {
-		originalReplication.Status.ID = heldReplication.ID
-
-		if err := r.Client.Status().Update(ctx, originalReplication); err != nil {
-			return err
-		}
-	}
-
-	// Fill status fields
-	if originalReplication.Spec.DestRegistry != nil {
-		if originalReplication.Status.Destination != heldReplication.DestRegistry.Name {
-			originalReplication.Status.Destination = heldReplication.DestRegistry.Name
-			originalReplication.Status.Source = "harbor"
-			if err := r.Client.Status().Update(ctx, originalReplication); err != nil {
-				return err
-			}
-		}
-	} else if originalReplication.Spec.SrcRegistry != nil {
-		if originalReplication.Status.Source != heldReplication.SrcRegistry.Name {
-			originalReplication.Status.Source = heldReplication.SrcRegistry.Name
-			originalReplication.Status.Destination = "harbor"
-			if err := r.Client.Status().Update(ctx, originalReplication); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Construct a replication from the CR spec
-	newRep, err := r.buildReplicationFromCR(originalReplication)
-	if err != nil {
-		return err
-	}
-
-	// Compare the replications and update accordingly
-	if !reflect.DeepEqual(heldReplication, newRep) {
-		return harborClient.UpdateReplicationPolicy(ctx, newRep)
-	}
-
-	return nil
 }
 
 // buildReplicationFromCR returns an API conformed ReplicationPolicy object
@@ -499,10 +465,6 @@ func (r *ReplicationReconciler) getHarborRegistryFromRef(ctx context.Context, re
 		return nil, err
 	}
 
-	if registry.Status.Phase != v1alpha2.RegistryStatusPhaseReady {
-		return nil, &controllererrors.ErrRegistryNotReady{}
-	}
-
 	var credential *legacymodel.RegistryCredential
 	if registry.Spec.Credential != nil {
 		credential, err = helper.ToHarborRegistryCredential(ctx, r.Client, namespace, *registry.Spec.Credential)
@@ -512,24 +474,4 @@ func (r *ReplicationReconciler) getHarborRegistryFromRef(ctx context.Context, re
 	}
 
 	return helper.ToHarborRegistry(registry.Spec, registry.Status.ID, credential), nil
-}
-
-// assertDeletedReplication deletes a replication, first ensuring its existence
-func (r *ReplicationReconciler) assertDeletedReplication(ctx context.Context, log logr.Logger,
-	harborClient *h.RESTClient, replication *v1alpha2.Replication) error {
-	receivedReplicationPolicy, err := harborClient.GetReplicationPolicy(ctx, replication.Name)
-	if err != nil {
-		return err
-	}
-
-	err = harborClient.DeleteReplicationPolicy(ctx, receivedReplicationPolicy)
-	if err != nil {
-		return err
-	}
-
-	log.Info("pulling finalizers")
-	helper.PullFinalizer(replication, internal.FinalizerName)
-	helper.PullFinalizer(replication, internal.OldFinalizerName)
-
-	return nil
 }

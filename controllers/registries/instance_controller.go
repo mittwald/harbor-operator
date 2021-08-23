@@ -20,12 +20,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"time"
 
 	helmclient "github.com/mittwald/go-helm-client"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	"github.com/mittwald/harbor-operator/controllers/registries/config"
@@ -36,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // InstanceReconciler reconciles a Instance object
@@ -53,9 +52,6 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&v1alpha2.Instance{}).
 		Complete(r)
 }
-
-// blank assignment to verify that InstanceReconciler implements reconcile.Reconciler.
-var _ reconcile.Reconciler = &InstanceReconciler{}
 
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=instances,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=instances/status,verbs=get;update;patch
@@ -87,7 +83,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	reqLogger = reqLogger.WithValues("instanceName", harbor.Spec.Name)
-	originalInstance := harbor.DeepCopy()
+	patch := client.MergeFrom(harbor.DeepCopy())
 
 	if harbor.DeletionTimestamp != nil &&
 		harbor.Status.Phase.Name != v1alpha2.InstanceStatusPhaseTerminating {
@@ -97,8 +93,9 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			Message:        "Deleted",
 			LastTransition: &now,
 		}
+		harbor.Status.SpecHash = ""
 
-		return r.updateInstanceCR(ctx, originalInstance, harbor)
+		return ctrl.Result{}, r.Client.Status().Patch(ctx, harbor, patch)
 	}
 
 	switch harbor.Status.Phase.Name {
@@ -107,6 +104,8 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	case "":
 		harbor.Status.Phase.Name = v1alpha2.InstanceStatusPhaseInstalling
+		harbor.Status.Phase.Message = "project is about to be created"
+		harbor.Status.SpecHash = ""
 
 	case v1alpha2.InstanceStatusPhaseInstalling:
 		reqLogger.Info("Installing Helm chart")
@@ -121,14 +120,13 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{}, err
 		}
 
-		helper.PushFinalizer(harbor, internal.FinalizerName)
-
 		err = r.installOrUpgradeHelmChart(ctx, chartSpec)
 		if err != nil {
 			return ctrl.Result{RequeueAfter: 60 * time.Second}, err
 		}
 
 		harbor.Status.Phase.Name = v1alpha2.InstanceStatusPhaseInstalled
+		harbor.Status.Phase.Message = "harbor was successfully installed"
 
 		// Creating a spec hash of the chart spec pre-installation
 		// ensures that it is set in "InstanceStatusPhaseInstalled", preventing the controller
@@ -138,13 +136,21 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		} else if harbor.Status.SpecHash == "" {
 			harbor.Status.SpecHash = specHash
 
-			return r.updateInstanceCR(ctx, originalInstance, harbor)
+			return ctrl.Result{}, r.Client.Status().Patch(ctx, harbor, patch)
 		}
 
 	case v1alpha2.InstanceStatusPhaseInstalled:
 		if harbor.Spec.GarbageCollection != nil {
 			if err := r.reconcileGarbageCollection(ctx, harbor); err != nil {
 				return ctrl.Result{RequeueAfter: 60 * time.Second}, err
+			}
+		}
+
+		if !controllerutil.ContainsFinalizer(harbor, internal.FinalizerName) {
+			controllerutil.AddFinalizer(harbor, internal.FinalizerName)
+			err := r.Client.Patch(ctx, harbor, patch)
+			if err != nil {
+				return ctrl.Result{}, err
 			}
 		}
 
@@ -162,22 +168,22 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			harbor.Status.Phase.Name = v1alpha2.InstanceStatusPhaseInstalling
 			harbor.Status.SpecHash = specHash
 
-			return r.updateInstanceCR(ctx, originalInstance, harbor)
+			return ctrl.Result{}, r.Client.Status().Patch(ctx, harbor, patch)
 		}
 
 	case v1alpha2.InstanceStatusPhaseTerminating:
-		err := r.reconcileTerminatingInstance(ctx, reqLogger, harbor)
+		err := r.reconcileTerminatingInstance(ctx, reqLogger, harbor, patch)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	return r.updateInstanceCR(ctx, originalInstance, harbor)
+	return ctrl.Result{}, r.Client.Status().Patch(ctx, harbor, patch)
 }
 
 // reconcileTerminatingInstance triggers a helm uninstall for the created release.
 func (r *InstanceReconciler) reconcileTerminatingInstance(ctx context.Context, log logr.Logger,
-	harbor *v1alpha2.Instance) error {
+	harbor *v1alpha2.Instance, patch client.Patch) error {
 	if harbor == nil {
 		return errors.New("no harbor instance provided")
 	}
@@ -194,39 +200,10 @@ func (r *InstanceReconciler) reconcileTerminatingInstance(ctx context.Context, l
 		return err
 	}
 
-	log.Info("pulling finalizers")
-	helper.PullFinalizer(harbor, internal.FinalizerName)
-	helper.PullFinalizer(harbor, internal.OldFinalizerName)
+	log.Info("pulling finalizer")
+	controllerutil.RemoveFinalizer(harbor, internal.FinalizerName)
 
-	return nil
-}
-
-// updateInstanceCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
-func (r *InstanceReconciler) updateInstanceCR(ctx context.Context, originalInstance,
-	instance *v1alpha2.Instance) (ctrl.Result, error) {
-	if originalInstance == nil || instance == nil {
-		return ctrl.Result{}, fmt.Errorf("cannot update instance '%s' because the original instance is nil",
-			instance.Spec.Name)
-	}
-
-	// Update Status
-	if !reflect.DeepEqual(originalInstance.Status, instance.Status) {
-		originalInstance.Status = instance.Status
-		if err := r.Client.Status().Update(ctx, originalInstance); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Update Finalizers
-	if !reflect.DeepEqual(originalInstance.Finalizers, instance.Finalizers) {
-		originalInstance.Finalizers = instance.Finalizers
-	}
-
-	if err := r.Client.Update(ctx, originalInstance); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
+	return r.Client.Patch(ctx, harbor, patch)
 }
 
 // updateHelmRepos updates helm chart repositories.
