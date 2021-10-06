@@ -20,7 +20,8 @@ func (r *UserReconciler) getSecretForUser(ctx context.Context, user *v1alpha2.Us
 	sec := &corev1.Secret{}
 
 	err := r.Client.Get(ctx, client.ObjectKey{
-		Name: user.Spec.UserSecretRef.Name, Namespace: user.Namespace}, sec)
+		Name: user.Spec.UserSecretRef.Name, Namespace: user.Namespace,
+	}, sec)
 	if err != nil {
 		return &corev1.Secret{}, err
 	}

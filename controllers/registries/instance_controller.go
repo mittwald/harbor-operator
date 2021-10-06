@@ -146,12 +146,10 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			}
 		}
 
-		if !controllerutil.ContainsFinalizer(harbor, internal.FinalizerName) {
-			controllerutil.AddFinalizer(harbor, internal.FinalizerName)
-			err := r.Client.Patch(ctx, harbor, patch)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
+		controllerutil.AddFinalizer(harbor, internal.FinalizerName)
+		err := r.Client.Patch(ctx, harbor, patch)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
 
 		chartSpec, err := helper.InstanceToChartSpec(ctx, r.Client, harbor)

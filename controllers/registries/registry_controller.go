@@ -128,15 +128,13 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		return ctrl.Result{}, r.Client.Status().Patch(ctx, registry, patch)
 	case v1alpha2.RegistryStatusPhaseReady:
-		if !controllerutil.ContainsFinalizer(registry, internal.FinalizerName) {
-			controllerutil.AddFinalizer(registry, internal.FinalizerName)
-			err := r.Client.Patch(ctx, registry, patch)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
+		controllerutil.AddFinalizer(registry, internal.FinalizerName)
+		err := r.Client.Patch(ctx, registry, patch)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
 
-		err := r.assertExistingRegistry(ctx, harborClient, registry, patch)
+		err = r.assertExistingRegistry(ctx, harborClient, registry, patch)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
