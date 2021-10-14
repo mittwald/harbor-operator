@@ -84,9 +84,6 @@ type ReplicationSpec struct {
 type ReplicationStatus struct {
 	Phase   ReplicationStatusPhaseName `json:"phase"`
 	Message string                     `json:"message"`
-	// Time of last observed transition into this state
-	// +kubebuilder:validation:Optional
-	LastTransition *metav1.Time `json:"lastTransition,omitempty"`
 
 	// The replication ID is written back from the held replication ID.
 	ID int64 `json:"id,omitempty"`

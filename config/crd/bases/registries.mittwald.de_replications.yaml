@@ -148,10 +148,6 @@ spec:
                   ID.
                 format: int64
                 type: integer
-              lastTransition:
-                description: Time of last observed transition into this state
-                format: date-time
-                type: string
               message:
                 type: string
               phase:

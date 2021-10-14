@@ -94,7 +94,6 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		Name:      project.Spec.ParentInstance.Name,
 	}, r.Client)
 	if err != nil {
-		r.Log.Info("harbor instance is not operational", err.Error())
 		controllerutil.RemoveFinalizer(project, internal.FinalizerName)
 
 		return ctrl.Result{}, err

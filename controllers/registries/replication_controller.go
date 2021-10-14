@@ -86,7 +86,6 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		Name:      replication.Spec.ParentInstance.Name,
 	}, r.Client)
 	if err != nil {
-		r.Log.Info("harbor instance is not operational", err.Error())
 		controllerutil.RemoveFinalizer(replication, internal.FinalizerName)
 
 		return ctrl.Result{}, err
@@ -315,8 +314,6 @@ func (r *ReplicationReconciler) assertExistingReplication(ctx context.Context, h
 	if err != nil {
 		return err
 	}
-
-	replication.Status.ID = heldReplication.ID
 
 	if replication.Spec.DestRegistry != nil {
 		replication.Status.Destination = heldReplication.DestRegistry.Name
