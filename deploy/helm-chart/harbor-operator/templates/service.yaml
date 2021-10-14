@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "harbor-operator.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "harbor-operator.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    app.kubernetes.io/name: {{ include "harbor-operator.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: "metrics"
+      protocol: TCP
+      port: {{ .Values.metricsPort }}

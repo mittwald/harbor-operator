@@ -25,9 +25,8 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-
-	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
-	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/go-logr/logr"
 	h "github.com/mittwald/goharbor-client/v4/apiv2"
@@ -37,7 +36,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
@@ -48,13 +48,6 @@ type RegistryReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
-}
-
-func (r *RegistryReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha2.Registry{}).
-		Owns(&corev1.Secret{}).
-		Complete(r)
 }
 
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=registries,verbs=get;list;watch;create;update;patch;delete
@@ -75,35 +68,30 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			return reconcile.Result{}, nil
+			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
 
-	originalRegistry := registry.DeepCopy()
+	patch := client.MergeFrom(registry.DeepCopy())
 
 	if registry.ObjectMeta.DeletionTimestamp != nil &&
 		registry.Status.Phase != v1alpha2.RegistryStatusPhaseTerminating {
 		registry.Status = v1alpha2.RegistryStatus{Phase: v1alpha2.RegistryStatusPhaseTerminating}
 
-		return r.updateRegistryCR(ctx, nil, originalRegistry, registry)
+		return ctrl.Result{}, r.Client.Status().Patch(ctx, registry, patch)
 	}
 
 	// Fetch the goharbor instance if it exists and is properly set up.
 	// If the above does not apply, pull the finalizer from the registry object.
-	harbor, err := helper.GetOperationalHarborInstance(ctx, client.ObjectKey{
+	harbor, err := internal.GetOperationalHarborInstance(ctx, client.ObjectKey{
 		Namespace: registry.Namespace,
 		Name:      registry.Spec.ParentInstance.Name,
 	}, r.Client)
 	if err != nil {
-		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
-			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
-			helper.PullFinalizer(registry, internal.FinalizerName)
-			helper.PullFinalizer(registry, internal.OldFinalizerName)
-			return r.updateRegistryCR(ctx, harbor, originalRegistry, registry)
-		}
-		return ctrl.Result{}, err
+		controllerutil.RemoveFinalizer(registry, internal.FinalizerName)
+		return ctrl.Result{}, r.Client.Status().Patch(ctx, registry, patch)
 	}
 
 	// Build a client to connect to the harbor API
@@ -126,61 +114,38 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, nil
 
 	case v1alpha2.RegistryStatusPhaseUnknown:
-		registry.Status = v1alpha2.RegistryStatus{Phase: v1alpha2.RegistryStatusPhaseCreating}
+		registry.Status.Phase = v1alpha2.RegistryStatusPhaseCreating
+		registry.Status.Message = "registry is about to be created"
 
+		return ctrl.Result{}, r.Client.Status().Patch(ctx, registry, patch)
 	case v1alpha2.RegistryStatusPhaseCreating:
-		if err := r.assertExistingRegistry(ctx, harborClient, registry); err != nil {
+		if err := r.assertExistingRegistry(ctx, harborClient, registry, patch); err != nil {
 			return ctrl.Result{}, err
 		}
-		helper.PushFinalizer(registry, internal.FinalizerName)
+		controllerutil.AddFinalizer(registry, internal.FinalizerName)
 
 		registry.Status = v1alpha2.RegistryStatus{Phase: v1alpha2.RegistryStatusPhaseReady}
+
+		return ctrl.Result{}, r.Client.Status().Patch(ctx, registry, patch)
 	case v1alpha2.RegistryStatusPhaseReady:
-		err := r.assertExistingRegistry(ctx, harborClient, registry)
+		controllerutil.AddFinalizer(registry, internal.FinalizerName)
+		err := r.Client.Patch(ctx, registry, patch)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		err = r.assertExistingRegistry(ctx, harborClient, registry, patch)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
 	case v1alpha2.RegistryStatusPhaseTerminating:
 		// Delete the registry via harbor API
-		err := r.assertDeletedRegistry(ctx, reqLogger, harborClient, registry)
+		res, err := r.assertDeletedRegistry(ctx, reqLogger, harborClient, registry, patch)
 		if err != nil {
-			return ctrl.Result{}, err
+			return res, err
 		}
-	}
-
-	return r.updateRegistryCR(ctx, harbor, originalRegistry, registry)
-}
-
-// updateRegistryCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
-func (r *RegistryReconciler) updateRegistryCR(ctx context.Context, parentInstance *v1alpha2.Instance, originalRegistry, registry *v1alpha2.Registry) (ctrl.Result, error) {
-	if originalRegistry == nil || registry == nil {
-		return ctrl.Result{}, fmt.Errorf("cannot update registry '%s' because the original registry is nil", registry.Spec.Name)
-	}
-
-	// Update Status
-	if !reflect.DeepEqual(originalRegistry.Status, registry.Status) {
-		originalRegistry.Status = registry.Status
-		if err := r.Status().Update(ctx, originalRegistry); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	// set owner
-	if (len(originalRegistry.OwnerReferences) == 0) && parentInstance != nil {
-		err := ctrl.SetControllerReference(parentInstance, originalRegistry, r.Scheme)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Update Finalizer
-	if !reflect.DeepEqual(originalRegistry.Finalizers, registry.Finalizers) {
-		originalRegistry.SetFinalizers(registry.Finalizers)
-	}
-
-	if err := r.Update(ctx, originalRegistry); err != nil {
-		return ctrl.Result{}, err
+		return res, nil
 	}
 
 	return ctrl.Result{}, nil
@@ -188,12 +153,12 @@ func (r *RegistryReconciler) updateRegistryCR(ctx context.Context, parentInstanc
 
 // assertExistingRegistry checks a harbor registry for existence and creates it accordingly.
 func (r *RegistryReconciler) assertExistingRegistry(ctx context.Context, harborClient *h.RESTClient,
-	originalRegistry *v1alpha2.Registry) error {
-	_, err := harborClient.GetRegistry(ctx, originalRegistry.Spec.Name)
+	registry *v1alpha2.Registry, patch client.Patch) error {
+	_, err := harborClient.GetRegistry(ctx, registry.Spec.Name)
 	if err != nil {
 		switch err.Error() {
 		case registryapi.ErrRegistryNotFoundMsg:
-			rReq, err := r.buildRegistryFromCR(ctx, originalRegistry)
+			rReq, err := r.buildRegistryFromCR(ctx, registry)
 			if err != nil {
 				return err
 			}
@@ -215,7 +180,36 @@ func (r *RegistryReconciler) assertExistingRegistry(ctx context.Context, harborC
 		}
 	}
 
-	return r.ensureRegistry(ctx, harborClient, originalRegistry)
+	// Get the registry held by harbor
+	heldRegistry, err := harborClient.GetRegistry(ctx, registry.Spec.Name)
+	if err != nil {
+		return err
+	}
+
+	// Use the registry's ID from the Harbor instance and write it back to the CR's status field
+	if registry.Status.ID != heldRegistry.ID {
+		registry.Status.ID = heldRegistry.ID
+
+		if err := r.Client.Status().Patch(ctx, registry, patch); err != nil {
+			return err
+		}
+	}
+
+	// Construct a registry from the CR spec
+	newReg, err := r.buildRegistryFromCR(ctx, registry)
+	if err != nil {
+		return err
+	}
+
+	if newReg.Credential == nil {
+		newReg.Credential = &legacymodel.RegistryCredential{}
+	}
+	// Compare the registries and update accordingly
+	if !reflect.DeepEqual(heldRegistry, newReg) {
+		return harborClient.UpdateRegistry(ctx, newReg)
+	}
+
+	return nil
 }
 
 func parseURL(raw string) (string, error) {
@@ -247,100 +241,122 @@ func enumRegistryType(receivedRegistryType v1alpha2.RegistryType) (v1alpha2.Regi
 		v1alpha2.RegistryTypeHelmHub:
 		return receivedRegistryType, nil
 	default:
-		return "", fmt.Errorf("invalid garbage collection schedule type provided: '%s'", receivedRegistryType)
+		return "", fmt.Errorf("invalid registry type provided: '%s'", receivedRegistryType)
 	}
-}
-
-// ensureRegistry gets and compares the spec of the registry held by the harbor API with the spec of the existing CR.
-func (r *RegistryReconciler) ensureRegistry(ctx context.Context, harborClient *h.RESTClient,
-	originalRegistry *v1alpha2.Registry) error {
-	// Get the registry held by harbor
-	heldRegistry, err := harborClient.GetRegistry(ctx, originalRegistry.Spec.Name)
-	if err != nil {
-		return err
-	}
-
-	// Use the registry's ID from the Harbor instance and write it back to the the CR's status field
-	if originalRegistry.Status.ID != heldRegistry.ID {
-		originalRegistry.Status.ID = heldRegistry.ID
-
-		if err := r.Client.Status().Update(ctx, originalRegistry); err != nil {
-			return err
-		}
-	}
-
-	// Construct a registry from the CR spec
-	newReg, err := r.buildRegistryFromCR(ctx, originalRegistry)
-	if err != nil {
-		return err
-	}
-
-	if newReg.Credential == nil {
-		newReg.Credential = &legacymodel.RegistryCredential{}
-	}
-	// Compare the registries and update accordingly
-	if !reflect.DeepEqual(heldRegistry, newReg) {
-		return r.updateRegistry(ctx, harborClient, newReg)
-	}
-
-	return nil
-}
-
-// updateRegistry triggers the update of a registry.
-func (r *RegistryReconciler) updateRegistry(ctx context.Context, harborClient *h.RESTClient,
-	reg *legacymodel.Registry) error {
-	return harborClient.UpdateRegistry(ctx, reg)
 }
 
 // buildRegistryFromCR constructs and returns a Harbor registry object from the CR object's spec.
-func (r *RegistryReconciler) buildRegistryFromCR(ctx context.Context, originalRegistry *v1alpha2.Registry) (*legacymodel.Registry,
+func (r *RegistryReconciler) buildRegistryFromCR(ctx context.Context, registry *v1alpha2.Registry) (*legacymodel.Registry,
 	error) {
-	parsedURL, err := parseURL(originalRegistry.Spec.URL)
+	parsedURL, err := parseURL(registry.Spec.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	registryType, err := enumRegistryType(originalRegistry.Spec.Type)
+	registryType, err := enumRegistryType(registry.Spec.Type)
 	if err != nil {
 		return nil, err
 	}
 
 	var credential *legacymodel.RegistryCredential
-	if originalRegistry.Spec.Credential != nil {
-		credential, err = helper.ToHarborRegistryCredential(ctx, r.Client, originalRegistry.Namespace, *originalRegistry.Spec.Credential)
+	if registry.Spec.Credential != nil {
+		credential, err = helper.ToHarborRegistryCredential(ctx, r.Client, registry.Namespace, *registry.Spec.Credential)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return &legacymodel.Registry{
-		ID:          originalRegistry.Status.ID,
-		Name:        originalRegistry.Spec.Name,
-		Description: originalRegistry.Spec.Description,
+		ID:          registry.Status.ID,
+		Name:        registry.Spec.Name,
+		Description: registry.Spec.Description,
 		Type:        string(registryType),
 		URL:         parsedURL,
 		Credential:  credential,
-		Insecure:    originalRegistry.Spec.Insecure,
+		Insecure:    registry.Spec.Insecure,
 	}, nil
 }
 
-// assertDeletedRegistry deletes a registry, first ensuring its existence.
+// assertDeletedRegistry deletes a registry, first ensuring all controlled replications are deleted.
 func (r *RegistryReconciler) assertDeletedRegistry(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
-	registry *v1alpha2.Registry) error {
+	registry *v1alpha2.Registry, patch client.Patch) (ctrl.Result, error) {
+
+	// List all replications that reference the parent registry resource and mark them for deletion.
+	replicationList := v1alpha2.ReplicationList{}
+
+	if err := r.Client.List(ctx, &replicationList, client.MatchingFields{"metadata.ownerReferences.uid": string(registry.UID)}); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if len(replicationList.Items) > 0 {
+		for _, i := range replicationList.Items {
+			patch := client.MergeFrom(i.DeepCopy())
+
+			i.Status.Phase = v1alpha2.ReplicationStatusPhaseTerminating
+
+			if err := r.Client.Status().Patch(ctx, &i, patch); err != nil {
+				return ctrl.Result{}, err
+			}
+
+			if err := r.Client.Delete(ctx, &i); err != nil {
+				if k8sErrors.IsNotFound(err) {
+					return ctrl.Result{}, nil
+				}
+				return ctrl.Result{}, err
+			}
+		}
+		log.Info("terminating owned replications of registry")
+		// Requeue reconciliation
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
 	reg, err := harborClient.GetRegistry(ctx, registry.Name)
 	if err != nil {
-		return err
+		if errors.Is(err, &registryapi.ErrRegistryNotFound{}) {
+			log.Info("registry does not exist on the server side, pulling finalizers")
+			controllerutil.RemoveFinalizer(registry, internal.FinalizerName)
+			if err := r.Client.Patch(ctx, registry, patch); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, err
 	}
 
 	if reg != nil {
 		err := harborClient.DeleteRegistry(ctx, reg)
 		if err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
-		log.Info("pulling finalizers")
-		helper.PullFinalizer(registry, internal.FinalizerName)
-		helper.PullFinalizer(registry, internal.OldFinalizerName)
+		log.Info("pulling finalizer")
+		controllerutil.RemoveFinalizer(registry, internal.FinalizerName)
+		if err := r.Client.Patch(ctx, registry, patch); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
-	return nil
+	return ctrl.Result{}, nil
+}
+
+func (r *RegistryReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := mgr.GetFieldIndexer().IndexField(
+		context.Background(), &v1alpha2.Replication{},
+		"metadata.ownerReferences.uid",
+		func(obj client.Object) []string {
+			m, ok := obj.(metav1.Object)
+			if ok {
+				o := m.GetOwnerReferences()
+				if len(o) == 0 {
+					return []string{}
+				}
+				return []string{string(o[0].UID)}
+			}
+			return []string{}
+		}); err != nil {
+		return err
+	}
+
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&v1alpha2.Registry{}).
+		Owns(&corev1.Secret{}).
+		Complete(r)
 }

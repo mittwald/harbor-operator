@@ -82,12 +82,8 @@ type ReplicationSpec struct {
 
 // ReplicationStatus defines the observed state of Replication
 type ReplicationStatus struct {
-	Name    string                     `json:"name"`
 	Phase   ReplicationStatusPhaseName `json:"phase"`
 	Message string                     `json:"message"`
-	// Time of last observed transition into this state
-	// +kubebuilder:validation:Optional
-	LastTransition *metav1.Time `json:"lastTransition,omitempty"`
 
 	// The replication ID is written back from the held replication ID.
 	ID int64 `json:"id,omitempty"`
@@ -96,8 +92,8 @@ type ReplicationStatus struct {
 	Destination string `json:"destination,omitempty"`
 }
 
-// Have to use our custom type here, because we cannot DeepCopy the pointer of *h.Trigger
-// Trigger holds info for a trigger
+// ReplicationTrigger defines a replication trigger.
+// We have to use our custom type here, because we cannot DeepCopy the pointer of *h.Trigger.
 type ReplicationTrigger struct {
 	// +kubebuilder:validation:Optional
 	Type string `json:"type,omitempty"`
@@ -122,8 +118,8 @@ type TriggerSettings struct {
 	Cron string `json:"cron"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // Replication is the Schema for the replications API
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=replications,scope=Namespaced
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="phase"

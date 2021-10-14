@@ -56,10 +56,11 @@ type UserList struct {
 
 // UserStatus defines the state of a single user
 type UserStatus struct {
-	Name         string              `json:"name"`
-	Phase        UserStatusPhaseName `json:"phase"`
-	Message      string              `json:"message"`
-	PasswordHash string              `json:"passwordHash"`
+	Phase UserStatusPhaseName `json:"phase"`
+	// +optional
+	Message string `json:"message"`
+	// +optional
+	PasswordHash string `json:"passwordHash"`
 
 	// Time of last observed transition into this state
 	// +kubebuilder:validation:Optional

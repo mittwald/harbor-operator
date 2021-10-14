@@ -72,7 +72,6 @@ type RegistryCredential struct {
 
 // RegistryStatus defines the observed state of Registry.
 type RegistryStatus struct {
-	Name    string                  `json:"name"`
 	Phase   RegistryStatusPhaseName `json:"phase"`
 	Message string                  `json:"message"`
 
@@ -99,8 +98,8 @@ type Registry struct {
 	Status RegistryStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // RegistryList contains a list of Registry
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type RegistryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

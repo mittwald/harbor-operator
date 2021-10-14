@@ -19,14 +19,10 @@ package registries
 import (
 	"context"
 	"errors"
-	"fmt"
-	"reflect"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-
-	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
-	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/go-logr/logr"
 	h "github.com/mittwald/goharbor-client/v4/apiv2"
@@ -37,6 +33,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
@@ -91,27 +89,29 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 		return ctrl.Result{}, err
 	}
 
-	originalUser := user.DeepCopy()
+	patch := client.MergeFrom(user.DeepCopy())
 
 	if user.ObjectMeta.DeletionTimestamp != nil && user.Status.Phase != v1alpha2.UserStatusPhaseTerminating {
 		user.Status = v1alpha2.UserStatus{Phase: v1alpha2.UserStatusPhaseTerminating}
 
-		return r.updateUserCR(ctx, nil, originalUser, user)
+		return ctrl.Result{}, r.Client.Status().Patch(ctx, user, patch)
 	}
 
 	// Fetch the goharbor instance if it exists and is properly set up.
 	// If the above does not apply, pull the finalizer from the user object.
-	harbor, err := helper.GetOperationalHarborInstance(ctx, client.ObjectKey{
+	harbor, err := internal.GetOperationalHarborInstance(ctx, client.ObjectKey{
 		Namespace: user.Namespace,
 		Name:      user.Spec.ParentInstance.Name,
 	}, r.Client)
 	if err != nil {
-		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
-			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
-			helper.PullFinalizer(user, internal.FinalizerName)
-			helper.PullFinalizer(user, internal.OldFinalizerName)
-			return r.updateUserCR(ctx, harbor, originalUser, user)
-		}
+		controllerutil.RemoveFinalizer(user, internal.FinalizerName)
+
+		return ctrl.Result{}, r.Client.Patch(ctx, user, patch)
+	}
+
+	// Set OwnerReference to the parent harbor instance
+	err = ctrl.SetControllerReference(harbor, user, r.Scheme)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -137,10 +137,10 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 
 	case v1alpha2.UserStatusPhaseUnknown:
 		user.Status.Phase = v1alpha2.UserStatusPhaseCreating
-		if err := r.Client.Status().Update(ctx, user); err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{Requeue: true}, nil
+		user.Status.Message = "user is about to be created"
+		user.Status.PasswordHash = ""
+
+		return ctrl.Result{}, r.Client.Status().Patch(ctx, user, patch)
 
 	case v1alpha2.UserStatusPhaseCreating:
 		// Prior to handling operations on the user instance, the harbor 'admin' user has to exist.
@@ -156,59 +156,30 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 			return ctrl.Result{}, err
 		}
 
-		helper.PushFinalizer(user, internal.FinalizerName)
+		controllerutil.AddFinalizer(user, internal.FinalizerName)
 
 		user.Status.Phase = v1alpha2.UserStatusPhaseReady
-		res = ctrl.Result{Requeue: true}
 
 	case v1alpha2.UserStatusPhaseReady:
-		err := r.assertExistingUser(ctx, harborClient, user)
-		if err != nil {
+		controllerutil.AddFinalizer(user, internal.FinalizerName)
+		if err := r.Client.Patch(ctx, user, patch); err != nil {
 			return ctrl.Result{}, err
 		}
 
-		res = ctrl.Result{}
+		if err := r.assertExistingUser(ctx, harborClient, user); err != nil {
+			return ctrl.Result{}, err
+		}
 
 	case v1alpha2.UserStatusPhaseTerminating:
-		err := r.assertDeletedUser(ctx, reqLogger, harborClient, user)
+		err := r.assertDeletedUser(ctx, reqLogger, harborClient, user, patch)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		res = ctrl.Result{}
+		return ctrl.Result{}, nil
 	}
 
-	return r.updateUserCR(ctx, harbor, originalUser, user)
-}
-
-// updateUserCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
-func (r *UserReconciler) updateUserCR(ctx context.Context, parentInstance *v1alpha2.Instance, originalUser,
-	user *v1alpha2.User) (ctrl.Result, error) {
-	if originalUser == nil || user == nil {
-		return ctrl.Result{}, fmt.Errorf("cannot update user because the original user has not been set")
-	}
-
-	// Update Status
-	if !reflect.DeepEqual(originalUser.Status, user.Status) {
-		if err := r.Client.Status().Update(ctx, user); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	// set owner
-	if len(user.OwnerReferences) == 0 && parentInstance != nil {
-		if err := ctrl.SetControllerReference(parentInstance, user, r.Scheme); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	if !reflect.DeepEqual(originalUser, user) {
-		if err := r.Client.Update(ctx, user); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, r.Client.Status().Patch(ctx, user, patch)
 }
 
 // assertExistingUser ensures the specified user's existence.
@@ -325,9 +296,14 @@ func isUserRequestEqual(existing, new *legacymodel.User) bool {
 
 // assertDeletedUser deletes a user, first ensuring its existence
 func (r *UserReconciler) assertDeletedUser(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
-	user *v1alpha2.User) error {
+	user *v1alpha2.User, patch client.Patch) error {
 	harborUser, err := harborClient.GetUser(ctx, user.Spec.Name)
 	if err != nil {
+		if errors.Is(err, &userapi.ErrUserNotFound{}) {
+			log.Info("pulling finalizer")
+			controllerutil.RemoveFinalizer(user, internal.FinalizerName)
+			return r.Client.Patch(ctx, user, patch)
+		}
 		return err
 	}
 
@@ -340,9 +316,8 @@ func (r *UserReconciler) assertDeletedUser(ctx context.Context, log logr.Logger,
 		return err
 	}
 
-	log.Info("pulling finalizers")
-	helper.PullFinalizer(user, internal.FinalizerName)
-	helper.PullFinalizer(user, internal.OldFinalizerName)
+	log.Info("pulling finalizer")
+	controllerutil.RemoveFinalizer(user, internal.FinalizerName)
 
-	return nil
+	return r.Client.Patch(ctx, user, patch)
 }

@@ -7,7 +7,7 @@ import (
 	"reflect"
 
 	gcapi "github.com/mittwald/goharbor-client/v4/apiv2/gc"
-	model "github.com/mittwald/goharbor-client/v4/apiv2/model"
+	"github.com/mittwald/goharbor-client/v4/apiv2/model"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
@@ -27,11 +27,16 @@ func (r *InstanceReconciler) reconcileGarbageCollection(ctx context.Context, har
 	}
 
 	newGc := model.Schedule{
-		Parameters: nil,
 		Schedule: &model.ScheduleObj{
 			Cron: harbor.Spec.GarbageCollection.Cron,
 			Type: string(scheduleType),
 		},
+	}
+
+	if harbor.Spec.GarbageCollection.DeleteUntagged {
+		newGc.Parameters = map[string]interface{}{
+			"delete_untagged": true,
+		}
 	}
 
 	gc, err := harborClient.GetGarbageCollectionSchedule(ctx)

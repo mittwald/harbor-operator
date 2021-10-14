@@ -142,7 +142,7 @@ spec:
         proxy:
           httpProxy:
           httpsProxy:
-          noProxy: 127.0.0.1,localhost,.local,.internal
+          noProxy: 127.0.0.1,core.harbor.domain,.local,.internal
         components:
           - core
           - jobservice

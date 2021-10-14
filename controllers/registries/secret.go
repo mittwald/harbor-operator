@@ -2,25 +2,26 @@ package registries
 
 import (
 	"context"
-	"reflect"
+	"fmt"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 func (r *UserReconciler) getSecretForUser(ctx context.Context, user *v1alpha2.User) (*corev1.Secret, error) {
 	sec := &corev1.Secret{}
-	sec.Name = user.Spec.UserSecretRef.Name
-	sec.Namespace = user.Namespace
 
-	err := r.Client.Get(ctx, types.NamespacedName{Name: sec.Name, Namespace: sec.Namespace}, sec)
+	err := r.Client.Get(ctx, client.ObjectKey{
+		Name: user.Spec.UserSecretRef.Name, Namespace: user.Namespace,
+	}, sec)
 	if err != nil {
 		return &corev1.Secret{}, err
 	}
@@ -29,28 +30,23 @@ func (r *UserReconciler) getSecretForUser(ctx context.Context, user *v1alpha2.Us
 }
 
 func (r *UserReconciler) newSecretForUser(ctx context.Context, user *v1alpha2.User) (*corev1.Secret, error) {
-	ls := r.labelsForUserSecret(user, user.Spec.ParentInstance.Name)
-
 	sec := &corev1.Secret{}
-	sec.Name = user.Spec.UserSecretRef.Name
-	sec.Namespace = user.Namespace
 
-	err := r.Client.Get(ctx, types.NamespacedName{Name: sec.Name, Namespace: sec.Namespace}, sec)
-	if errors.IsNotFound(err) {
+	exists, err := helper.ObjExists(ctx, r.Client, user.Spec.UserSecretRef.Name, user.Namespace, sec)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
 		pw, err := helper.NewRandomPassword(user.Spec.PasswordStrength)
 		if err != nil {
-			return &corev1.Secret{}, err
+			return nil, err
 		}
 
 		sec = &corev1.Secret{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Secret",
-				APIVersion: "v1",
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      user.Spec.UserSecretRef.Name,
 				Namespace: user.Namespace,
-				Labels:    ls,
+				Labels:    r.labelsForUserSecret(user, user.Spec.ParentInstance.Name),
 				OwnerReferences: []metav1.OwnerReference{{
 					APIVersion: user.APIVersion,
 					Kind:       user.Kind,
@@ -63,43 +59,41 @@ func (r *UserReconciler) newSecretForUser(ctx context.Context, user *v1alpha2.Us
 				"password": []byte(pw),
 			},
 		}
-
 		return sec, nil
-	} else if err != nil {
-		return &corev1.Secret{}, err
 	}
 
-	return sec, nil
+	return nil, fmt.Errorf("could not create or get user secret")
 }
 
 func (r *UserReconciler) getOrCreateSecretForUser(ctx context.Context,
 	user *v1alpha2.User) (*corev1.Secret, error) {
 	sec, err := r.getSecretForUser(ctx, user)
-	if errors.IsNotFound(err) {
-		sec, err = r.newSecretForUser(ctx, user)
-		if err != nil {
-			return nil, err
+	if err != nil {
+		if errors.IsNotFound(err) {
+			sec, err = r.newSecretForUser(ctx, user)
+			if err != nil {
+				return nil, err
+			}
+
+			err := r.Client.Create(ctx, sec)
+			if err != nil {
+				return nil, err
+			}
+
+			createdSecret := corev1.Secret{}
+
+			return &createdSecret, r.Client.Get(ctx, client.ObjectKey{
+				Name:      user.Spec.UserSecretRef.Name,
+				Namespace: user.Namespace,
+			}, &createdSecret)
 		}
 
-		if err := r.Client.Create(ctx, sec); err != nil {
-			return &corev1.Secret{}, err
-		}
-	} else if err != nil {
 		return nil, err
 	}
-
-	originalSec := sec.DeepCopy()
 
 	err = controllerutil.SetControllerReference(user, sec, r.Scheme)
 	if err != nil {
 		return nil, err
-	}
-
-	if !reflect.DeepEqual(originalSec, sec) {
-		err = r.Client.Update(ctx, sec)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return sec, nil

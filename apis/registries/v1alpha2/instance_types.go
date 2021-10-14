@@ -74,6 +74,9 @@ type GarbageCollection struct {
 	// +kubebuilder:validation:Optional
 	Cron string `json:"cron,omitempty"`
 
+	// +optional
+	DeleteUntagged bool `json:"deleteUntagged,omitempty"`
+
 	// +kubebuilder:validation:Optional
 	ScheduleType ScheduleType `json:"scheduleType,omitempty"`
 }
@@ -95,6 +98,7 @@ type InstanceHelmChartSecretValues struct {
 type InstanceStatus struct {
 	Phase InstanceStatusPhase `json:"phase"`
 
+	// +optional
 	SpecHash string `json:"specHash"`
 }
 

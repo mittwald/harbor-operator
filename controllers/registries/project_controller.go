@@ -20,17 +20,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
-	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
-
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
 
@@ -46,8 +45,6 @@ import (
 	legacymodel "github.com/mittwald/goharbor-client/v4/apiv2/model/legacy"
 	projectapi "github.com/mittwald/goharbor-client/v4/apiv2/project"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-
-	"github.com/mittwald/harbor-operator/controllers/registries/helper"
 )
 
 // ProjectReconciler reconciles a Project object
@@ -81,28 +78,30 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	originalProject := project.DeepCopy()
+	patch := client.MergeFrom(project.DeepCopy())
 
 	if project.ObjectMeta.DeletionTimestamp != nil &&
 		project.Status.Phase != v1alpha2.ProjectStatusPhaseTerminating {
 		project.Status = v1alpha2.ProjectStatus{Phase: v1alpha2.ProjectStatusPhaseTerminating}
 
-		return r.updateProjectCR(ctx, nil, originalProject, project)
+		return ctrl.Result{}, r.Client.Status().Patch(ctx, project, patch)
 	}
 
 	// Fetch the goharbor instance if it exists and is properly set up.
 	// If the above does not apply, pull the finalizer from the project object.
-	harbor, err := helper.GetOperationalHarborInstance(ctx, client.ObjectKey{
+	harbor, err := internal.GetOperationalHarborInstance(ctx, client.ObjectKey{
 		Namespace: project.Namespace,
 		Name:      project.Spec.ParentInstance.Name,
 	}, r.Client)
 	if err != nil {
-		if errors.Is(err, &controllererrors.ErrInstanceNotFound{}) ||
-			errors.Is(err, &controllererrors.ErrInstanceNotInstalled{}) {
-			helper.PullFinalizer(project, internal.FinalizerName)
-			helper.PullFinalizer(project, internal.OldFinalizerName)
-			return r.updateProjectCR(ctx, harbor, originalProject, project)
-		}
+		controllerutil.RemoveFinalizer(project, internal.FinalizerName)
+
+		return ctrl.Result{}, err
+	}
+
+	// Set OwnerReference to the parent harbor instance
+	err = ctrl.SetControllerReference(harbor, project, r.Scheme)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -126,20 +125,23 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 
 	case v1alpha2.ProjectStatusPhaseUnknown:
-		project.Status = v1alpha2.ProjectStatus{Phase: v1alpha2.ProjectStatusPhaseCreating}
+		project.Status.Phase = v1alpha2.ProjectStatusPhaseCreating
+		project.Status.Message = "project is about to be created"
 
 	case v1alpha2.ProjectStatusPhaseCreating:
-		if err := r.assertExistingProject(ctx, harborClient, project); err != nil {
+		if err := r.assertExistingProject(ctx, harborClient, project, patch); err != nil {
 			return ctrl.Result{}, err
 		}
-
-		helper.PushFinalizer(project, internal.FinalizerName)
 
 		project.Status = v1alpha2.ProjectStatus{Phase: v1alpha2.ProjectStatusPhaseReady}
 
 	case v1alpha2.ProjectStatusPhaseReady:
-		err := r.assertExistingProject(ctx, harborClient, project)
-		if err != nil {
+		controllerutil.AddFinalizer(project, internal.FinalizerName)
+		if err := r.Client.Patch(ctx, project, patch); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if err := r.assertExistingProject(ctx, harborClient, project, patch); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -149,9 +151,11 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+
+		return ctrl.Result{}, r.Client.Patch(ctx, project, patch)
 	}
 
-	return r.updateProjectCR(ctx, harbor, originalProject, project)
+	return ctrl.Result{}, r.Client.Status().Patch(ctx, project, patch)
 }
 
 func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -167,87 +171,22 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// updateProjectCR compares the new CR status and finalizers with the pre-existing ones and updates them accordingly.
-func (r *ProjectReconciler) updateProjectCR(ctx context.Context, parentInstance *v1alpha2.Instance, originalProject, project *v1alpha2.Project) (ctrl.Result, error) {
-	if originalProject == nil || project == nil {
-		return ctrl.Result{},
-			fmt.Errorf("cannot update project '%s' because the original project is nil", project.Spec.Name)
-	}
-
-	// Update Status
-	if !reflect.DeepEqual(originalProject.Status, project.Status) {
-		originalProject.Status = project.Status
-		if err := r.Client.Status().Update(ctx, originalProject); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Set owner reference
-	if (originalProject.OwnerReferences == nil ||
-		len(originalProject.OwnerReferences) == 0) &&
-		parentInstance != nil {
-		err := ctrl.SetControllerReference(parentInstance, originalProject, r.Scheme)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Update Finalizer
-	if !reflect.DeepEqual(originalProject.Finalizers, project.Finalizers) {
-		originalProject.SetFinalizers(project.Finalizers)
-	}
-
-	if err := r.Client.Update(ctx, originalProject); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
-}
-
-func FetchHarborProjectIfExists(ctx context.Context, harborClient *h.RESTClient, projectName string) (*model.Project, bool, error) {
-	p, err := harborClient.GetProject(ctx, projectName)
-	if err != nil {
-		if errors.Is(&projectapi.ErrProjectUnknownResource{}, err) ||
-			errors.Is(&projectapi.ErrProjectNotFound{}, err) {
-			return nil, false, nil
-		}
-		return p, false, err
-	}
-
-	return p, true, nil
-}
-
-func DeleteHarborProject(ctx context.Context, harborClient *h.RESTClient, p *model.Project) error {
-	if err := harborClient.DeleteProject(ctx, p); err != nil {
-		if errors.Is(&projectapi.ErrProjectMismatch{}, err) {
-			return nil
-		}
-		if errors.Is(&projectapi.ErrProjectNotFound{}, err) {
-			return nil
-		}
-		return err
-	}
-
-	return nil
-}
-
 // assertDeletedProject deletes a Harbor project, first ensuring its existence.
 func (r *ProjectReconciler) assertDeletedProject(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
 	project *v1alpha2.Project) error {
-	p, exists, err := FetchHarborProjectIfExists(ctx, harborClient, project.Name)
+	p, exists, err := internal.FetchHarborProjectIfExists(ctx, harborClient, project.Name)
 	if err != nil {
 		return err
 	}
 
 	if exists {
-		if err := DeleteHarborProject(ctx, harborClient, p); err != nil {
+		if err := internal.DeleteHarborProject(ctx, harborClient, p); err != nil {
 			return err
 		}
 	}
 
-	log.Info("pulling finalizers", project.Name, project.Namespace)
-	helper.PullFinalizer(project, internal.FinalizerName)
-	helper.PullFinalizer(project, internal.OldFinalizerName)
+	log.Info("removing finalizer", project.Name, project.Namespace)
+	controllerutil.RemoveFinalizer(project, internal.FinalizerName)
 
 	return nil
 }
@@ -255,7 +194,8 @@ func (r *ProjectReconciler) assertDeletedProject(ctx context.Context, log logr.L
 // assertExistingProject
 // Check Harbor projects and their components for their existence,
 // create and delete either of those to match the specification.
-func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborClient *h.RESTClient, project *v1alpha2.Project) error {
+func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborClient *h.RESTClient,
+	project *v1alpha2.Project, patch client.Patch) error {
 	heldRepo, err := harborClient.GetProject(ctx, project.Spec.Name)
 
 	if errors.Is(err, &projectapi.ErrProjectNotFound{}) {
@@ -267,7 +207,7 @@ func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborCli
 		return err
 	}
 
-	return r.ensureProject(ctx, heldRepo, harborClient, project)
+	return r.ensureProject(ctx, heldRepo, harborClient, project, patch)
 }
 
 func (r *ProjectReconciler) projectMemberExists(members []*legacymodel.ProjectMemberEntity, requestedMember *v1alpha2.User) bool {
@@ -280,28 +220,30 @@ func (r *ProjectReconciler) projectMemberExists(members []*legacymodel.ProjectMe
 }
 
 // addProjectMemberStatus
-func (r *ProjectReconciler) addProjectMemberStatus(ctx context.Context, project *v1alpha2.Project, request *v1alpha2.MemberRequest) error {
+func (r *ProjectReconciler) addProjectMemberStatus(ctx context.Context, project *v1alpha2.Project,
+	request *v1alpha2.MemberRequest, patch client.Patch) error {
 	for i := range project.Status.Members {
 		if project.Status.Members[i].Name == request.User.Name {
 			continue
 		}
 	}
 	project.Status.Members = append(project.Status.Members, request.User)
-	return r.Client.Status().Update(ctx, project)
+	return r.Client.Status().Patch(ctx, project, patch)
 }
 
 // deleteProjectMemberStatus
-func (r *ProjectReconciler) deleteProjectMemberStatus(ctx context.Context, project *v1alpha2.Project, request *corev1.LocalObjectReference) error {
+func (r *ProjectReconciler) deleteProjectMemberStatus(ctx context.Context, project *v1alpha2.Project,
+	request *corev1.LocalObjectReference, patch client.Patch) error {
 	for i := range project.Status.Members {
 		if project.Status.Members[i].Name == request.Name {
 			project.Status.Members = append(project.Status.Members[:i], project.Status.Members[i+1:]...)
 		}
 	}
 
-	return r.Client.Status().Update(ctx, project)
+	return r.Client.Status().Patch(ctx, project, patch)
 }
 
-// projectMemberShouldExist
+// projectMemberShouldExist checks whether the 'existing' reference to a user is contained in the 'desired' requests.
 func (r *ProjectReconciler) projectMemberShouldExist(existing corev1.LocalObjectReference, desired []v1alpha2.MemberRequest) bool {
 	for i := range desired {
 		if existing.Name == desired[i].User.Name {
@@ -313,11 +255,11 @@ func (r *ProjectReconciler) projectMemberShouldExist(existing corev1.LocalObject
 }
 
 func (r *ProjectReconciler) reconcileProjectMembers(ctx context.Context, project *v1alpha2.Project,
-	harborClient *h.RESTClient, harborProject *model.Project) error {
+	harborClient *h.RESTClient, harborProject *model.Project, patch client.Patch) error {
 	for i := range project.Spec.MemberRequests {
 		userCR, err := r.getUserCRFromRef(ctx, project.Spec.MemberRequests[i].User, project.Namespace)
 		if err != nil {
-			return fmt.Errorf("the user specified in project %s's list of member requests does not exist: %s", project.Spec.MemberRequests[i].User.Name, err)
+			return fmt.Errorf("the user specified in project %s's list of member requests does not exist: %w", project.Name, err)
 		}
 
 		harborUser, err := harborClient.GetUser(ctx, userCR.Spec.Name)
@@ -336,7 +278,7 @@ func (r *ProjectReconciler) reconcileProjectMembers(ctx context.Context, project
 				return err
 			}
 			// Once the member user's existence is certain, append it to the project CR's status
-			if err = r.addProjectMemberStatus(ctx, project, &project.Spec.MemberRequests[i]); err != nil {
+			if err = r.addProjectMemberStatus(ctx, project, &project.Spec.MemberRequests[i], patch); err != nil {
 				return err
 			}
 		}
@@ -348,7 +290,7 @@ func (r *ProjectReconciler) reconcileProjectMembers(ctx context.Context, project
 		if !r.projectMemberShouldExist(project.Status.Members[i], project.Spec.MemberRequests) {
 			userCR, err := r.getUserCRFromRef(ctx, project.Status.Members[i], project.Namespace)
 			if err != nil {
-				return fmt.Errorf("the user specified in project %s's list of existing members does not exist: %s", project.Status.Members[i].Name, err)
+				return fmt.Errorf("the user specified in project %s's list of existing members does not exist: %w", project.Name, err)
 			}
 
 			harborUser, err := harborClient.GetUser(ctx, userCR.Spec.Name)
@@ -366,7 +308,7 @@ func (r *ProjectReconciler) reconcileProjectMembers(ctx context.Context, project
 				if err != nil {
 					return err
 				}
-				if err = r.deleteProjectMemberStatus(ctx, project, &project.Status.Members[i]); err != nil {
+				if err = r.deleteProjectMemberStatus(ctx, project, &project.Status.Members[i], patch); err != nil {
 					return err
 				}
 			}
@@ -387,7 +329,7 @@ func (r *ProjectReconciler) getUserCRFromRef(ctx context.Context, userRef corev1
 // ensureProject triggers reconciliation of project members
 // and compares the state of the CR object with the project held by Harbor
 func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *model.Project,
-	harborClient *h.RESTClient, project *v1alpha2.Project) error {
+	harborClient *h.RESTClient, project *v1alpha2.Project, patch client.Patch) error {
 	newProject := &model.Project{}
 	// Copy the spec of the project held by Harbor into a new object of the same type *harbor.Project
 	err := copier.Copy(&newProject, &heldProject)
@@ -395,13 +337,13 @@ func (r *ProjectReconciler) ensureProject(ctx context.Context, heldProject *mode
 		return err
 	}
 
-	err = r.reconcileProjectMembers(ctx, project, harborClient, heldProject)
+	err = r.reconcileProjectMembers(ctx, project, harborClient, heldProject, patch)
 	if err != nil {
 		return err
 	}
 
 	project.Status.ID = heldProject.ProjectID
-	if err := r.Client.Status().Update(ctx, project); err != nil {
+	if err := r.Client.Status().Patch(ctx, project, patch); err != nil {
 		return err
 	}
 

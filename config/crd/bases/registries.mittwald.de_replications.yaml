@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.6.1
   creationTimestamp: null
   name: replications.registries.mittwald.de
 spec:
@@ -148,13 +148,7 @@ spec:
                   ID.
                 format: int64
                 type: integer
-              lastTransition:
-                description: Time of last observed transition into this state
-                format: date-time
-                type: string
               message:
-                type: string
-              name:
                 type: string
               phase:
                 type: string
@@ -163,7 +157,6 @@ spec:
                 type: string
             required:
             - message
-            - name
             - phase
             type: object
         type: object
