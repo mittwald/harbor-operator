@@ -54,6 +54,8 @@ spec:
                 properties:
                   cron:
                     type: string
+                  deleteUntagged:
+                    type: boolean
                   scheduleType:
                     type: string
                 type: object
