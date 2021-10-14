@@ -30,6 +30,7 @@ func AssertDeletedReplication(ctx context.Context, log logr.Logger,
 		if errors.Is(err, &replicationapi.ErrReplicationNotFound{}) {
 			log.Info("replication does not exist on the server side, pulling finalizers")
 			controllerutil.RemoveFinalizer(replication, FinalizerName)
+
 		}
 		return err
 	}

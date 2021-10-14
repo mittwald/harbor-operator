@@ -145,12 +145,9 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{}, err
 		}
 
-		if !controllerutil.ContainsFinalizer(replication, internal.FinalizerName) {
-			controllerutil.AddFinalizer(replication, internal.FinalizerName)
-			err := r.Client.Patch(ctx, replication, patch)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
+		controllerutil.AddFinalizer(replication, internal.FinalizerName)
+		if err := r.Client.Patch(ctx, replication, patch); err != nil {
+			return ctrl.Result{}, err
 		}
 
 		if replication.Spec.TriggerAfterCreation {
@@ -200,8 +197,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	case v1alpha2.ReplicationStatusPhaseTerminating:
 		// Delete the replication via harbor API
-		err := internal.AssertDeletedReplication(ctx, reqLogger, harborClient, replication)
-		if err != nil {
+		if err := internal.AssertDeletedReplication(ctx, reqLogger, harborClient, replication); err != nil {
 			return ctrl.Result{}, err
 		}
 

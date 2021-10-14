@@ -141,10 +141,11 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	case v1alpha2.RegistryStatusPhaseTerminating:
 		// Delete the registry via harbor API
-		err := r.assertDeletedRegistry(ctx, reqLogger, harborClient, registry, patch)
+		res, err := r.assertDeletedRegistry(ctx, reqLogger, harborClient, registry, patch)
 		if err != nil {
-			return ctrl.Result{}, err
+			return res, err
 		}
+		return res, nil
 	}
 
 	return ctrl.Result{}, nil
@@ -278,29 +279,35 @@ func (r *RegistryReconciler) buildRegistryFromCR(ctx context.Context, registry *
 
 // assertDeletedRegistry deletes a registry, first ensuring all controlled replications are deleted.
 func (r *RegistryReconciler) assertDeletedRegistry(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
-	registry *v1alpha2.Registry, patch client.Patch) error {
+	registry *v1alpha2.Registry, patch client.Patch) (ctrl.Result, error) {
 
 	// List all replications that reference the parent registry resource and mark them for deletion.
 	replicationList := v1alpha2.ReplicationList{}
 
 	if err := r.Client.List(ctx, &replicationList, client.MatchingFields{"metadata.ownerReferences.uid": string(registry.UID)}); err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
-	for _, i := range replicationList.Items {
-		patch := client.MergeFrom(i.DeepCopy())
-		err := internal.AssertDeletedReplication(ctx, log, harborClient, &i)
-		if err != nil {
-			return err
-		}
+	if len(replicationList.Items) > 0 {
+		for _, i := range replicationList.Items {
+			patch := client.MergeFrom(i.DeepCopy())
 
-		if err := r.Client.Delete(ctx, &i); err != nil {
-			return err
-		}
+			i.Status.Phase = v1alpha2.ReplicationStatusPhaseTerminating
 
-		if err := r.Client.Patch(ctx, &i, patch); err != nil {
-			return err
+			if err := r.Client.Status().Patch(ctx, &i, patch); err != nil {
+				return ctrl.Result{}, err
+			}
+
+			if err := r.Client.Delete(ctx, &i); err != nil {
+				if k8sErrors.IsNotFound(err) {
+					return ctrl.Result{}, nil
+				}
+				return ctrl.Result{}, err
+			}
 		}
+		log.Info("terminating owned replications of registry")
+		// Requeue reconciliation
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	reg, err := harborClient.GetRegistry(ctx, registry.Name)
@@ -309,25 +316,25 @@ func (r *RegistryReconciler) assertDeletedRegistry(ctx context.Context, log logr
 			log.Info("registry does not exist on the server side, pulling finalizers")
 			controllerutil.RemoveFinalizer(registry, internal.FinalizerName)
 			if err := r.Client.Patch(ctx, registry, patch); err != nil {
-				return err
+				return ctrl.Result{}, err
 			}
 		}
-		return err
+		return ctrl.Result{}, err
 	}
 
 	if reg != nil {
 		err := harborClient.DeleteRegistry(ctx, reg)
 		if err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 		log.Info("pulling finalizer")
 		controllerutil.RemoveFinalizer(registry, internal.FinalizerName)
 		if err := r.Client.Patch(ctx, registry, patch); err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
 func (r *RegistryReconciler) SetupWithManager(mgr ctrl.Manager) error {

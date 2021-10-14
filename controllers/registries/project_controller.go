@@ -137,16 +137,12 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		project.Status = v1alpha2.ProjectStatus{Phase: v1alpha2.ProjectStatusPhaseReady}
 
 	case v1alpha2.ProjectStatusPhaseReady:
-		if !controllerutil.ContainsFinalizer(project, internal.FinalizerName) {
-			controllerutil.AddFinalizer(project, internal.FinalizerName)
-			err := r.Client.Patch(ctx, project, patch)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
+		controllerutil.AddFinalizer(project, internal.FinalizerName)
+		if err := r.Client.Patch(ctx, project, patch); err != nil {
+			return ctrl.Result{}, err
 		}
 
-		err := r.assertExistingProject(ctx, harborClient, project, patch)
-		if err != nil {
+		if err := r.assertExistingProject(ctx, harborClient, project, patch); err != nil {
 			return ctrl.Result{}, err
 		}
 

@@ -161,16 +161,12 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 		user.Status.Phase = v1alpha2.UserStatusPhaseReady
 
 	case v1alpha2.UserStatusPhaseReady:
-		if !controllerutil.ContainsFinalizer(user, internal.FinalizerName) {
-			controllerutil.AddFinalizer(user, internal.FinalizerName)
-			err := r.Client.Patch(ctx, user, patch)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
+		controllerutil.AddFinalizer(user, internal.FinalizerName)
+		if err := r.Client.Patch(ctx, user, patch); err != nil {
+			return ctrl.Result{}, err
 		}
 
-		err := r.assertExistingUser(ctx, harborClient, user)
-		if err != nil {
+		if err := r.assertExistingUser(ctx, harborClient, user); err != nil {
 			return ctrl.Result{}, err
 		}
 
