@@ -1,0 +1,36 @@
+name: Helm
+
+# Trigger the workflow on push or pull requests
+on:
+  push:
+    branches:
+      - 'master'
+    tags:
+      - '*'
+  pull_request:
+
+env:
+  HELM_VERSION: v3.6.3
+
+jobs:
+  helm-lint:
+    name: Helm Template & Lint
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Set up Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: Install helm
+        run: curl -sS -L https://raw.githubusercontent.com/helm/helm/${HELM_VERSION}/scripts/get-helm-3 | bash -s - --version ${HELM_VERSION}
+
+      - name: Run helm template
+        run: helm template --values ./deploy/helm-chart/harbor-operator/values.yaml harbor-operator ./deploy/helm-chart/harbor-operator
+
+      - name: Run helm lint
+        run: helm lint --values ./deploy/helm-chart/harbor-operator/values.yaml --debug --strict ./deploy/helm-chart/harbor-operator/.
