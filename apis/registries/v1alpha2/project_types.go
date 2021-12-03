@@ -41,12 +41,22 @@ type ProjectSpec struct {
 	// +kubebuilder:validation:Optional
 	StorageLimit int `json:"storageLimit"`
 
+	// ProxyCache defines an optional reference to a registry resource.
+	// The project will be created as a "Proxy Cache" project, if specified.
+	// +kubebuilder:validation:Optional
+	ProxyCache *ProxyCacheSettings `json:"proxyCache,omitempty"`
+
 	// +kubebuilder:validation:Optional
 	Metadata ProjectMetadata `json:"metadata,omitempty"`
 
 	// Ref to the name of a 'User' resource
 	// +kubebuilder:validation:Optional
 	MemberRequests []MemberRequest `json:"memberRequests,omitempty"`
+}
+
+// ProxyCacheSettings defines settings for the registry endpoint used by a "Proxy Cache" project.
+type ProxyCacheSettings struct {
+	Registry *corev1.LocalObjectReference `json:"registry,omitempty"`
 }
 
 type ProjectMetadata struct {

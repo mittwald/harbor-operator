@@ -2,8 +2,10 @@ package internal
 
 import (
 	"context"
+	"time"
 
-	h "github.com/mittwald/goharbor-client/v4/apiv2"
+	h "github.com/mittwald/goharbor-client/v5/apiv2"
+	clientconfig "github.com/mittwald/goharbor-client/v5/apiv2/pkg/config"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -30,5 +32,10 @@ func BuildClient(ctx context.Context, cl client.Client,
 		return nil, err
 	}
 
-	return h.NewRESTClientForHost(harbor.Spec.InstanceURL+"/api", "admin", corePassword)
+	opts := clientconfig.Options{
+		Timeout:  10 * time.Second,
+		PageSize: 10,
+	}
+
+	return h.NewRESTClientForHost(harbor.Spec.InstanceURL+"/api", "admin", corePassword, &opts)
 }

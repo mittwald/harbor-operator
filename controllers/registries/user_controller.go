@@ -21,13 +21,13 @@ import (
 	"errors"
 	"time"
 
+	"github.com/mittwald/goharbor-client/v5/apiv2/model"
+	clienterrors "github.com/mittwald/goharbor-client/v5/apiv2/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/go-logr/logr"
-	h "github.com/mittwald/goharbor-client/v4/apiv2"
-	legacymodel "github.com/mittwald/goharbor-client/v4/apiv2/model/legacy"
-	userapi "github.com/mittwald/goharbor-client/v4/apiv2/user"
+	h "github.com/mittwald/goharbor-client/v5/apiv2"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -105,7 +105,6 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 	}, r.Client)
 	if err != nil {
 		controllerutil.RemoveFinalizer(user, internal.FinalizerName)
-
 		return ctrl.Result{}, r.Client.Patch(ctx, user, patch)
 	}
 
@@ -122,12 +121,9 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 	}
 
 	// Check the Harbor API if it's reporting as healthy
-	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient)
+	err = internal.AssertHealthyHarborInstance(ctx, harborClient)
 	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if !instanceIsHealthy {
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, err
 	}
 
 	// Handle user reconciliation
@@ -200,10 +196,10 @@ func (r *UserReconciler) assertExistingUser(ctx context.Context, harborClient *h
 		return err
 	}
 
-	heldUser, err := harborClient.GetUser(ctx, usr.Spec.Name)
+	heldUser, err := harborClient.GetUserByName(ctx, usr.Spec.Name)
 	if err != nil {
 		switch err.Error() {
-		case userapi.ErrUserNotFoundMsg:
+		case clienterrors.ErrUserNotFoundMsg:
 			usr.Status.PasswordHash = pwHash.Short()
 
 			return r.createUser(ctx, harborClient, usr, pw)
@@ -212,13 +208,14 @@ func (r *UserReconciler) assertExistingUser(ctx context.Context, harborClient *h
 		}
 	}
 
-	if usr.Status.PasswordHash != pwHash.Short() {
+	if usr.Status.PasswordHash == "" {
+		usr.Status.PasswordHash = pwHash.Short()
+	} else if usr.Status.PasswordHash != pwHash.Short() {
 		usr.Status.PasswordHash = pwHash.Short()
 
-		if err = harborClient.UpdateUserPassword(ctx, heldUser.UserID,
-			&legacymodel.Password{
-				NewPassword: pw,
-			}); err != nil {
+		if err = harborClient.UpdateUserPassword(ctx, heldUser.UserID, &model.PasswordReq{
+			NewPassword: pw,
+		}); err != nil {
 			return err
 		}
 	}
@@ -229,17 +226,13 @@ func (r *UserReconciler) assertExistingUser(ctx context.Context, harborClient *h
 // createUser constructs a user request and triggers the Harbor API to create that user.
 func (r *UserReconciler) createUser(ctx context.Context, harborClient *h.RESTClient, user *v1alpha2.User,
 	newPassword string) error {
-	_, err := harborClient.NewUser(ctx,
+
+	return harborClient.NewUser(ctx,
 		user.Spec.Name,
 		user.Spec.Email,
 		user.Spec.RealName,
 		newPassword,
 		user.Spec.Comments)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // labelsForUserSecret returns a list of labels for a user's secret.
@@ -251,43 +244,37 @@ func (r *UserReconciler) labelsForUserSecret(user *v1alpha2.User, instanceName s
 	}
 }
 
-// ensureUser updates a users profile, if changed - Afterwards, it updates the password if changed.
+// ensureUser updates a users profile, if changed.
 func (r *UserReconciler) ensureUser(ctx context.Context, harborClient *h.RESTClient,
-	heldUser *legacymodel.User, desiredUser *v1alpha2.User) error {
-	newUsr := &legacymodel.User{
-		UserID: heldUser.UserID,
+	heldUser *model.UserResp, desiredUser *v1alpha2.User) error {
+	newUserProfile := &model.UserProfile{
+		Comment:  desiredUser.Spec.Comments,
+		Email:    desiredUser.Spec.Email,
+		Realname: desiredUser.Spec.RealName,
 	}
-
-	newUsr.Username = desiredUser.Spec.Name
-	newUsr.Email = desiredUser.Spec.Email
-	newUsr.Realname = desiredUser.Spec.RealName
 
 	// Default the 'sysAdmin' toggle to false, if no value is provided.
 	if desiredUser.Spec.SysAdmin != nil {
-		newUsr.SysadminFlag = *desiredUser.Spec.SysAdmin
-	} else {
-		newUsr.SysadminFlag = false
+		if err := harborClient.SetUserSysAdmin(ctx, heldUser.UserID, *desiredUser.Spec.SysAdmin); err != nil {
+			return err
+		}
 	}
 
-	if isUserRequestEqual(heldUser, newUsr) {
+	if isUserProfileRequestEqual(heldUser, newUserProfile) {
 		return nil
 	}
 
-	// Update the user if spec has changed
-	return harborClient.UpdateUser(ctx, newUsr)
+	// Update the user profile if spec has changed
+	return harborClient.UpdateUserProfile(ctx, heldUser.UserID, newUserProfile)
 }
 
-// isUserRequestEqual compares the individual values of an existing user with a user request
-func isUserRequestEqual(existing, new *legacymodel.User) bool {
-	if new.Username != existing.Username {
-		return false
-	} else if new.Email != existing.Email {
+// isUserRequestEqual compares the individual values of an existing user with a 'new' user profile.
+func isUserProfileRequestEqual(existing *model.UserResp, new *model.UserProfile) bool {
+	if new.Email != existing.Email {
 		return false
 	} else if new.Realname != existing.Realname {
 		return false
-	} else if new.RoleID != existing.RoleID {
-		return false
-	} else if new.SysadminFlag != existing.SysadminFlag {
+	} else if new.Comment != existing.Comment {
 		return false
 	}
 
@@ -297,9 +284,9 @@ func isUserRequestEqual(existing, new *legacymodel.User) bool {
 // assertDeletedUser deletes a user, first ensuring its existence
 func (r *UserReconciler) assertDeletedUser(ctx context.Context, log logr.Logger, harborClient *h.RESTClient,
 	user *v1alpha2.User, patch client.Patch) error {
-	harborUser, err := harborClient.GetUser(ctx, user.Spec.Name)
+	harborUser, err := harborClient.GetUserByName(ctx, user.Spec.Name)
 	if err != nil {
-		if errors.Is(err, &userapi.ErrUserNotFound{}) {
+		if errors.Is(err, &clienterrors.ErrUserNotFound{}) {
 			log.Info("pulling finalizer")
 			controllerutil.RemoveFinalizer(user, internal.FinalizerName)
 			return r.Client.Patch(ctx, user, patch)
@@ -307,12 +294,7 @@ func (r *UserReconciler) assertDeletedUser(ctx context.Context, log logr.Logger,
 		return err
 	}
 
-	uReq := &legacymodel.User{
-		Username: harborUser.Username,
-		UserID:   harborUser.UserID,
-	}
-
-	if err := harborClient.DeleteUser(ctx, uReq); err != nil {
+	if err := harborClient.DeleteUser(ctx, harborUser.UserID); err != nil {
 		return err
 	}
 

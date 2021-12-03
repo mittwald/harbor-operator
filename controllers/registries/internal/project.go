@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strconv"
 
-	h "github.com/mittwald/goharbor-client/v4/apiv2"
-	"github.com/mittwald/goharbor-client/v4/apiv2/model"
-	projectapi "github.com/mittwald/goharbor-client/v4/apiv2/project"
+	h "github.com/mittwald/goharbor-client/v5/apiv2"
+	"github.com/mittwald/goharbor-client/v5/apiv2/model"
+	clienterrors "github.com/mittwald/goharbor-client/v5/apiv2/pkg/errors"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 )
@@ -15,8 +15,8 @@ import (
 func FetchHarborProjectIfExists(ctx context.Context, harborClient *h.RESTClient, projectName string) (*model.Project, bool, error) {
 	p, err := harborClient.GetProject(ctx, projectName)
 	if err != nil {
-		if errors.Is(&projectapi.ErrProjectUnknownResource{}, err) ||
-			errors.Is(&projectapi.ErrProjectNotFound{}, err) {
+		if errors.Is(&clienterrors.ErrProjectUnknownResource{}, err) ||
+			errors.Is(&clienterrors.ErrProjectNotFound{}, err) {
 			return nil, false, nil
 		}
 		return p, false, err
@@ -26,11 +26,11 @@ func FetchHarborProjectIfExists(ctx context.Context, harborClient *h.RESTClient,
 }
 
 func DeleteHarborProject(ctx context.Context, harborClient *h.RESTClient, p *model.Project) error {
-	if err := harborClient.DeleteProject(ctx, p); err != nil {
-		if errors.Is(&projectapi.ErrProjectMismatch{}, err) {
+	if err := harborClient.DeleteProject(ctx, p.Name); err != nil {
+		if errors.Is(&clienterrors.ErrProjectMismatch{}, err) {
 			return nil
 		}
-		if errors.Is(&projectapi.ErrProjectNotFound{}, err) {
+		if errors.Is(&clienterrors.ErrProjectNotFound{}, err) {
 			return nil
 		}
 		return err
@@ -52,7 +52,7 @@ func GenerateProjectMetadata(projectMeta *v1alpha2.ProjectMetadata) *model.Proje
 		EnableContentTrust:   &enableContentTrust,
 		PreventVul:           &preventVul,
 		Public:               public,
-		ReuseSysCveAllowlist: &reuseSysCVEAllowlist,
+		ReuseSysCVEAllowlist: &reuseSysCVEAllowlist,
 		Severity:             projectMeta.Severity,
 	}
 

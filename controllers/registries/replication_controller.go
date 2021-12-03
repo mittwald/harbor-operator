@@ -23,10 +23,10 @@ import (
 	"reflect"
 	"time"
 
-	h "github.com/mittwald/goharbor-client/v4/apiv2"
-	"github.com/mittwald/goharbor-client/v4/apiv2/model"
-	legacymodel "github.com/mittwald/goharbor-client/v4/apiv2/model/legacy"
-	replicationapi "github.com/mittwald/goharbor-client/v4/apiv2/replication"
+	clienterrors "github.com/mittwald/goharbor-client/v5/apiv2/pkg/errors"
+
+	h "github.com/mittwald/goharbor-client/v5/apiv2"
+	"github.com/mittwald/goharbor-client/v5/apiv2/model"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -98,12 +98,9 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	// Check the Harbor API if it's reporting as healthy
-	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient)
+	err = internal.AssertHealthyHarborInstance(ctx, harborClient)
 	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if !instanceIsHealthy {
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, err
 	}
 
 	switch replication.Status.Phase {
@@ -210,12 +207,9 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 // the replication and checks whether it is still running or not.
 // Returns an error if no replication execution could be found for the replication policy.
 func (r *ReplicationReconciler) reconcileRunningReplicationExecution(ctx context.Context, replication *v1alpha2.Replication, harborClient *h.RESTClient) (bool, error) {
-	replExec := &model.ReplicationExecution{
-		PolicyID: replication.Status.ID,
-		Trigger:  v1alpha2.ReplicationTriggerTypeManual,
-	}
+	triggerType := v1alpha2.ReplicationTriggerTypeManual
 
-	executions, err := harborClient.GetReplicationExecutions(ctx, replExec)
+	executions, err := harborClient.ListReplicationExecutions(ctx, &replication.Status.ID, nil, &triggerType)
 	if err != nil {
 		return false, fmt.Errorf("no replication executions found: %s", err)
 	}
@@ -236,12 +230,9 @@ func (r *ReplicationReconciler) reconcileRunningReplicationExecution(ctx context
 
 // reconcileFinishedReplicationExecution fetches the latest finished replication execution and returns an error when it has failed.
 func (r *ReplicationReconciler) reconcileFinishedReplicationExecution(ctx context.Context, replication *v1alpha2.Replication, harborClient *h.RESTClient) error {
-	replExec := &model.ReplicationExecution{
-		PolicyID: replication.Status.ID,
-		Trigger:  v1alpha2.ReplicationTriggerTypeManual,
-	}
+	triggerType := v1alpha2.ReplicationTriggerTypeManual
 
-	executions, err := harborClient.GetReplicationExecutions(ctx, replExec)
+	executions, err := harborClient.ListReplicationExecutions(ctx, &replication.Status.ID, nil, &triggerType)
 	if err != nil {
 		return fmt.Errorf("fetching successful replication executions failed for replication policy %s: %s", replication.Name, err)
 	}
@@ -281,38 +272,30 @@ func getNewestReplicationExecutionID(executions []*model.ReplicationExecution) i
 func (r *ReplicationReconciler) assertExistingReplication(ctx context.Context, harborClient *h.RESTClient,
 	replication *v1alpha2.Replication, patch client.Patch) error {
 
-	_, err := harborClient.GetReplicationPolicy(ctx, replication.Spec.Name)
+	rReq, err := r.buildReplicationFromCR(replication)
 	if err != nil {
-		switch err.Error() {
-		case replicationapi.ErrReplicationNotFoundMsg:
-			rReq, err := r.buildReplicationFromCR(replication)
-			if err != nil {
-				return err
-			}
+		return err
+	}
 
-			_, err = harborClient.NewReplicationPolicy(ctx,
+	heldReplication, err := harborClient.GetReplicationPolicyByName(ctx, replication.Spec.Name)
+	if err != nil {
+		if errors.Is(&clienterrors.ErrNotFound{}, err) {
+			if err := harborClient.NewReplicationPolicy(ctx,
 				rReq.DestRegistry,
 				rReq.SrcRegistry,
-				rReq.Deletion,
+				rReq.ReplicateDeletion,
 				rReq.Override,
 				rReq.Enabled,
 				rReq.Filters,
 				rReq.Trigger,
 				rReq.DestNamespace,
 				rReq.Description,
-				rReq.Name)
-			if err != nil {
+				rReq.Name); err != nil {
 				return err
 			}
-		default:
+		} else {
 			return err
 		}
-	}
-
-	// Get the replication held by harbor
-	heldReplication, err := harborClient.GetReplicationPolicy(ctx, replication.Spec.Name)
-	if err != nil {
-		return err
 	}
 
 	if replication.Spec.DestRegistry != nil {
@@ -331,7 +314,7 @@ func (r *ReplicationReconciler) assertExistingReplication(ctx context.Context, h
 
 	// Compare the replications and update accordingly
 	if !reflect.DeepEqual(heldReplication, newRep) {
-		return harborClient.UpdateReplicationPolicy(ctx, newRep)
+		return harborClient.UpdateReplicationPolicy(ctx, newRep, heldReplication.ID)
 	}
 
 	return r.Client.Status().Patch(ctx, replication, patch)
@@ -368,15 +351,15 @@ func enumReplicationFilterType(filterType string) (string, error) {
 
 // buildReplicationFromCR returns an API conformed ReplicationPolicy object
 func (r *ReplicationReconciler) buildReplicationFromCR(originalReplication *v1alpha2.Replication) (
-	*legacymodel.ReplicationPolicy, error) {
-	newRep := &legacymodel.ReplicationPolicy{
-		ID:            originalReplication.Status.ID,
-		Name:          originalReplication.Spec.Name,
-		Description:   originalReplication.Spec.Description,
-		DestNamespace: originalReplication.Spec.DestNamespace,
-		Override:      originalReplication.Spec.Override,
-		Enabled:       originalReplication.Spec.Enabled,
-		Deletion:      originalReplication.Spec.ReplicateDeletion,
+	*model.ReplicationPolicy, error) {
+	newRep := &model.ReplicationPolicy{
+		Description:       originalReplication.Spec.Description,
+		DestNamespace:     originalReplication.Spec.DestNamespace,
+		Enabled:           originalReplication.Spec.Enabled,
+		ID:                originalReplication.Status.ID,
+		Name:              originalReplication.Spec.Name,
+		Override:          originalReplication.Spec.Override,
+		ReplicateDeletion: originalReplication.Spec.ReplicateDeletion,
 	}
 
 	filters, err := addReplicationFilters(originalReplication.Spec.Filters)
@@ -392,19 +375,19 @@ func (r *ReplicationReconciler) buildReplicationFromCR(originalReplication *v1al
 			return nil, err
 		}
 
-		newRep.Trigger = &legacymodel.ReplicationTrigger{
+		newRep.Trigger = &model.ReplicationTrigger{
 			Type: triggerType,
 		}
 
 		if originalReplication.Spec.Trigger.Settings != nil {
-			newRep.Trigger.TriggerSettings = &legacymodel.TriggerSettings{
+			newRep.Trigger.TriggerSettings = &model.ReplicationTriggerSettings{
 				Cron: originalReplication.Spec.Trigger.Settings.Cron,
 			}
 		}
 	}
 
 	if originalReplication.Spec.SrcRegistry != nil && originalReplication.Spec.DestRegistry != nil {
-		return &legacymodel.ReplicationPolicy{},
+		return &model.ReplicationPolicy{},
 			fmt.Errorf("both dest_registry and src_registry are set! Please specify only one of them")
 	}
 
@@ -413,7 +396,7 @@ func (r *ReplicationReconciler) buildReplicationFromCR(originalReplication *v1al
 			originalReplication.Spec.SrcRegistry,
 			originalReplication.Namespace)
 		if err != nil {
-			return &legacymodel.ReplicationPolicy{}, err
+			return &model.ReplicationPolicy{}, err
 		}
 
 		newRep.SrcRegistry = hReg
@@ -422,7 +405,7 @@ func (r *ReplicationReconciler) buildReplicationFromCR(originalReplication *v1al
 			originalReplication.Spec.DestRegistry,
 			originalReplication.Namespace)
 		if err != nil {
-			return &legacymodel.ReplicationPolicy{}, err
+			return &model.ReplicationPolicy{}, err
 		}
 
 		newRep.DestRegistry = hReg
@@ -432,14 +415,14 @@ func (r *ReplicationReconciler) buildReplicationFromCR(originalReplication *v1al
 }
 
 func addReplicationFilters(originalFilters []v1alpha2.ReplicationFilter) (
-	newFilters []*legacymodel.ReplicationFilter, err error) {
+	newFilters []*model.ReplicationFilter, err error) {
 	for _, f := range originalFilters {
 		filterType, err := enumReplicationFilterType(f.Type)
 		if err != nil {
-			return []*legacymodel.ReplicationFilter{}, err
+			return []*model.ReplicationFilter{}, err
 		}
 
-		newFilters = append(newFilters, &legacymodel.ReplicationFilter{
+		newFilters = append(newFilters, &model.ReplicationFilter{
 			Type:  filterType,
 			Value: f.Value,
 		})
@@ -450,7 +433,7 @@ func addReplicationFilters(originalFilters []v1alpha2.ReplicationFilter) (
 
 // getHarborRegistryFromRef retrieves the registryRef and returns a pointer to a goharbor-client Registry Object
 func (r *ReplicationReconciler) getHarborRegistryFromRef(ctx context.Context, registryRef *corev1.LocalObjectReference,
-	namespace string) (*legacymodel.Registry, error) {
+	namespace string) (*model.Registry, error) {
 	var registry v1alpha2.Registry
 
 	err := r.Client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: registryRef.Name}, &registry)
@@ -458,7 +441,7 @@ func (r *ReplicationReconciler) getHarborRegistryFromRef(ctx context.Context, re
 		return nil, err
 	}
 
-	var credential *legacymodel.RegistryCredential
+	var credential *model.RegistryCredential
 	if registry.Spec.Credential != nil {
 		credential, err = helper.ToHarborRegistryCredential(ctx, r.Client, namespace, *registry.Spec.Credential)
 		if err != nil {

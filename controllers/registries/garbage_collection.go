@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"reflect"
 
-	gcapi "github.com/mittwald/goharbor-client/v4/apiv2/gc"
-	"github.com/mittwald/goharbor-client/v4/apiv2/model"
+	"github.com/mittwald/goharbor-client/v5/apiv2/model"
+	clienterrors "github.com/mittwald/goharbor-client/v5/apiv2/pkg/errors"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	"github.com/mittwald/harbor-operator/controllers/registries/internal"
@@ -41,7 +41,7 @@ func (r *InstanceReconciler) reconcileGarbageCollection(ctx context.Context, har
 
 	gc, err := harborClient.GetGarbageCollectionSchedule(ctx)
 	if err != nil {
-		if errors.Is(&gcapi.ErrSystemGcScheduleUndefined{}, err) {
+		if errors.Is(&clienterrors.ErrSystemGcScheduleUndefined{}, err) {
 			// The initial GC schedule is always undefined, set it to the desired schedule.
 			return harborClient.NewGarbageCollection(ctx, &newGc)
 		}
