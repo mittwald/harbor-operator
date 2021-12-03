@@ -356,7 +356,6 @@ func (r *ReplicationReconciler) buildReplicationFromCR(originalReplication *v1al
 		Description:       originalReplication.Spec.Description,
 		DestNamespace:     originalReplication.Spec.DestNamespace,
 		Enabled:           originalReplication.Spec.Enabled,
-		ID:                originalReplication.Status.ID,
 		Name:              originalReplication.Spec.Name,
 		Override:          originalReplication.Spec.Override,
 		ReplicateDeletion: originalReplication.Spec.ReplicateDeletion,
