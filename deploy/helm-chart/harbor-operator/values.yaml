@@ -9,6 +9,9 @@ env:
   helmClientRepositoryCachePath: /tmp/.helmcache
   helmClientRepositoryConfigPath: /tmp/.helmrepo
 
+serviceMonitor:
+  enabled: true
+
 metricsPort: 8080
 
 resources: {}

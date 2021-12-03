@@ -61,6 +61,7 @@ manifests: controller-gen
 		./deploy/helm-chart/harbor-operator/templates/leader_election_role.yaml \
 		./deploy/helm-chart/harbor-operator/templates/leader_election_role_binding.yaml \
 		./deploy/helm-chart/harbor-operator/templates/monitor.yaml
+	echo "{{ if .Values.serviceMonitor.enabled }}" >> ./deploy/helm-chart/harbor-operator/templates/monitor.yaml
 	$(SED) 's/manager-role/{{ include "harbor-operator.name" . }}/g' ./config/rbac/role.yaml >> ./deploy/helm-chart/harbor-operator/templates/role.yaml
 	$(SED) 's/manager-rolebinding/{{ include "harbor-operator.name" . }}/g; s/manager-role/{{ include "harbor-operator.name" . }}/g; s/default/{{ include "harbor-operator.name" . }}/g; s/system/{{ .Release.Namespace }}/g' \
 		./config/rbac/role_binding.yaml >> ./deploy/helm-chart/harbor-operator/templates/role_binding.yaml
@@ -69,6 +70,7 @@ manifests: controller-gen
 		 ./config/rbac/leader_election_role_binding.yaml >> ./deploy/helm-chart/harbor-operator/templates/leader_election_role_binding.yaml
 	$(SED) 's/controller-manager-metrics-monitor/{{ include "harbor-operator.fullname" . }}/g; 1,/control-plane: controller-manager/ s/control-plane: controller-manager/{{- include "harbor-operator.labels" . | nindent 4 }}/g; 2,/control-plane: controller-manager/ s/control-plane: controller-manager/app.kubernetes.io\/instance: {{ .Release.Name }}/g; s/port: https/port: metrics/g; s/namespace\: system/namespace\: {{ .Release.Namespace }}/g' \
 		 ./config/prometheus/monitor.yaml >> ./deploy/helm-chart/harbor-operator/templates/monitor.yaml
+	echo "{{ end }}" >> ./deploy/helm-chart/harbor-operator/templates/monitor.yaml
 
 UNAME := $(shell uname -s)
 
