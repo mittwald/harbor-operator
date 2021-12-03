@@ -194,6 +194,18 @@ func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborCli
 	project *v1alpha2.Project, patch client.Patch) error {
 	heldRepo, err := harborClient.GetProject(ctx, project.Spec.Name)
 
+	var registry v1alpha2.Registry
+	var registryID int64
+	if project.Spec.ProxyCache != nil {
+		if err := r.Client.Get(ctx, client.ObjectKey{
+			Namespace: project.Namespace,
+			Name:      project.Spec.ProxyCache.Registry.Name,
+		}, &registry); err != nil {
+			return err
+		}
+		registryID = registry.Status.ID
+	}
+
 	if errors.Is(err, &clienterrors.ErrProjectNotFound{}) {
 		storageLimit := int64(project.Spec.StorageLimit)
 		err := harborClient.NewProject(ctx, &model.ProjectReq{
@@ -201,7 +213,7 @@ func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborCli
 			Metadata:     nil,
 			ProjectName:  project.Spec.Name,
 			Public:       nil,
-			RegistryID:   nil,
+			RegistryID:   &registryID,
 			StorageLimit: &storageLimit,
 		})
 
