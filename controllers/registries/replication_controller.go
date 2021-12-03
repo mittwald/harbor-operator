@@ -100,7 +100,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// Check the Harbor API if it's reporting as healthy
 	err = internal.AssertHealthyHarborInstance(ctx, harborClient)
 	if err != nil {
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+		return ctrl.Result{}, err
 	}
 
 	switch replication.Status.Phase {
