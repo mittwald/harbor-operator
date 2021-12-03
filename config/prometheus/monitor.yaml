@@ -1,4 +1,5 @@
 # Prometheus Monitor Service (Metrics)
+{{- if .Values.serviceMonitor.create }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -13,3 +14,4 @@ spec:
   selector:
     matchLabels:
       control-plane: controller-manager
+{{- end }}

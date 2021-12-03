@@ -88,3 +88,6 @@ instances: ~
 serviceAccount:
   name: {}
   create: true
+
+serviceMonitor:
+  create: true
