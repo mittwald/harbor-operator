@@ -13,7 +13,7 @@ spec:
   helmChart:
       release: test-harbor
       chart: harbor/harbor
-      version: v1.6.1 # equalling Harbor OSS version v2.2.1
+      version: v1.8.0 # equalling Harbor OSS version v2.4.0
       # see https://github.com/goharbor/harbor-helm/releases for a full list of supported versions
       namespace: harbor-operator
       wait: true

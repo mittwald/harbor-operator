@@ -24,14 +24,14 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/mittwald/goharbor-client/v5/apiv2/model"
+	clienterrors "github.com/mittwald/goharbor-client/v5/apiv2/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/go-logr/logr"
-	h "github.com/mittwald/goharbor-client/v4/apiv2"
-	legacymodel "github.com/mittwald/goharbor-client/v4/apiv2/model/legacy"
-	registryapi "github.com/mittwald/goharbor-client/v4/apiv2/registry"
+	h "github.com/mittwald/goharbor-client/v5/apiv2"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -101,12 +101,9 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	// Check the Harbor API if it's reporting as healthy
-	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient)
+	err = internal.AssertHealthyHarborInstance(ctx, harborClient)
 	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if !instanceIsHealthy {
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, err
 	}
 
 	switch registry.Status.Phase {
@@ -154,23 +151,16 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 // assertExistingRegistry checks a harbor registry for existence and creates it accordingly.
 func (r *RegistryReconciler) assertExistingRegistry(ctx context.Context, harborClient *h.RESTClient,
 	registry *v1alpha2.Registry, patch client.Patch) error {
-	_, err := harborClient.GetRegistry(ctx, registry.Spec.Name)
+	_, err := harborClient.GetRegistryByName(ctx, registry.Spec.Name)
 	if err != nil {
 		switch err.Error() {
-		case registryapi.ErrRegistryNotFoundMsg:
+		case clienterrors.ErrRegistryNotFoundMsg:
 			rReq, err := r.buildRegistryFromCR(ctx, registry)
 			if err != nil {
 				return err
 			}
 
-			_, err = harborClient.NewRegistry(
-				ctx,
-				rReq.Name,
-				rReq.Type,
-				rReq.URL,
-				rReq.Credential,
-				rReq.Insecure,
-			)
+			err = harborClient.NewRegistry(ctx, rReq)
 
 			if err != nil {
 				return err
@@ -181,7 +171,7 @@ func (r *RegistryReconciler) assertExistingRegistry(ctx context.Context, harborC
 	}
 
 	// Get the registry held by harbor
-	heldRegistry, err := harborClient.GetRegistry(ctx, registry.Spec.Name)
+	heldRegistry, err := harborClient.GetRegistryByName(ctx, registry.Spec.Name)
 	if err != nil {
 		return err
 	}
@@ -202,11 +192,20 @@ func (r *RegistryReconciler) assertExistingRegistry(ctx context.Context, harborC
 	}
 
 	if newReg.Credential == nil {
-		newReg.Credential = &legacymodel.RegistryCredential{}
+		newReg.Credential = &model.RegistryCredential{}
 	}
+
 	// Compare the registries and update accordingly
 	if !reflect.DeepEqual(heldRegistry, newReg) {
-		return harborClient.UpdateRegistry(ctx, newReg)
+		return harborClient.UpdateRegistry(ctx, &model.RegistryUpdate{
+			AccessKey:      &newReg.Credential.AccessKey,
+			AccessSecret:   &newReg.Credential.AccessSecret,
+			CredentialType: &newReg.Credential.Type,
+			Description:    &newReg.Description,
+			Insecure:       &newReg.Insecure,
+			Name:           &heldRegistry.Name,
+			URL:            &newReg.URL,
+		}, heldRegistry.ID)
 	}
 
 	return nil
@@ -246,7 +245,7 @@ func enumRegistryType(receivedRegistryType v1alpha2.RegistryType) (v1alpha2.Regi
 }
 
 // buildRegistryFromCR constructs and returns a Harbor registry object from the CR object's spec.
-func (r *RegistryReconciler) buildRegistryFromCR(ctx context.Context, registry *v1alpha2.Registry) (*legacymodel.Registry,
+func (r *RegistryReconciler) buildRegistryFromCR(ctx context.Context, registry *v1alpha2.Registry) (*model.Registry,
 	error) {
 	parsedURL, err := parseURL(registry.Spec.URL)
 	if err != nil {
@@ -258,7 +257,7 @@ func (r *RegistryReconciler) buildRegistryFromCR(ctx context.Context, registry *
 		return nil, err
 	}
 
-	var credential *legacymodel.RegistryCredential
+	var credential *model.RegistryCredential
 	if registry.Spec.Credential != nil {
 		credential, err = helper.ToHarborRegistryCredential(ctx, r.Client, registry.Namespace, *registry.Spec.Credential)
 		if err != nil {
@@ -266,14 +265,14 @@ func (r *RegistryReconciler) buildRegistryFromCR(ctx context.Context, registry *
 		}
 	}
 
-	return &legacymodel.Registry{
-		ID:          registry.Status.ID,
-		Name:        registry.Spec.Name,
+	return &model.Registry{
+		Credential:  credential,
 		Description: registry.Spec.Description,
+		ID:          registry.Status.ID,
+		Insecure:    registry.Spec.Insecure,
+		Name:        registry.Spec.Name,
 		Type:        string(registryType),
 		URL:         parsedURL,
-		Credential:  credential,
-		Insecure:    registry.Spec.Insecure,
 	}, nil
 }
 
@@ -310,9 +309,9 @@ func (r *RegistryReconciler) assertDeletedRegistry(ctx context.Context, log logr
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	reg, err := harborClient.GetRegistry(ctx, registry.Name)
+	reg, err := harborClient.GetRegistryByName(ctx, registry.Name)
 	if err != nil {
-		if errors.Is(err, &registryapi.ErrRegistryNotFound{}) {
+		if errors.Is(err, &clienterrors.ErrRegistryNotFound{}) {
 			log.Info("registry does not exist on the server side, pulling finalizers")
 			controllerutil.RemoveFinalizer(registry, internal.FinalizerName)
 			if err := r.Client.Patch(ctx, registry, patch); err != nil {
@@ -323,7 +322,7 @@ func (r *RegistryReconciler) assertDeletedRegistry(ctx context.Context, log logr
 	}
 
 	if reg != nil {
-		err := harborClient.DeleteRegistry(ctx, reg)
+		err := harborClient.DeleteRegistryByID(ctx, reg.ID)
 		if err != nil {
 			return ctrl.Result{}, err
 		}

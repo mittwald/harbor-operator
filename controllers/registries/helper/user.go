@@ -3,7 +3,7 @@ package helper
 import (
 	"context"
 
-	h "github.com/mittwald/goharbor-client/v4/apiv2"
+	h "github.com/mittwald/goharbor-client/v5/apiv2"
 )
 
 // AdminUserExists checks whether the preconfigured 'admin' user already exists and returns accordingly.

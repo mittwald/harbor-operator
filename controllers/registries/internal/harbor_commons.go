@@ -2,8 +2,10 @@ package internal
 
 import (
 	"context"
+	"fmt"
 
-	h "github.com/mittwald/goharbor-client/v4/apiv2"
+	h "github.com/mittwald/goharbor-client/v5/apiv2"
+	"github.com/mittwald/goharbor-client/v5/apiv2/model"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	registriesv1alpha2 "github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
@@ -13,16 +15,31 @@ import (
 
 const FinalizerName = "registries.mittwald.de/finalizer"
 
-func HarborInstanceIsHealthy(ctx context.Context, harborClient *h.RESTClient) (bool, error) {
-	health, err := harborClient.Health(ctx)
+func AssertHealthyHarborInstance(ctx context.Context, harborClient *h.RESTClient) error {
+	health, err := harborClient.GetHealth(ctx)
 	if err != nil {
-		return false, err
-	}
-	if health.Status != "healthy" {
-		return false, &controllererrors.ErrInstanceNotHealthy{}
+		return err
 	}
 
-	return true, nil
+	if health.Status != "healthy" {
+		unhealthyComponents := GetUnhealthyComponents(health.Components)
+		err := fmt.Errorf("unhealthy components: %q", unhealthyComponents)
+		return err
+	}
+
+	return nil
+}
+
+// GetUnhealthyComponents takes a list of components and returns a list of components that are not healthy.
+func GetUnhealthyComponents(status []*model.ComponentHealthStatus) []string {
+	var unhealthyComponents []string
+	for _, c := range status {
+		if c.Status != "healthy" {
+			unhealthyComponents = append(unhealthyComponents, c.Name)
+		}
+	}
+
+	return unhealthyComponents
 }
 
 // GetOperationalHarborInstance returns a harbor instance if it exists.

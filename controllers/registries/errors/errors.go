@@ -21,13 +21,6 @@ func (e *ErrInstanceNotInstalled) Error() string {
 	return ErrInstanceNotInstalledMsg
 }
 
-// ErrInstanceNotHealthy is called when the corresponding Harbor instance is not yet reporting healthy.
-type ErrInstanceNotHealthy struct{}
-
-func (e *ErrInstanceNotHealthy) Error() string {
-	return ErrInstanceNotHealthyMsg
-}
-
 // ErrRegistryNotReady is called when the corresponding RegistryCR (registries.Registry) is not ready.
 type ErrRegistryNotReady struct{}
 

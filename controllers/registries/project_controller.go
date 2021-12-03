@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"time"
 
+	clienterrors "github.com/mittwald/goharbor-client/v5/apiv2/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -40,10 +41,8 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/jinzhu/copier"
-	h "github.com/mittwald/goharbor-client/v4/apiv2"
-	"github.com/mittwald/goharbor-client/v4/apiv2/model"
-	legacymodel "github.com/mittwald/goharbor-client/v4/apiv2/model/legacy"
-	projectapi "github.com/mittwald/goharbor-client/v4/apiv2/project"
+	h "github.com/mittwald/goharbor-client/v5/apiv2"
+	"github.com/mittwald/goharbor-client/v5/apiv2/model"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -112,12 +111,9 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// Check the Harbor API if it's reporting as healthy
-	instanceIsHealthy, err := internal.HarborInstanceIsHealthy(ctx, harborClient)
+	err = internal.AssertHealthyHarborInstance(ctx, harborClient)
 	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if !instanceIsHealthy {
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, err
 	}
 
 	switch project.Status.Phase {
@@ -198,9 +194,28 @@ func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborCli
 	project *v1alpha2.Project, patch client.Patch) error {
 	heldRepo, err := harborClient.GetProject(ctx, project.Spec.Name)
 
-	if errors.Is(err, &projectapi.ErrProjectNotFound{}) {
+	var registry v1alpha2.Registry
+	var registryID int64
+	if project.Spec.ProxyCache != nil {
+		if err := r.Client.Get(ctx, client.ObjectKey{
+			Namespace: project.Namespace,
+			Name:      project.Spec.ProxyCache.Registry.Name,
+		}, &registry); err != nil {
+			return err
+		}
+		registryID = registry.Status.ID
+	}
+
+	if errors.Is(err, &clienterrors.ErrProjectNotFound{}) {
 		storageLimit := int64(project.Spec.StorageLimit)
-		_, err := harborClient.NewProject(ctx, project.Spec.Name, &storageLimit)
+		err := harborClient.NewProject(ctx, &model.ProjectReq{
+			CVEAllowlist: nil,
+			Metadata:     nil,
+			ProjectName:  project.Spec.Name,
+			Public:       nil,
+			RegistryID:   &registryID,
+			StorageLimit: &storageLimit,
+		})
 
 		return err
 	} else if err != nil {
@@ -210,7 +225,7 @@ func (r *ProjectReconciler) assertExistingProject(ctx context.Context, harborCli
 	return r.ensureProject(ctx, heldRepo, harborClient, project, patch)
 }
 
-func (r *ProjectReconciler) projectMemberExists(members []*legacymodel.ProjectMemberEntity, requestedMember *v1alpha2.User) bool {
+func (r *ProjectReconciler) projectMemberExists(members []*model.ProjectMemberEntity, requestedMember *v1alpha2.User) bool {
 	for i := range members {
 		if members[i].EntityName == requestedMember.Spec.Name {
 			return true
@@ -262,18 +277,26 @@ func (r *ProjectReconciler) reconcileProjectMembers(ctx context.Context, project
 			return fmt.Errorf("the user specified in project %s's list of member requests does not exist: %w", project.Name, err)
 		}
 
-		harborUser, err := harborClient.GetUser(ctx, userCR.Spec.Name)
+		harborUser, err := harborClient.GetUserByName(ctx, userCR.Spec.Name)
 		if err != nil {
 			return err
 		}
 
+		memberUser := model.UserEntity{
+			UserID:   harborUser.UserID,
+			Username: harborUser.Username,
+		}
+
 		// Look up if the user exists as a project member. If not, add the user as project member.
-		harborProjectMembers, err := harborClient.ListProjectMembers(ctx, harborProject)
+		harborProjectMembers, err := harborClient.ListProjectMembers(ctx, harborProject.Name, memberUser.Username)
 		if err != nil {
 			return err
 		}
 		if !r.projectMemberExists(harborProjectMembers, userCR) {
-			err = harborClient.AddProjectMember(ctx, harborProject, harborUser, int(project.Spec.MemberRequests[i].Role.ID()))
+			err = harborClient.AddProjectMember(ctx, harborProject.Name, &model.ProjectMember{
+				MemberUser: &memberUser,
+				RoleID:     int64(project.Spec.MemberRequests[i].Role.ID()),
+			})
 			if err != nil {
 				return err
 			}
@@ -293,18 +316,26 @@ func (r *ProjectReconciler) reconcileProjectMembers(ctx context.Context, project
 				return fmt.Errorf("the user specified in project %s's list of existing members does not exist: %w", project.Name, err)
 			}
 
-			harborUser, err := harborClient.GetUser(ctx, userCR.Spec.Name)
+			harborUser, err := harborClient.GetUserByName(ctx, userCR.Spec.Name)
 			if err != nil {
 				return err
 			}
 
+			memberUser := &model.UserEntity{
+				UserID:   harborUser.UserID,
+				Username: harborUser.Username,
+			}
+
 			// Look up if the user exists as a project member.
-			harborProjectMembers, err := harborClient.ListProjectMembers(ctx, harborProject)
+			harborProjectMembers, err := harborClient.ListProjectMembers(ctx, harborProject.Name, harborUser.Username)
 			if err != nil {
 				return err
 			}
 			if r.projectMemberExists(harborProjectMembers, userCR) {
-				err = harborClient.DeleteProjectMember(ctx, harborProject, harborUser)
+				err = harborClient.DeleteProjectMember(ctx, harborProject.Name, &model.ProjectMember{
+					MemberUser: memberUser,
+					RoleID:     int64(project.Spec.MemberRequests[i].Role.ID()),
+				})
 				if err != nil {
 					return err
 				}
