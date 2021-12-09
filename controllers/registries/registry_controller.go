@@ -93,7 +93,7 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err != nil {
 		switch err.Error() {
 		case controllererrors.ErrInstanceNotInstalledMsg:
-			reqLogger.Info("waiting for harbor instance is installed")
+			reqLogger.Info("waiting till harbor instance is installed")
 			return ctrl.Result{RequeueAfter: 30*time.Second}, nil
 		case controllererrors.ErrInstanceNotFoundMsg:
 			controllerutil.RemoveFinalizer(registry, internal.FinalizerName)
@@ -121,7 +121,7 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Check the Harbor API if it's reporting as healthy
 	err = internal.AssertHealthyHarborInstance(ctx, harborClient)
 	if err != nil {
-		reqLogger.Info("waiting for harbor instance is healthy")
+		reqLogger.Info("waiting till harbor instance is healthy")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 

@@ -102,7 +102,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		switch err.Error() {
 		case controllererrors.ErrInstanceNotInstalledMsg:
-			reqLogger.Info("waiting for harbor instance is installed")
+			reqLogger.Info("waiting till harbor instance is installed")
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		case controllererrors.ErrInstanceNotFoundMsg:
 			controllerutil.RemoveFinalizer(project, internal.FinalizerName)
@@ -130,7 +130,7 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Check the Harbor API if it's reporting as healthy
 	err = internal.AssertHealthyHarborInstance(ctx, harborClient)
 	if err != nil {
-		reqLogger.Info("waiting for harbor instance is healthy")
+		reqLogger.Info("waiting till harbor instance is healthy")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
@@ -214,7 +214,7 @@ func (r *ProjectReconciler) assertProxyCacheRequirementsReady(ctx context.Contex
 
 	_, err := harborClient.GetRegistryByName(ctx, registry.Spec.Name)
 	if err != nil {
-		l.Error(err, "waiting for registry is ready")
+		l.Error(err, "waiting till registry is ready")
 		return errors.New(RegistryNotReadyError)
 	}
 
