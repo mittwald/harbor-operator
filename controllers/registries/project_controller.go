@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"time"
 
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
+
 	clienterrors "github.com/mittwald/goharbor-client/v5/apiv2/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -52,6 +54,11 @@ type ProjectReconciler struct {
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
+
+var (
+	RegistryNotReadyError string = "RegistryNotReady"
+	UserNotReadyError     string = "UserNotReady"
+)
 
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=projects,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=registries.mittwald.de,resources=projects/status,verbs=get;update;patch
@@ -93,14 +100,24 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		Name:      project.Spec.ParentInstance.Name,
 	}, r.Client)
 	if err != nil {
-		controllerutil.RemoveFinalizer(project, internal.FinalizerName)
-
-		return ctrl.Result{}, err
+		switch err.Error() {
+		case controllererrors.ErrInstanceNotInstalledMsg:
+			reqLogger.Info("waiting for harbor instance is installed")
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		case controllererrors.ErrInstanceNotFoundMsg:
+			controllerutil.RemoveFinalizer(project, internal.FinalizerName)
+			fallthrough
+		default:
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Set OwnerReference to the parent harbor instance
 	err = ctrl.SetControllerReference(harbor, project, r.Scheme)
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := r.Client.Status().Patch(ctx, project, patch); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -113,7 +130,22 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Check the Harbor API if it's reporting as healthy
 	err = internal.AssertHealthyHarborInstance(ctx, harborClient)
 	if err != nil {
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+		reqLogger.Info("waiting for harbor instance is healthy")
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	if err := r.assertProxyCacheRequirementsReady(ctx, harborClient, project, reqLogger); err != nil {
+		if err.Error() == RegistryNotReadyError {
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	if err := r.assertUserRequirementsReady(ctx, project, reqLogger); err != nil {
+		if err.Error() == UserNotReadyError {
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+		return ctrl.Result{}, err
 	}
 
 	switch project.Status.Phase {
@@ -165,6 +197,50 @@ func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			MaxConcurrentReconciles: 1,
 		}).
 		Complete(r)
+}
+
+func (r *ProjectReconciler) assertProxyCacheRequirementsReady(ctx context.Context, harborClient *h.RESTClient, project *v1alpha2.Project, logger logr.Logger) error {
+	if project.Spec.ProxyCache == nil || project.Spec.ProxyCache.Registry == nil {
+		return nil
+	}
+
+	regName := project.Spec.ProxyCache.Registry.Name
+	l := logger.WithValues("registry", regName)
+	registry := &v1alpha2.Registry{}
+	if err := r.Client.Get(ctx, client.ObjectKey{Name: regName, Namespace: project.Namespace}, registry); err != nil {
+		l.Error(err, "could not find proxy-cache registry")
+		return err
+	}
+
+	_, err := harborClient.GetRegistryByName(ctx, registry.Spec.Name)
+	if err != nil {
+		l.Error(err, "waiting for registry is ready")
+		return errors.New(RegistryNotReadyError)
+	}
+
+	return nil
+}
+
+func (r *ProjectReconciler) assertUserRequirementsReady(ctx context.Context, project *v1alpha2.Project, logger logr.Logger) error {
+	if len(project.Spec.MemberRequests) == 0 {
+		return nil
+	}
+
+	for _, req := range project.Spec.MemberRequests {
+		l := logger.WithValues("user", req.User.Name)
+		user := &v1alpha2.User{}
+		if err := r.Client.Get(ctx, client.ObjectKey{Name: req.User.Name, Namespace: project.Namespace}, user); err != nil {
+			l.Error(err, "user not found")
+			return err
+		}
+
+		if user.Status.Phase != v1alpha2.UserStatusPhaseReady {
+			l.Info("user not ready")
+			return errors.New(UserNotReadyError)
+		}
+	}
+
+	return nil
 }
 
 // assertDeletedProject deletes a Harbor project, first ensuring its existence.

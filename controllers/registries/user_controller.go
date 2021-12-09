@@ -19,6 +19,7 @@ package registries
 import (
 	"context"
 	"errors"
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 	"time"
 
 	"github.com/mittwald/goharbor-client/v5/apiv2/model"
@@ -104,13 +105,24 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 		Name:      user.Spec.ParentInstance.Name,
 	}, r.Client)
 	if err != nil {
-		controllerutil.RemoveFinalizer(user, internal.FinalizerName)
-		return ctrl.Result{}, r.Client.Patch(ctx, user, patch)
+		switch err.Error() {
+		case controllererrors.ErrInstanceNotInstalledMsg:
+			reqLogger.Info("waiting for harbor instance is installed")
+			return ctrl.Result{RequeueAfter: 30*time.Second}, nil
+		case controllererrors.ErrInstanceNotFoundMsg:
+			controllerutil.RemoveFinalizer(user, internal.FinalizerName)
+			fallthrough
+		default:
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Set OwnerReference to the parent harbor instance
 	err = ctrl.SetControllerReference(harbor, user, r.Scheme)
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := r.Client.Status().Patch(ctx, user, patch); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -123,7 +135,8 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 	// Check the Harbor API if it's reporting as healthy
 	err = internal.AssertHealthyHarborInstance(ctx, harborClient)
 	if err != nil {
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+		reqLogger.Info("waiting for harbor instance is healthy")
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	// Handle user reconciliation
