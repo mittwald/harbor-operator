@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 	"net/url"
 	"reflect"
 	"time"
@@ -90,8 +91,25 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		Name:      registry.Spec.ParentInstance.Name,
 	}, r.Client)
 	if err != nil {
-		controllerutil.RemoveFinalizer(registry, internal.FinalizerName)
-		return ctrl.Result{}, r.Client.Status().Patch(ctx, registry, patch)
+		switch err.Error() {
+		case controllererrors.ErrInstanceNotInstalledMsg:
+			reqLogger.Info("waiting till harbor instance is installed")
+			return ctrl.Result{RequeueAfter: 30*time.Second}, nil
+		case controllererrors.ErrInstanceNotFoundMsg:
+			controllerutil.RemoveFinalizer(registry, internal.FinalizerName)
+			fallthrough
+		default:
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Set OwnerReference to the parent harbor instance
+	err = ctrl.SetControllerReference(harbor, registry, r.Scheme)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := r.Client.Status().Patch(ctx, registry, patch); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// Build a client to connect to the harbor API
@@ -103,7 +121,8 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Check the Harbor API if it's reporting as healthy
 	err = internal.AssertHealthyHarborInstance(ctx, harborClient)
 	if err != nil {
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+		reqLogger.Info("waiting till harbor instance is healthy")
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	switch registry.Status.Phase {

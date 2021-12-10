@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 	"reflect"
 	"time"
 
@@ -86,8 +87,24 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		Name:      replication.Spec.ParentInstance.Name,
 	}, r.Client)
 	if err != nil {
-		controllerutil.RemoveFinalizer(replication, internal.FinalizerName)
+		switch err.Error() {
+		case controllererrors.ErrInstanceNotInstalledMsg:
+			reqLogger.Info("waiting till harbor instance is installed")
+			return ctrl.Result{RequeueAfter: 30*time.Second}, nil
+		case controllererrors.ErrInstanceNotFoundMsg:
+			controllerutil.RemoveFinalizer(replication, internal.FinalizerName)
+			fallthrough
+		default:
+			return ctrl.Result{}, err
+		}
+	}
 
+	// Set OwnerReference to the parent harbor instance
+	err = ctrl.SetControllerReference(harbor, replication, r.Scheme)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := r.Client.Status().Patch(ctx, replication, patch); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -100,7 +117,8 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// Check the Harbor API if it's reporting as healthy
 	err = internal.AssertHealthyHarborInstance(ctx, harborClient)
 	if err != nil {
-		return ctrl.Result{}, err
+		reqLogger.Info("waiting till harbor instance is healthy")
+		return ctrl.Result{RequeueAfter: 30*time.Second}, nil
 	}
 
 	switch replication.Status.Phase {
