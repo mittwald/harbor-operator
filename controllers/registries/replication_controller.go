@@ -20,9 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 	"reflect"
 	"time"
+
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 
 	clienterrors "github.com/mittwald/goharbor-client/v5/apiv2/pkg/errors"
 
@@ -73,7 +74,8 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	patch := client.MergeFrom(replication.DeepCopy())
+	original := replication.DeepCopy()
+	patch := client.MergeFrom(original)
 
 	if replication.ObjectMeta.DeletionTimestamp != nil && replication.Status.Phase != v1alpha2.ReplicationStatusPhaseTerminating {
 		replication.Status.Phase = v1alpha2.ReplicationStatusPhaseTerminating
@@ -90,7 +92,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		switch err.Error() {
 		case controllererrors.ErrInstanceNotInstalledMsg:
 			reqLogger.Info("waiting till harbor instance is installed")
-			return ctrl.Result{RequeueAfter: 30*time.Second}, nil
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		case controllererrors.ErrInstanceNotFoundMsg:
 			controllerutil.RemoveFinalizer(replication, internal.FinalizerName)
 			fallthrough
@@ -104,8 +106,10 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.Client.Status().Patch(ctx, replication, patch); err != nil {
-		return ctrl.Result{}, err
+	if !reflect.DeepEqual(original.ObjectMeta.OwnerReferences, replication.ObjectMeta.OwnerReferences) {
+		if err := r.Client.Patch(ctx, replication, patch); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Build a client to connect to the harbor API
@@ -118,7 +122,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	err = internal.AssertHealthyHarborInstance(ctx, harborClient)
 	if err != nil {
 		reqLogger.Info("waiting till harbor instance is healthy")
-		return ctrl.Result{RequeueAfter: 30*time.Second}, nil
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	switch replication.Status.Phase {
@@ -150,7 +154,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 
 		// Set OwnerReference to the parent (source- or destination) registry
-		err = ctrl.SetControllerReference(&registry, replication, r.Scheme)
+		err = controllerutil.SetOwnerReference(replication, &registry, r.Scheme)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -169,14 +173,13 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				PolicyID: replication.Status.ID,
 			}
 
-			if err := harborClient.TriggerReplicationExecution(ctx, replExec); err != nil {
-				reqLogger.Info(fmt.Sprintf("replication execution after creation could not be triggered: %s", err))
-				return ctrl.Result{}, err
+			if err := harborClient.TriggerReplicationExecution(ctx, replExec); err == nil {
+				replication.Status.Phase = v1alpha2.ReplicationStatusPhaseManualExecutionRunning
+				return ctrl.Result{}, r.Client.Status().Patch(ctx, replication, patch)
 			}
 
-			replication.Status.Phase = v1alpha2.ReplicationStatusPhaseManualExecutionRunning
-
-			return ctrl.Result{}, r.Client.Status().Patch(ctx, replication, patch)
+			// that shouldn't happen, but there is nothing we can do about it at this point
+			reqLogger.Error(err, "replication execution after creation could not be triggered. Skipping to next state")
 		}
 
 		replication.Status.Phase = v1alpha2.ReplicationStatusPhaseCompleted
