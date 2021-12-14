@@ -20,10 +20,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 	"net/url"
 	"reflect"
 	"time"
+
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 
 	"github.com/mittwald/goharbor-client/v5/apiv2/model"
 	clienterrors "github.com/mittwald/goharbor-client/v5/apiv2/pkg/errors"
@@ -75,7 +76,8 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
-	patch := client.MergeFrom(registry.DeepCopy())
+	original := registry.DeepCopy()
+	patch := client.MergeFrom(original)
 
 	if registry.ObjectMeta.DeletionTimestamp != nil &&
 		registry.Status.Phase != v1alpha2.RegistryStatusPhaseTerminating {
@@ -94,7 +96,7 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		switch err.Error() {
 		case controllererrors.ErrInstanceNotInstalledMsg:
 			reqLogger.Info("waiting till harbor instance is installed")
-			return ctrl.Result{RequeueAfter: 30*time.Second}, nil
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		case controllererrors.ErrInstanceNotFoundMsg:
 			controllerutil.RemoveFinalizer(registry, internal.FinalizerName)
 			fallthrough
@@ -108,8 +110,10 @@ func (r *RegistryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.Client.Status().Patch(ctx, registry, patch); err != nil {
-		return ctrl.Result{}, err
+	if !reflect.DeepEqual(original.ObjectMeta.OwnerReferences, registry.ObjectMeta.OwnerReferences) {
+		if err := r.Client.Patch(ctx, registry, patch); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Build a client to connect to the harbor API

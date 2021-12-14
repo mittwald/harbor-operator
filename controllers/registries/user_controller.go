@@ -19,8 +19,10 @@ package registries
 import (
 	"context"
 	"errors"
-	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
+	"reflect"
 	"time"
+
+	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 
 	"github.com/mittwald/goharbor-client/v5/apiv2/model"
 	clienterrors "github.com/mittwald/goharbor-client/v5/apiv2/pkg/errors"
@@ -90,7 +92,8 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 		return ctrl.Result{}, err
 	}
 
-	patch := client.MergeFrom(user.DeepCopy())
+	original := user.DeepCopy()
+	patch := client.MergeFrom(original)
 
 	if user.ObjectMeta.DeletionTimestamp != nil && user.Status.Phase != v1alpha2.UserStatusPhaseTerminating {
 		user.Status = v1alpha2.UserStatus{Phase: v1alpha2.UserStatusPhaseTerminating}
@@ -108,7 +111,7 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 		switch err.Error() {
 		case controllererrors.ErrInstanceNotInstalledMsg:
 			reqLogger.Info("waiting till harbor instance is installed")
-			return ctrl.Result{RequeueAfter: 30*time.Second}, nil
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		case controllererrors.ErrInstanceNotFoundMsg:
 			controllerutil.RemoveFinalizer(user, internal.FinalizerName)
 			fallthrough
@@ -122,8 +125,10 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res c
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.Client.Status().Patch(ctx, user, patch); err != nil {
-		return ctrl.Result{}, err
+	if !reflect.DeepEqual(original.ObjectMeta.OwnerReferences, user.ObjectMeta.OwnerReferences) {
+		if err := r.Client.Patch(ctx, user, patch); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Build a client to connect to the harbor API

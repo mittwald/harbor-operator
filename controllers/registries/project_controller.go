@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 
 	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
@@ -84,7 +85,8 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	patch := client.MergeFrom(project.DeepCopy())
+	original := project.DeepCopy()
+	patch := client.MergeFrom(original)
 
 	if project.ObjectMeta.DeletionTimestamp != nil &&
 		project.Status.Phase != v1alpha2.ProjectStatusPhaseTerminating {
@@ -117,8 +119,10 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.Client.Status().Patch(ctx, project, patch); err != nil {
-		return ctrl.Result{}, err
+	if !reflect.DeepEqual(original.ObjectMeta.OwnerReferences, project.ObjectMeta.OwnerReferences) {
+		if err := r.Client.Patch(ctx, project, patch); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Build a client to connect to the harbor API
