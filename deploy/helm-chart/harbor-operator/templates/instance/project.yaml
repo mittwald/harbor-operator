@@ -15,6 +15,11 @@ spec:
 {{- else }}
   storageLimit: -1
 {{- end }}
+{{- if $project.proxyCacheRegistryName }}
+  proxyCache:
+    registry:
+      name: {{ $project.proxyCacheRegistryName }}
+{{- end }}
   metadata:
   {{- with $project.metadata }}
   {{- toYaml . | nindent 4 }}

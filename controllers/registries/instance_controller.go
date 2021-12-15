@@ -119,6 +119,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+		chartSpec.Wait = true
 
 		err = r.installOrUpgradeHelmChart(ctx, chartSpec)
 		if err != nil {
