@@ -314,6 +314,10 @@ func (r *ReplicationReconciler) assertExistingReplication(ctx context.Context, h
 				rReq.Name); err != nil {
 				return err
 			}
+			heldReplication, err = harborClient.GetReplicationPolicyByName(ctx, replication.Spec.Name)
+			if err != nil {
+				return err
+			}
 		} else {
 			return err
 		}
