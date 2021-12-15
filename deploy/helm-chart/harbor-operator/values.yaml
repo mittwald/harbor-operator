@@ -29,7 +29,7 @@ fullnameOverride: {}
 installHarborChartRepo: true
 
 instances: ~
-#  - name: test-registry
+#  - name: test-harbor
 #    type: manual
 #    version: v1.7.4
 #    wait: true
@@ -47,7 +47,7 @@ instances: ~
 #    projects:
 #      - name: projects
 #        storageLimit: 10
-#        proxyCacheRegistryName: test-registry
+#        proxyCacheRegistryName: test-harbor-test-registry # <instanceName>-<registry-name>
 #        metadata:
 #          enableContentTrust: false
 #          autoScan: true
