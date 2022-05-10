@@ -3,6 +3,7 @@ layout: go.kubebuilder.io/v3
 multigroup: true
 projectName: harbor-operator
 repo: github.com/mittwald/harbor-operator
+version: "3"
 resources:
 -
   controller: true
@@ -46,6 +47,3 @@ resources:
   kind: Project
   path: github.com/mittwald/harbor-operator/apis/registries/v1alpha2
   version: v1alpha2
-version: "3"
-plugins:
-  go.sdk.operatorframework.io/v2-alpha: {}

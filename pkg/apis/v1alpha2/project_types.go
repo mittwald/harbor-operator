@@ -89,13 +89,13 @@ type MemberRequest struct {
 	User corev1.LocalObjectReference `json:"user"` // reference to an User object
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // Project is the Schema for the projects API
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=projects,scope=Namespaced
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="phase"
 // +kubebuilder:printcolumn:name="ID",type="integer",JSONPath=".status.id",description="harbor replication id"
 // +kubebuilder:printcolumn:name="Public",type="boolean",JSONPath=".spec.metadata.public",description="harbor replication id"
+// +kubebuilder:object:root=true
 type Project struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -104,8 +104,8 @@ type Project struct {
 	Status ProjectStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // ProjectList contains a list of Projects.
+// +kubebuilder:object:root=true
 type ProjectList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -27,13 +27,12 @@ const (
 	ScheduleTypeNone     ScheduleType = "None"
 )
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // Instance is the Schema for the instances API
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=instances,scope=Namespaced,shortName=harborinstance;harbor
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase.name",description="phase"
 // +kubebuilder:printcolumn:name="URL",type="string",JSONPath=".spec.instanceURL", description="harbor instance url"
+// +kubebuilder:object:root=true
 type Instance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -42,8 +41,8 @@ type Instance struct {
 	Status InstanceStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // InstanceList contains a list of Instance.
+// +kubebuilder:object:root=true
 type InstanceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
