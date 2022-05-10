@@ -4,11 +4,10 @@ import (
 	"path/filepath"
 	"time"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
@@ -22,47 +21,47 @@ var _ = Describe("CRDInstallation", func() {
 			Ω(err).ToNot(HaveOccurred())
 			Ω(crds).ToNot(BeNil())
 
-			err = envtest.WaitForCRDs(cfg, []client.Object{
-				&apiextensions.CustomResourceDefinition{
-					Spec: apiextensions.CustomResourceDefinitionSpec{
+			err = envtest.WaitForCRDs(cfg, []*apiextensionsv1.CustomResourceDefinition{
+				{
+					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Group:    "registries.mittwald.de",
-						Names:    apiextensions.CustomResourceDefinitionNames{Plural: "instancechartrepositories"},
-						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
+						Names:    apiextensionsv1.CustomResourceDefinitionNames{Plural: "instancechartrepositories"},
+						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
 					},
 				},
-				&apiextensions.CustomResourceDefinition{
-					Spec: apiextensions.CustomResourceDefinitionSpec{
+				{
+					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Group:    "registries.mittwald.de",
-						Names:    apiextensions.CustomResourceDefinitionNames{Plural: "instances"},
-						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
+						Names:    apiextensionsv1.CustomResourceDefinitionNames{Plural: "instances"},
+						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
 					},
 				},
-				&apiextensions.CustomResourceDefinition{
-					Spec: apiextensions.CustomResourceDefinitionSpec{
+				{
+					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Group:    "registries.mittwald.de",
-						Names:    apiextensions.CustomResourceDefinitionNames{Plural: "projects"},
-						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
+						Names:    apiextensionsv1.CustomResourceDefinitionNames{Plural: "projects"},
+						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
 					},
 				},
-				&apiextensions.CustomResourceDefinition{
-					Spec: apiextensions.CustomResourceDefinitionSpec{
+				{
+					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Group:    "registries.mittwald.de",
-						Names:    apiextensions.CustomResourceDefinitionNames{Plural: "registries"},
-						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
+						Names:    apiextensionsv1.CustomResourceDefinitionNames{Plural: "registries"},
+						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
 					},
 				},
-				&apiextensions.CustomResourceDefinition{
-					Spec: apiextensions.CustomResourceDefinitionSpec{
+				{
+					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Group:    "registries.mittwald.de",
-						Names:    apiextensions.CustomResourceDefinitionNames{Plural: "replications"},
-						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
+						Names:    apiextensionsv1.CustomResourceDefinitionNames{Plural: "replications"},
+						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
 					},
 				},
-				&apiextensions.CustomResourceDefinition{
-					Spec: apiextensions.CustomResourceDefinitionSpec{
+				{
+					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Group:    "registries.mittwald.de",
-						Names:    apiextensions.CustomResourceDefinitionNames{Plural: "users"},
-						Versions: []apiextensions.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
+						Names:    apiextensionsv1.CustomResourceDefinitionNames{Plural: "users"},
+						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{Name: "v1alpha2"}},
 					},
 				},
 			}, envtest.CRDInstallOptions{

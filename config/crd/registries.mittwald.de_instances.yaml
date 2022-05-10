@@ -104,6 +104,8 @@ spec:
                       that helmclient.Options.Namespace should ideally match the namespace
                       configured here.
                     type: string
+                  postRenderer:
+                    description: PostRenderer to run on the Helm Chart
                   recreate:
                     description: Recreate indicates whether to recreate the release
                       if it already exists.

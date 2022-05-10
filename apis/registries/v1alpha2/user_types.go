@@ -16,7 +16,7 @@ const (
 
 type UserSpec struct {
 	// +kubebuilder:validation:Optional
-	SysAdmin *bool `json:"sysAdmin"`
+	SysAdmin *bool `json:"sysAdmin,omitempty"`
 	// The effective length of the generated user password
 	// +kubebuilder:validation:Minimum=8
 	// +kubebuilder:validation:Maximum=128
@@ -33,11 +33,11 @@ type UserSpec struct {
 	Comments string `json:"comments,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // User is the Schema for the users API
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=users,scope=Namespaced,shortName=users;harborusers
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="phase"
+// +kubebuilder:object:root=true
 type User struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -46,8 +46,8 @@ type User struct {
 	Status UserStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // UserList contains a list of User
+// +kubebuilder:object:root=true
 type UserList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

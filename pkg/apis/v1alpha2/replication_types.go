@@ -119,7 +119,6 @@ type TriggerSettings struct {
 }
 
 // Replication is the Schema for the replications API
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=replications,scope=Namespaced
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="phase"
@@ -127,6 +126,7 @@ type TriggerSettings struct {
 // +kubebuilder:printcolumn:name="Enabled",type="boolean",JSONPath=".spec.enabled",description="harbor replication id"
 // +kubebuilder:printcolumn:name="Source",type="string",JSONPath=".status.source",description="source registry"
 // +kubebuilder:printcolumn:name="Destination",type="string",JSONPath=".status.destination",description="destination registry"
+// +kubebuilder:object:root=true
 type Replication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -136,9 +136,8 @@ type Replication struct {
 	Status ReplicationStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // ReplicationList contains a list of Replication
+// +kubebuilder:object:root=true
 type ReplicationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
