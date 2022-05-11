@@ -20,7 +20,7 @@ func BuildClient(ctx context.Context, cl client.Client,
 	sec := &corev1.Secret{}
 
 	err := cl.Get(ctx, client.ObjectKey{
-		Name:      harbor.Name + "-harbor-core",
+		Name:      harbor.Name + "-core",
 		Namespace: harbor.Namespace,
 	}, sec)
 	if err != nil {

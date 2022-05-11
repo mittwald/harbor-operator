@@ -47,7 +47,7 @@ ifeq ($(USE_IMAGE_DIGESTS), true)
 endif
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= quay.io/mittwald/harbor-operator:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.23
 
@@ -128,6 +128,10 @@ fmt: imports ## Run go fmt against code.
 
 GO_FILES := $(shell find . -type f -name '*.go')
 
+.PHONY: manager
+manager: generate fmt vet ## Build manager binary
+	go build -o bin/manager main.go
+
 .PHONY: imports
 imports: ## Run goimports against code
 	@goimports -w -d $(GO_FILES)||:
@@ -152,7 +156,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 
 .PHONY: debug
 debug: generate fmt vet manifests manager ## Run a debug session using delve
-	dlv --listen=:2345 --headless=true --api-version=2 exec bin/manager --
+	dlv --check-go-version=false --listen=:2345 --headless=true --api-version=2 exec bin/manager --
 
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.

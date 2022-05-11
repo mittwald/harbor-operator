@@ -17,7 +17,7 @@ func TestBuildClient(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 
 	harbor := registriestesting.CreateInstance("test-harbor", ns)
-	_ = registriestesting.CreateSecret(harbor.Spec.Name+"-harbor-core", ns)
+	_ = registriestesting.CreateSecret(harbor.Spec.Name+"-core", ns)
 
 	harborClient, err := BuildClient(ctx, fakeClient, harbor)
 
