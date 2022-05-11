@@ -227,7 +227,7 @@ func (r *InstanceReconciler) installOrUpgradeHelmChart(ctx context.Context, helm
 
 	helmChart.Timeout = 5 * time.Minute
 
-	upgradedRelease, upgradeErr := helmClient.InstallOrUpgradeChart(ctx, helmChart)
+	upgradedRelease, upgradeErr := helmClient.InstallOrUpgradeChart(ctx, helmChart, nil)
 	if upgradeErr != nil {
 		if upgradedRelease != nil {
 			rollbackErr := helmClient.RollbackRelease(helmChart, 0)

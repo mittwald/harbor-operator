@@ -83,12 +83,12 @@ type RegistryStatus struct {
 	ID int64 `json:"id,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // Registry is the Schema for the registries API
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=registries,scope=Namespaced
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="phase"
 // +kubebuilder:printcolumn:name="ID",type="integer",JSONPath=".status.id",description="harbor registry id"
+// +kubebuilder:object:root=true
 type Registry struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -99,7 +99,7 @@ type Registry struct {
 }
 
 // RegistryList contains a list of Registry
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 type RegistryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
