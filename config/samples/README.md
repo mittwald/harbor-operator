@@ -64,7 +64,7 @@ The helm chart version can be specified via `.spec.helmChart.version`.
 Note: Specifying an empty string for the `harborAdminPassword`-key in `spec.helmChart.valuesYaml` will trigger
  password generation by the Harbor instance itself.
 The admin password will be saved under the key `HARBOR_ADMIN_PASSWORD` in a secret named `HELM_RELEASE_NAME
-`-`harbor-core`.
+`-`core`.
 
 [Harbor Garbage Collection](https://goharbor.io/docs/1.10/administration/garbage-collection/) can be configured via `spec.garbageCollection`.
 Valid values for `.scheduleType` are `Hourly`, `Daily`, `Weekly`, `Custom`, `Manual`, and `None` (each starting with
