@@ -18,24 +18,21 @@ package registries_test
 
 import (
 	"context"
-	"path/filepath"
-	"testing"
-	"time"
-
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"path/filepath"
+	"testing"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
@@ -60,18 +57,19 @@ var (
 	testReplicationName             = "test-replication"
 	testNamespaceName               = "test-namespace"
 	ctx                             = context.TODO()
+	cancel                          context.CancelFunc
 )
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Controller Suite",
-		[]Reporter{printer.NewlineReporter{}})
+	RunSpecs(t, "Controller Suite")
 }
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+
+	ctx, cancel = context.WithCancel(context.TODO())
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
@@ -98,22 +96,10 @@ var _ = BeforeSuite(func(done Done) {
 	// Create namespace for tests
 	err = k8sClient.Create(ctx, testNamespace)
 	Ω(err).ToNot(HaveOccurred())
-
-	close(done)
-}, 60)
+})
 
 var _ = AfterSuite(func() {
-	// Clean up CRDs
-	Context("Deleting CRDs", func() {
-		err := envtest.UninstallCRDs(cfg, envtest.CRDInstallOptions{
-			Paths:        []string{filepath.Join("..", "..", "config", "crd", "bases")},
-			MaxTime:      50 * time.Millisecond,
-			PollInterval: 15 * time.Millisecond,
-		})
-		Ω(err).ToNot(HaveOccurred())
-	})
-
+	cancel()
 	By("tearing down the test environment")
-	err := testEnv.Stop()
-	Ω(err).ToNot(HaveOccurred())
+	Ω(testEnv.Stop()).ToNot(HaveOccurred())
 })

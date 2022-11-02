@@ -137,8 +137,13 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
+test: fmt generate vet manifests setup-envtest
+	KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) --arch=amd64 use -p path 1.23.x)" go test -v ./... -coverprofile cover.out
+
+SETUP_ENVTEST = $(shell pwd)/bin/setup-envtest
+.PHONY: setup-envtest
+setup-envtest:
+	$(call go-get-tool,$(SETUP_ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
 
 ##@ Build
 
