@@ -230,7 +230,7 @@ func (r *InstanceReconciler) installOrUpgradeHelmChart(ctx context.Context, helm
 	upgradedRelease, upgradeErr := helmClient.InstallOrUpgradeChart(ctx, helmChart, nil)
 	if upgradeErr != nil {
 		if upgradedRelease != nil {
-			rollbackErr := helmClient.RollbackRelease(helmChart, 0)
+			rollbackErr := helmClient.RollbackRelease(helmChart)
 			if rollbackErr != nil {
 				return fmt.Errorf("rollback failed: (%s), upgrade failed: %w", rollbackErr, upgradeErr)
 			}
