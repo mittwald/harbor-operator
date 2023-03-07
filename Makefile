@@ -136,6 +136,12 @@ imports: ## Run goimports against code
 vet: ## Run go vet against code.
 	go vet ./...
 
+
+.PHONY: setup-kind
+setup-kind: ## Setup kind cluster
+	kind create cluster --config testdata/kind-config.yaml --name harbor-operator
+	kubectl create -f ./deploy/crds/
+
 .PHONY: test
 test: fmt generate vet manifests setup-envtest
 	KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) --arch=amd64 use -p path 1.23.x)" go test -v ./... -coverprofile cover.out

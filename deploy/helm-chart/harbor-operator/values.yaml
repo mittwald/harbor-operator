@@ -34,7 +34,7 @@ instances: ~
 #    version: v1.8.0
 #    wait: true
 #    garbageCollection:
-#      cron: "0 * * * *"
+#      cron: "0 * * * * *"
 #      scheduleType: "Hourly"
 #
 #    users:

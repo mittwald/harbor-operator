@@ -36,6 +36,7 @@ import (
 	registriesv1alpha2 "github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 	controllers "github.com/mittwald/harbor-operator/controllers/registries"
 	"github.com/mittwald/harbor-operator/controllers/registries/config"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -46,8 +47,8 @@ var (
 )
 
 func init() {
-
 	utilruntime.Must(registriesv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
