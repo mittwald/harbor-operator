@@ -136,7 +136,7 @@ spec:
         logLevel: info
         # If left empty, trigger password generation by the harbor instance itself
         # The admin password will then be saved under the key `HARBOR_ADMIN_PASSWORD`
-        # in a secret named `HELM_RELEASE_NAME`-`harbor-core`
+        # in a secret named `HELM_RELEASE_NAME-core`
         harborAdminPassword: "Harbor12345"
         secretKey: "not-a-secure-key"
         proxy:
