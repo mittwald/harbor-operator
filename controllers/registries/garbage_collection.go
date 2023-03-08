@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/mittwald/goharbor-client/v5/apiv2/model"
 	clienterrors "github.com/mittwald/goharbor-client/v5/apiv2/pkg/errors"
@@ -26,9 +27,18 @@ func (r *InstanceReconciler) reconcileGarbageCollection(ctx context.Context, har
 		return err
 	}
 
+	var schedule string
+
+	split := strings.Split(harbor.Spec.GarbageCollection.Cron, " ")
+	if len(split) == 5 {
+		schedule = strings.Join(append([]string{"*"}, split...), " ")
+	} else {
+		schedule = harbor.Spec.GarbageCollection.Cron
+	}
+
 	newGc := model.Schedule{
 		Schedule: &model.ScheduleObj{
-			Cron: harbor.Spec.GarbageCollection.Cron,
+			Cron: schedule,
 			Type: string(scheduleType),
 		},
 	}
