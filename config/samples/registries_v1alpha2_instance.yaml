@@ -8,10 +8,10 @@ spec:
   type: manual
   instanceURL: http://core.harbor.domain
   garbageCollection:
-    cron: "0 * * * * *"
+    cron: "* * */1 * * *"
     scheduleType: "Hourly"
   helmChart:
-      release: test-harbor
+      release: test
       chart: harbor/harbor
       version: v1.11.1 # equalling Harbor OSS version v2.7.1
       # see https://github.com/goharbor/harbor-helm/releases for a full list of supported versions

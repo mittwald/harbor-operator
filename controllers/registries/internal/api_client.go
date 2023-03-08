@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	h "github.com/mittwald/goharbor-client/v5/apiv2"
@@ -19,8 +20,17 @@ func BuildClient(ctx context.Context, cl client.Client,
 	harbor *v1alpha2.Instance) (*h.RESTClient, error) {
 	sec := &corev1.Secret{}
 
+	// Append "-harbor" to the expected secret name if the release name doesn't already contain it [^1].
+	// [1]: https://github.com/goharbor/harbor-helm/commit/db7b7c17c20c6046c031abacc9dda6aef57e90a6#diff-87d68c754766af8e2e930e653be7e4b75fa0c8bdb187cb1bec293f265d9159ff
+	secretName := func() string {
+		if strings.Contains(harbor.Spec.HelmChart.ReleaseName, "harbor") {
+			return harbor.Spec.HelmChart.ReleaseName + "-core"
+		}
+		return harbor.Spec.HelmChart.ReleaseName + "-harbor-core"
+	}
+
 	err := cl.Get(ctx, client.ObjectKey{
-		Name:      harbor.Name + "-core",
+		Name:      secretName(),
 		Namespace: harbor.Namespace,
 	}, sec)
 	if err != nil {

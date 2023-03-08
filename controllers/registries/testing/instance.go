@@ -19,7 +19,7 @@ func CreateInstance(name, namespace string) *v1alpha2.Instance {
 			Type:        "manual",
 			InstanceURL: "https://core.harbor.domain",
 			GarbageCollection: &v1alpha2.GarbageCollection{
-				Cron:         "0 * * * * *",
+				Cron:         "* * */1 * * *",
 				ScheduleType: "Hourly",
 			},
 			HelmChart: &v1alpha2.InstanceHelmChartSpec{

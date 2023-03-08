@@ -38,7 +38,7 @@ spec:
   type: manual
   instanceURL: http://core.harbor.domain:30002
   garbageCollection:
-    cron: "0 * * * * *"
+    cron: "* * */1 * * *"
     scheduleType: "Hourly"
   helmChart:
       release: test-harbor
@@ -73,7 +73,7 @@ The `.cron` parameter is a cron expression:
 
 ```yaml
   garbageCollection:
-    cron: "0 * * * * *"
+    cron: "* * */1 * * *"
     scheduleType: "Hourly"
 ```
 
