@@ -30,7 +30,7 @@ jobs:
         run: curl -sS -L https://raw.githubusercontent.com/helm/helm/${HELM_VERSION}/scripts/get-helm-3 | bash -s - --version ${HELM_VERSION}
 
       - name: Run helm template
-        run: helm template --values ./deploy/chart/harbor-operator/values.yaml harbor-operator ./deploy/chart/harbor-operator
+        run: helm template --values ./deploy/chart/values.yaml harbor-operator ./deploy/chart
 
       - name: Run helm lint
-        run: helm lint --values ./deploy/chart/harbor-operator/values.yaml --debug --strict ./deploy/chart/harbor-operator/.
+        run: helm lint --values ./deploy/chart/values.yaml --debug --strict ./deploy/chart/.

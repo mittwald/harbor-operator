@@ -123,7 +123,7 @@ jobs:
         uses: mittwald/bump-app-version-action@v1
         with:
           mode: 'publish'
-          chartYaml: './deploy/chart/harbor-operator/Chart.yaml'
+          chartYaml: './deploy/chart/Chart.yaml'
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUBTOKEN }}"
           HELM_REPO_PASSWORD: "${{ secrets.HELM_REPO_PASSWORD }}"
