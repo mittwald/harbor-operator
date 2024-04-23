@@ -39,10 +39,10 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.19
+      - name: Set up Go 1.22
         uses: actions/setup-go@v2
         with:
-          go-version: 1.19
+          go-version: 1.22
         id: go
 
       - name: Check out code into the Go module directory
@@ -56,10 +56,10 @@ jobs:
     name: Build Image
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.19
+      - name: Set up Go 1.22
         uses: actions/setup-go@v2
         with:
-          go-version: 1.19
+          go-version: 1.22
         id: go
 
       - name: Check out code into the Go module directory
@@ -74,10 +74,10 @@ jobs:
     needs: ['test', 'build']
     if: github.ref == 'refs/heads/master'
     steps:
-      - name: Set up Go 1.19
+      - name: Set up Go 1.22
         uses: actions/setup-go@v2
         with:
-          go-version: 1.19
+          go-version: 1.22
         id: go
 
       - name: Registry Login
@@ -98,10 +98,10 @@ jobs:
     needs: ['test', 'build']
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Set up Go 1.19
+      - name: Set up Go 1.22
         uses: actions/setup-go@v2
         with:
-          go-version: 1.19
+          go-version: 1.22
         id: go
 
       - name: Registry Login
