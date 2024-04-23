@@ -80,8 +80,8 @@ spec:
               description:
                 type: string
               insecure:
-                description: Wether or not the TLS certificate will be verified when
-                  Harbor tries to access the registry
+                description: Whether the TLS certificate will be verified when Harbor
+                  tries to access the registry or not
                 type: boolean
               name:
                 type: string
