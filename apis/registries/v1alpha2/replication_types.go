@@ -127,6 +127,7 @@ type TriggerSettings struct {
 // +kubebuilder:printcolumn:name="Source",type="string",JSONPath=".status.source",description="source registry"
 // +kubebuilder:printcolumn:name="Destination",type="string",JSONPath=".status.destination",description="destination registry"
 // +kubebuilder:object:root=true
+
 type Replication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

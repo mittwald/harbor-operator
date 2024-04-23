@@ -96,6 +96,7 @@ type MemberRequest struct {
 // +kubebuilder:printcolumn:name="ID",type="integer",JSONPath=".status.id",description="harbor replication id"
 // +kubebuilder:printcolumn:name="Public",type="boolean",JSONPath=".spec.metadata.public",description="harbor replication id"
 // +kubebuilder:object:root=true
+
 type Project struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -26,12 +26,10 @@ import (
 	controllererrors "github.com/mittwald/harbor-operator/controllers/registries/errors"
 
 	clienterrors "github.com/mittwald/goharbor-client/v5/apiv2/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	corev1 "k8s.io/api/core/v1"
 
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 
@@ -193,10 +191,8 @@ func (r *ProjectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *ProjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha2.Project{}).
-		Watches(&source.Kind{Type: &v1alpha2.User{}}, &handler.EnqueueRequestForOwner{
-			OwnerType:    &v1alpha2.Project{},
-			IsController: true,
-		}).
+		Watches(&v1alpha2.User{}, handler.EnqueueRequestForOwner(r.Scheme, mgr.GetRESTMapper(),
+			&v1alpha2.Project{})).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 1,
 		}).

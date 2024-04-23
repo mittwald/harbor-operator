@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: instances.registries.mittwald.de
 spec:
   group: registries.mittwald.de
@@ -33,14 +32,19 @@ spec:
         description: Instance is the Schema for the instances API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -61,7 +65,8 @@ spec:
               helmChart:
                 properties:
                   atomic:
-                    description: Atomic indicates whether to install resources atomically.
+                    description: |-
+                      Atomic indicates whether to install resources atomically.
                       'Wait' will automatically be set to true when using Atomic.
                     type: boolean
                   chart:
@@ -78,18 +83,31 @@ spec:
                     description: DependencyUpdate indicates whether to update the
                       chart release if the dependencies have changed.
                     type: boolean
+                  description:
+                    description: Description specifies a custom description for the
+                      uninstalled release
+                    type: string
                   disableHooks:
                     description: DisableHooks indicates whether to disable hooks.
                     type: boolean
                   dryRun:
                     description: DryRun indicates whether to perform a dry run.
                     type: boolean
+                  dryRunOption:
+                    description: DryRunOption controls whether the operation is prepared,
+                      but not executed with options on whether or not to interact
+                      with the remote cluster.
+                    type: string
                   force:
                     description: Force indicates whether to force the operation.
                     type: boolean
                   generateName:
                     description: GenerateName indicates that the release name should
                       be generated.
+                    type: boolean
+                  keepHistory:
+                    description: KeepHistory indicates whether to retain or purge
+                      the release history during uninstall
                     type: boolean
                   maxHistory:
                     description: MaxHistory limits the maximum number of revisions
@@ -100,9 +118,9 @@ spec:
                       release name if GenerateName is configured.
                     type: string
                   namespace:
-                    description: Namespace where the chart release is deployed. Note
-                      that helmclient.Options.Namespace should ideally match the namespace
-                      configured here.
+                    description: |-
+                      Namespace where the chart release is deployed.
+                      Note that helmclient.Options.Namespace should ideally match the namespace configured here.
                     type: string
                   recreate:
                     description: Recreate indicates whether to recreate the release
@@ -128,15 +146,18 @@ spec:
                       key:
                         type: string
                       secretRef:
-                        description: LocalObjectReference contains enough information
-                          to let you locate the referenced object inside the same
-                          namespace.
+                        description: |-
+                          LocalObjectReference contains enough information to let you locate the
+                          referenced object inside the same namespace.
                         properties:
                           name:
-                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                              TODO: Add other useful fields. apiVersion, kind, uid?'
+                            description: |-
+                              Name of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?
                             type: string
                         type: object
+                        x-kubernetes-map-type: atomic
                     required:
                     - key
                     - secretRef
@@ -156,9 +177,40 @@ spec:
                     description: Upgrade indicates whether to perform a CRD upgrade
                       during installation.
                     type: boolean
+                  valuesOptions:
+                    description: Specify values similar to the cli
+                    properties:
+                      fileValues:
+                        description: --set-file
+                        items:
+                          type: string
+                        type: array
+                      jsonValues:
+                        description: --set-json
+                        items:
+                          type: string
+                        type: array
+                      stringValues:
+                        description: --set-string
+                        items:
+                          type: string
+                        type: array
+                      valueFiles:
+                        description: -f/--values
+                        items:
+                          type: string
+                        type: array
+                      values:
+                        description: --set
+                        items:
+                          type: string
+                        type: array
+                    type: object
                   valuesYaml:
-                    description: ValuesYaml is the values.yaml content. use string
-                      instead of map[string]interface{} https://github.com/kubernetes-sigs/kubebuilder/issues/528#issuecomment-466449483
+                    description: |-
+                      ValuesYaml is the values.yaml content.
+                      use string instead of map[string]interface{}
+                      https://github.com/kubernetes-sigs/kubebuilder/issues/528#issuecomment-466449483
                       and https://github.com/kubernetes-sigs/controller-tools/pull/317
                     type: string
                   version:
@@ -169,10 +221,10 @@ spec:
                       be deployed or not.
                     type: boolean
                   waitForJobs:
-                    description: WaitForJobs indicates whether to wait for completion
-                      of release Jobs before marking the release as successful. 'Wait'
-                      has to be specified for this to take effect. The timeout may
-                      be specified via the 'Timeout' field.
+                    description: |-
+                      WaitForJobs indicates whether to wait for completion of release Jobs before marking the release as successful.
+                      'Wait' has to be specified for this to take effect.
+                      The timeout may be specified via the 'Timeout' field.
                     type: boolean
                 required:
                 - chart
@@ -184,9 +236,9 @@ spec:
               name:
                 type: string
               type:
-                description: 'can''t use the resulting string-type so this is a simple
-                  string and will be casted to an OperatorType in the resolver: error:
-                  Hit an unsupported type invalid type for invalid type'
+                description: |-
+                  can't use the resulting string-type so this is a simple string and will be casted to an OperatorType in the resolver:
+                  error: Hit an unsupported type invalid type for invalid type
                 type: string
             required:
             - helmChart
@@ -221,9 +273,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
