@@ -4,7 +4,7 @@ kind: Instance
 metadata:
   name: {{ .name }}
   labels:
-  {{- include "harbor-operator.labels" $ | nindent 4 }}
+  {{- include "chart.labels" $ | nindent 4 }}
 spec:
   name: {{ .name }}
   type: {{ .type }}
