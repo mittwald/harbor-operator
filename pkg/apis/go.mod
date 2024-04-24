@@ -1,6 +1,6 @@
 module github.com/mittwald/harbor-operator/pkg/apis
 
-go 1.19
+go 1.22
 
 require (
 	github.com/mittwald/go-helm-client v0.9.4
