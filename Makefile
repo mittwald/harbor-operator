@@ -5,7 +5,7 @@ REVISION := $(shell git rev-parse --show-toplevel)
 OPERATOR_NAME := $(shell basename $(REVISION))
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= quay.io/mittwald/harbor-operator:latest
 
 .PHONY: default
 .DEFAULT: default
