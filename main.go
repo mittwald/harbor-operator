@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"os"
 	"strings"
 
@@ -49,6 +50,7 @@ var (
 
 func init() {
 
+	utilruntime.Must(corev1.AddToScheme(scheme))
 	utilruntime.Must(registriesv1alpha2.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
