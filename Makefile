@@ -146,7 +146,7 @@ ifeq ($(wildcard /tmp/k8s-webhook-server/serving-certs/tls.crt),)
 	mkdir -p /tmp/k8s-webhook-server/serving-certs && \
 	openssl req -new -newkey rsa:4096 -x509 -sha256 -days 1 -nodes -batch -out /tmp/k8s-webhook-server/serving-certs/tls.crt -keyout /tmp/k8s-webhook-server/serving-certs/tls.key
 endif
-	go run ./main.go --enable-controllers
+	go run ./main.go
 
 ##@ Helm Chart Generation
 
