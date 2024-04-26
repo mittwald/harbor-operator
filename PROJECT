@@ -3,44 +3,55 @@ layout: go.kubebuilder.io/v3
 multigroup: true
 projectName: harbor-operator
 repo: github.com/mittwald/harbor-operator
-version: "3"
 resources:
--
+- api:
+    crdVersion: v1
+    namespaced: true
   controller: true
   domain: mittwald.de
   group: registries
   kind: InstanceChartRepository
   path: github.com/mittwald/harbor-operator/apis/registries/v1alpha2
   version: v1alpha2
--
+- api:
+    crdVersion: v1
+    namespaced: true
   controller: true
   domain: mittwald.de
   group: registries
   kind: Instance
   path: github.com/mittwald/harbor-operator/apis/registries/v1alpha2
   version: v1alpha2
--
+- api:
+    crdVersion: v1
+    namespaced: true
   controller: true
   domain: mittwald.de
   group: registries
   kind: Registry
   path: github.com/mittwald/harbor-operator/apis/registries/v1alpha2
   version: v1alpha2
--
+- api:
+    crdVersion: v1
+    namespaced: true
   controller: true
   domain: mittwald.de
   group: registries
   kind: Replication
   path: github.com/mittwald/harbor-operator/apis/registries/v1alpha2
   version: v1alpha2
--
+- api:
+    crdVersion: v1
+    namespaced: true
   controller: true
   domain: mittwald.de
   group: registries
   kind: User
   path: github.com/mittwald/harbor-operator/apis/registries/v1alpha2
   version: v1alpha2
--
+- api:
+    crdVersion: v1
+    namespaced: true
   controller: true
   domain: mittwald.de
   group: registries

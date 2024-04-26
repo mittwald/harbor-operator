@@ -4,7 +4,7 @@ kind: InstanceChartRepository
 metadata:
   name: harbor
   labels:
-  {{- include "harbor-operator.labels" . | nindent 4 }}
+  {{- include "chart.labels" . | nindent 4 }}
 spec:
   name: harbor
   url: https://helm.goharbor.io

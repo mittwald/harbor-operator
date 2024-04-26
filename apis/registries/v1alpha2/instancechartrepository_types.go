@@ -35,6 +35,7 @@ type InstanceChartRepositoryStatus struct {
 // +kubebuilder:printcolumn:name="URL",type="string",JSONPath=".spec.url",description="URL"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state",description="status"
 // +kubebuilder:object:root=true
+
 type InstanceChartRepository struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

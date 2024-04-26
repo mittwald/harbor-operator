@@ -20,6 +20,8 @@ import (
 	"os"
 	"strings"
 
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	helmclient "github.com/mittwald/go-helm-client"
@@ -79,11 +81,12 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: config.MetricsAddr,
-		Port:               9443,
-		LeaderElection:     config.EnableLeaderElection,
-		LeaderElectionID:   "a1e7caa2.mittwald.de",
+		Scheme: scheme,
+		Metrics: server.Options{
+			BindAddress: config.MetricsAddr + ":9443",
+		},
+		LeaderElection:   config.EnableLeaderElection,
+		LeaderElectionID: "a1e7caa2.mittwald.de",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

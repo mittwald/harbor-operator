@@ -38,6 +38,7 @@ type UserSpec struct {
 // +kubebuilder:resource:path=users,scope=Namespaced,shortName=users;harborusers
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="phase"
 // +kubebuilder:object:root=true
+
 type User struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

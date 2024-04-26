@@ -6,7 +6,7 @@ kind: Secret
 metadata:
   name: {{ $instance.name }}-user-{{ $user.name }}
   labels:
-  {{- include "harbor-operator.labels" $ | nindent 4 }}
+  {{- include "chart.labels" $ | nindent 4 }}
 data:
   password: {{ $user.password | b64enc }}
   {{- end }}
@@ -16,7 +16,7 @@ kind: User
 metadata:
   name: {{ $instance.name }}-{{ $user.name }}
   labels:
-  {{- include "harbor-operator.labels" $ | nindent 4 }}
+  {{- include "chart.labels" $ | nindent 4 }}
 spec:
   parentInstance:
     name: {{ $instance.name }}

@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/imdario/mergo"
+
 	"github.com/mittwald/harbor-operator/apis/registries/v1alpha2"
 
-	"github.com/imdario/mergo"
 	helmclient "github.com/mittwald/go-helm-client"
 	"sigs.k8s.io/yaml"
 
@@ -51,7 +52,7 @@ func enrichChartWithSecretValues(ctx context.Context, c client.Client, instance 
 		return err
 	}
 
-	valuesMap, err := spec.ChartSpec.GetValuesMap()
+	valuesMap, err := spec.ChartSpec.GetValuesMap(nil)
 	if err != nil {
 		return err
 	}

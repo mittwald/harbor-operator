@@ -10,17 +10,17 @@ on:
   pull_request:
 
 env:
-  HELM_VERSION: v3.6.3
+  HELM_VERSION: v3.14.4
 
 jobs:
   helm-lint:
     name: Helm Template & Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.18
+      - name: Set up Go 1.22
         uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.22
         id: go
 
       - name: Check out code into the Go module directory
@@ -30,7 +30,7 @@ jobs:
         run: curl -sS -L https://raw.githubusercontent.com/helm/helm/${HELM_VERSION}/scripts/get-helm-3 | bash -s - --version ${HELM_VERSION}
 
       - name: Run helm template
-        run: helm template --values ./deploy/helm-chart/harbor-operator/values.yaml harbor-operator ./deploy/helm-chart/harbor-operator
+        run: helm template --values ./deploy/chart/values.yaml harbor-operator ./deploy/chart
 
       - name: Run helm lint
-        run: helm lint --values ./deploy/helm-chart/harbor-operator/values.yaml --debug --strict ./deploy/helm-chart/harbor-operator/.
+        run: helm lint --values ./deploy/chart/values.yaml --debug --strict ./deploy/chart/.

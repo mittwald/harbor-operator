@@ -1,55 +1,17 @@
-# VERSION defines the project version for the bundle.
-# Update this value when you upgrade the version of your project.
-# To re-generate a bundle for another specific version without changing the standard setup, you can:
-# - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
-# - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
-VERSION ?= 0.0.1
+ENVTEST_K8S_VERSION = 1.26.0
+CONTROLLER_TOOLS_VERSION ?= v0.14.0
 
-# CHANNELS define the bundle channels used in the bundle.
-# Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
-# To re-generate a bundle for other specific channels without changing the standard setup, you can:
-# - use the CHANNELS as arg of the bundle target (e.g make bundle CHANNELS=candidate,fast,stable)
-# - use environment variables to overwrite this value (e.g export CHANNELS="candidate,fast,stable")
-ifneq ($(origin CHANNELS), undefined)
-BUNDLE_CHANNELS := --channels=$(CHANNELS)
-endif
-
-# DEFAULT_CHANNEL defines the default channel used in the bundle.
-# Add a new line here if you would like to change its default config. (E.g DEFAULT_CHANNEL = "stable")
-# To re-generate a bundle for any other default channel without changing the default setup, you can:
-# - use the DEFAULT_CHANNEL as arg of the bundle target (e.g make bundle DEFAULT_CHANNEL=stable)
-# - use environment variables to overwrite this value (e.g export DEFAULT_CHANNEL="stable")
-ifneq ($(origin DEFAULT_CHANNEL), undefined)
-BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
-endif
-BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
-
-# IMAGE_TAG_BASE defines the docker.io namespace and part of the image name for remote images.
-# This variable is used to construct full image tags for bundle and catalog images.
-#
-# For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# my.domain/harbor-operator-bundle:$VERSION and my.domain/harbor-operator-catalog:$VERSION.
-IMAGE_TAG_BASE ?= my.domain/harbor-operator
-
-# BUNDLE_IMG defines the image:tag used for the bundle.
-# You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
-BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(VERSION)
-
-# BUNDLE_GEN_FLAGS are the flags passed to the operator-sdk generate bundle command
-BUNDLE_GEN_FLAGS ?= -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
-
-# USE_IMAGE_DIGESTS defines if images are resolved via tags or digests
-# You can enable this value if you would like to use SHA Based Digests
-# To enable set flag to true
-USE_IMAGE_DIGESTS ?= false
-ifeq ($(USE_IMAGE_DIGESTS), true)
-	BUNDLE_GEN_FLAGS += --use-image-digests
-endif
+REVISION := $(shell git rev-parse --show-toplevel)
+OPERATOR_NAME := $(shell basename $(REVISION))
 
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
-# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.23
+
+.PHONY: default
+.DEFAULT: default
+default: | generate go manifests controller-gen imports manager test docker-build
+
+## Environment Variables
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -59,218 +21,192 @@ GOBIN=$(shell go env GOBIN)
 endif
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
-# This is a requirement for 'setup-envtest.sh' in the test target.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-.PHONY: all
-all: build
-
-##@ General
-
-# The help target prints out all targets with their descriptions organized
-# beneath their categories. The categories are represented by '##@' and the
-# target descriptions by '##'. The awk commands is responsible for reading the
-# entire set of makefiles included in this invocation, looking for lines of the
-# file as xyz: ## something, and then pretty-format the target and help. Then,
-# if there's a line with ##@ something, that gets pretty-printed as a category.
-# More info on the usage of ANSI control characters for terminal formatting:
-# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
-# More info on the awk command:
-# http://linuxcommand.org/lc3_adv_awk.php
-
-.PHONY: help
-help: ## Display this help.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
-
-##@ Development
-
-.PHONY: manifests
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	go mod download && go mod tidy
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	# build helm-chart
-	echo "# AUTOGENERATED BY 'make manifests' - DO NOT EDIT!" | tee \
-		./deploy/helm-chart/harbor-operator/templates/role.yaml \
-		./deploy/helm-chart/harbor-operator/templates/role_binding.yaml \
-		./deploy/helm-chart/harbor-operator/templates/leader_election_role.yaml \
-		./deploy/helm-chart/harbor-operator/templates/leader_election_role_binding.yaml \
-		./deploy/helm-chart/harbor-operator/templates/monitor.yaml
-	echo "{{ if .Values.serviceMonitor.enabled }}" >> ./deploy/helm-chart/harbor-operator/templates/monitor.yaml
-	$(SED) 's/manager-role/{{ include "harbor-operator.name" . }}/g' ./config/rbac/role.yaml >> ./deploy/helm-chart/harbor-operator/templates/role.yaml
-	$(SED) 's/manager-rolebinding/{{ include "harbor-operator.name" . }}/g; s/manager-role/{{ include "harbor-operator.name" . }}/g; s/default/{{ include "harbor-operator.name" . }}/g; s/system/{{ .Release.Namespace }}/g' \
-		./config/rbac/role_binding.yaml >> ./deploy/helm-chart/harbor-operator/templates/role_binding.yaml
-	$(SED) 's/leader-election-role/{{ include "harbor-operator.name" . }}-leader-election/g' ./config/rbac/leader_election_role.yaml >> ./deploy/helm-chart/harbor-operator/templates/leader_election_role.yaml
-	$(SED) 's/leader-election-rolebinding/{{ include "harbor-operator.name" . }}-leader-election/g; s/leader-election-role/{{ include "harbor-operator.name" . }}-leader-election/g; s/name\: default/name\: {{ include "harbor-operator.name" . }}/g; s/namespace\: system/namespace\: {{ .Release.Namespace }}/g' \
-		 ./config/rbac/leader_election_role_binding.yaml >> ./deploy/helm-chart/harbor-operator/templates/leader_election_role_binding.yaml
-	$(SED) 's/controller-manager-metrics-monitor/{{ include "harbor-operator.fullname" . }}/g; 1,/control-plane: controller-manager/ s/control-plane: controller-manager/{{- include "harbor-operator.labels" . | nindent 4 }}/g; 2,/control-plane: controller-manager/ s/control-plane: controller-manager/app.kubernetes.io\/instance: {{ .Release.Name }}/g; s/port: https/port: metrics/g; s/namespace\: system/namespace\: {{ .Release.Namespace }}/g' \
-		 ./config/prometheus/monitor.yaml >> ./deploy/helm-chart/harbor-operator/templates/monitor.yaml
-	echo "{{ end }}" >> ./deploy/helm-chart/harbor-operator/templates/monitor.yaml
+GO_FILES := $(shell find . -type f -name '*.go' -not -name 'zz_generated.deepcopy.go')
 
 UNAME := $(shell uname -s)
 
+# Set sed command based on OS
 ifeq ($(UNAME),Darwin)
 SED=gsed
 else
 SED=sed
 endif
 
-.PHONY: generate
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
-	rm -r ./pkg/apis/v* && cp -rf ./apis/registries/* ./pkg/apis/
-	cd pkg/apis && go mod tidy
+## Location to install dependencies to
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
 
-.PHONY: fmt
-fmt: imports ## Run go fmt against code.
-	go fmt $$(go list ./...)
+# Tool Binaries
+KUSTOMIZE ?= $(LOCALBIN)/kustomize
+CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+ENVTEST ?= $(LOCALBIN)/setup-envtest
 
-GO_FILES := $(shell find . -type f -name '*.go')
+##@ Help
 
-.PHONY: imports
-imports: ## Run goimports against code
-	@goimports -w -d $(GO_FILES)||:
+.SILENT: help
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-.PHONY: vet
-vet: ## Run go vet against code.
-	go vet ./...
-
-.PHONY: test
-test: fmt generate vet manifests setup-envtest
-	KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) --arch=amd64 use -p path 1.23.x)" go test -v ./... -coverprofile cover.out
-
-SETUP_ENVTEST = $(shell pwd)/bin/setup-envtest
-.PHONY: setup-envtest
-setup-envtest:
-	$(call go-get-tool,$(SETUP_ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
-
-##@ Build
-
-.PHONY: build
-build: generate fmt vet ## Build manager binary.
-	go build -o bin/manager main.go
-
-.PHONY: run
-run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./main.go
-
-.PHONY: debug
-debug: generate fmt vet manifests manager ## Run a debug session using delve
-	dlv --listen=:2345 --headless=true --api-version=2 exec bin/manager --
+##@ Docker
 
 .PHONY: docker-build
+.SILENT: docker-build
 docker-build: test ## Build docker image with the manager.
 	docker build -t ${IMG} .
 
 .PHONY: docker-push
+.SILENT: docker-push
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
-##@ Deployment
+##@ Development
 
-ifndef ignore-not-found
-  ignore-not-found = false
-endif
+.PHONY: manager
+.SILENT: manager
+manager: generate fmt vet ## Build manager binary.
+	@go build -o bin/manager main.go
 
-.PHONY: install
-install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | kubectl apply -f -
+##@ Code Generation
 
-.PHONY: uninstall
-uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+.PHONY: manifests
+.SILENT: manifests
+manifests: controller-gen helm-chart helm-template ## Generate manifests e.g. CRD, RBAC, as well as the Helm chart.
+	@$(CONTROLLER_GEN) rbac:roleName=manager-role crd:generateEmbeddedObjectMeta=true webhook paths="./apis/..." output:crd:artifacts:config=config/crd/bases
 
-.PHONY: deploy
-deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	$(KUSTOMIZE) build config/default | kubectl apply -f -
+.PHONY: generate
+.SILENT: generate
+generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+	echo "Running controller-gen.."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	echo "Running go generate for main package.."
+	go generate -tags ignore ./...
+	[ -d ./webhook ] && \
+	echo "Running go generate for webhook package.." && \
+	cd ./webhook; go generate -tags ignore ./... || echo No webhook package found, skipping.. && \
+	cd ../
 
-.PHONY: undeploy
-undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+##@ Go
 
-CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
+.PHONY: go
+.SILENT: go
+go: fmt vet imports lint ## Prepare go files.
+	go mod download && go mod tidy
+
+.SILENT: fmt
+.PHONY: fmt
+fmt: ## Run go fmt & goimports against code.
+	echo "Running go fmt ./..."
+	@go fmt ./...
+
+.SILENT: vet
+.PHONY: vet
+vet: ## Run go vet against code.
+	echo "Running go vet ./..."
+	@go vet ./...
+
+.PHONY: imports
+imports: ## Run goimports against code.
+	@command -v goimports 1>&/dev/null && \
+	goimports -w . || echo "goimports not installed, skipping.."
+
+.PHONY: lint
+lint: ## Run golangci-lint against code.
+	@command -v yq 1>&/dev/null || \
+	@command -v docker 1>&/dev/null && \
+	echo "Running golangci-lint ($(shell cat `pwd`/.github/workflows/workflow.yml | yq '.env.GOLANGCI_LINT_VERSION'))..";
+	@docker run --rm -v $(shell pwd):/app -w /app golangci/golangci-lint:$(shell cat `pwd`/.github/workflows/workflow.yml | yq '.env.GOLANGCI_LINT_VERSION') golangci-lint run --timeout=10m -v -E godox ./... || echo "yq or docker not installed, skipping.."
+
 .PHONY: controller-gen
-controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.8.0)
+controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary. If wrong version is installed, it will be overwritten.
+$(CONTROLLER_GEN): $(LOCALBIN)
+	@test -s $(LOCALBIN)/controller-gen && $(LOCALBIN)/controller-gen --version | grep -q $(CONTROLLER_TOOLS_VERSION) || \
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
-KUSTOMIZE = $(shell pwd)/bin/kustomize
-.PHONY: kustomize
-kustomize: ## Download kustomize locally if necessary.
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+##@ Testing
 
-ENVTEST = $(shell pwd)/bin/setup-envtest
+.PHONY: test
+.SILENT: test
+test: envtest ## Run envtests.
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+
 .PHONY: envtest
-envtest: ## Download envtest-setup locally if necessary.
-	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
+envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST): $(LOCALBIN)
+	@test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go install $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
-
-.PHONY: bundle
-bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
-	operator-sdk generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle $(BUNDLE_GEN_FLAGS)
-	operator-sdk bundle validate ./bundle
-
-.PHONY: bundle-build
-bundle-build: ## Build the bundle image.
-	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
-
-.PHONY: bundle-push
-bundle-push: ## Push the bundle image.
-	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
-
-.PHONY: opm
-OPM = ./bin/opm
-opm: ## Download opm locally if necessary.
-ifeq (,$(wildcard $(OPM)))
-ifeq (,$(shell which opm 2>/dev/null))
-	@{ \
-	set -e ;\
-	mkdir -p $(dir $(OPM)) ;\
-	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.19.1/$${OS}-$${ARCH}-opm ;\
-	chmod +x $(OPM) ;\
-	}
-else
-OPM = $(shell which opm)
+.PHONY: run
+run: ## Run against the configured Kubernetes cluster in the current KUBECONFIG context.
+ifeq ($(wildcard /tmp/k8s-webhook-server/serving-certs/tls.crt),)
+	mkdir -p /tmp/k8s-webhook-server/serving-certs && \
+	openssl req -new -newkey rsa:4096 -x509 -sha256 -days 1 -nodes -batch -out /tmp/k8s-webhook-server/serving-certs/tls.crt -keyout /tmp/k8s-webhook-server/serving-certs/tls.key
 endif
-endif
+	go run ./main.go --enable-controllers
 
-# A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
-# These images MUST exist in a registry and be pull-able.
-BUNDLE_IMGS ?= $(BUNDLE_IMG)
+##@ Helm Chart Generation
 
-# The image tag given to the resulting catalog image (e.g. make catalog-build CATALOG_IMG=example.com/operator-catalog:v0.2.0).
-CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(VERSION)
+.PHONY: helm-chart
+.SILENT: helm-chart
+helm-chart: gen-webhook gen-monitor gen-role gen-role-binding gen-serviceaccount ## Run commands generating a valid helm chart.
 
-# Set CATALOG_BASE_IMG to an existing catalog image tag to add $BUNDLE_IMGS to that image.
-ifneq ($(origin CATALOG_BASE_IMG), undefined)
-FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
-endif
+.PHONY: helm-template
+.SILENT: helm-template
+helm-template:
+	@command -v helm 1>&/dev/null && \
+	helm --debug template $(OPERATOR_NAME) deploy/chart -f deploy/chart/values.yaml 1>&/dev/null || echo "helm not installed, skipping.."
 
-# Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
-# This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
-# https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
-.PHONY: catalog-build
-catalog-build: opm ## Build a catalog image.
-	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
+.PHONY: gen-webhook
+.SILENT: gen-webhook
+gen-webhook: ## Run commands generating a valid webhook config.
+	[ -f ./config/webhook/manifests.yaml ] && \
+	echo "Creating/Updating deploy/chart/templates/webhooks.yaml" && \
+	echo "# AUTOGENERATED BY 'make manifests' - DO NOT EDIT!" > ./deploy/chart/templates/webhooks.yaml && \
+	$(SED) 's/mutating-webhook-configuration/{{ include "chart.fullname" . }}/g; s/validating-webhook-configuration/{{ include "chart.fullname" . }}/g; s/webhook-service/{{ include "chart.fullname" . }}-webhooks/g; s/namespace: system/namespace: {{ .Release.Namespace }}/g; s@metadata:@metadata:\n  annotations:\n    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "chart.fullname" . }}-server-cert@g' ./config/webhook/manifests.yaml >> ./deploy/chart/templates/webhooks.yaml \
+	|| echo No webhook config found, skipping..
 
-# Push the catalog image.
-.PHONY: catalog-push
-catalog-push: ## Push a catalog image.
-	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+.PHONY: gen-serviceaccount
+.SILENT: gen-serviceaccount
+gen-serviceaccount: ## Run commands generating a valid webhook config.
+	[ -f ./config/rbac/service_account.yaml ] && \
+	echo "Creating/Updating deploy/chart/templates/serviceaccount.yaml" && \
+	echo "# AUTOGENERATED BY 'make manifests' - DO NOT EDIT!" > ./deploy/chart/templates/serviceaccount.yaml && \
+	echo '{{- if .Values.serviceAccount.create }}' >> ./deploy/chart/templates/serviceaccount.yaml && \
+	$(SED) 's/controller-manager/{{ include "chart.fullname" . }}/g; s/namespace: system/namespace: {{ .Release.Namespace }}/g;' \
+		 ./config/rbac/service_account.yaml >> ./deploy/chart/templates/serviceaccount.yaml && \
+	echo -e '  labels:\n{{- include "chart.labels" . | nindent 4 }}' >> ./deploy/chart/templates/serviceaccount.yaml && \
+	echo -e '{{- end -}}' >> ./deploy/chart/templates/serviceaccount.yaml \
+	|| echo No webhook config found, skipping..
+
+.PHONY: gen-role
+.SILENT: gen-role
+gen-role: ## Run commands generating a valid role config
+	[ -f ./config/rbac/role.yaml ] && \
+	echo "Creating/Updating deploy/chart/templates/role.yaml" && \
+	echo "# AUTOGENERATED BY 'make manifests' - DO NOT EDIT!" > ./deploy/chart/templates/role.yaml && \
+	$(SED) 's/manager-role/{{ include "chart.name" . }}/g' ./config/rbac/role.yaml >> ./deploy/chart/templates/role.yaml \
+	|| echo No role config found, skipping..
+
+.PHONY: gen-role-binding
+.SILENT: gen-role-binding
+gen-role-binding: ## Run commands generating a valid role-binding config
+	[ -f ./config/rbac/role_binding.yaml ] && \
+	echo "Creating/Updating deploy/chart/templates/role_binding.yaml" && \
+	echo "# AUTOGENERATED BY 'make manifests' - DO NOT EDIT!" > ./deploy/chart/templates/role_binding.yaml && \
+	$(SED) 's/default/{{ include "chart.name" . }}/g; s/manager-rolebinding/{{ include "chart.name" . }}/g; s/manager-role/{{ include "chart.name" . }}/g; s/name\: default/name\: {{ include "chart.name" . }}/g; s/namespace\: system/namespace\: {{ .Release.Namespace }}/g; s/controller-manager/{{ include "chart.fullname" . }}/g' \
+		 ./config/rbac/role_binding.yaml >> ./deploy/chart/templates/role_binding.yaml \
+	|| echo No role_binding config found, skipping..
+
+.PHONY: gen-monitor
+.SILENT: gen-monitor
+gen-monitor: ## Run commands generating a valid prometheus monitor config
+	[ -f ./config/prometheus/monitor.yaml ] && \
+	echo "Creating/Updating deploy/chart/templates/monitor.yaml" && \
+	echo "# AUTOGENERATED BY 'make manifests' - DO NOT EDIT!" > ./deploy/chart/templates/monitor.yaml && \
+	$(SED) 's/controller-manager-metrics-monitor/{{ include "chart.fullname" . }}/g; 1,/control-plane: controller-manager/ s/control-plane: controller-manager/monitoring.systems.mittwald.cloud\/allowed: "true"/g; 2,/control-plane: controller-manager/ s/control-plane: controller-manager/app.kubernetes.io\/instance: {{ include "chart.name" . }}/g; s/port: https/port: metrics/g; s/namespace\: system/namespace\: {{ .Release.Namespace }}/g' \
+		 ./config/prometheus/monitor.yaml >> ./deploy/chart/templates/monitor.yaml \
+	|| echo No monitor config found, skipping..

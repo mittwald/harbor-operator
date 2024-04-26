@@ -47,7 +47,7 @@ type RegistrySpec struct {
 	// +kubebuilder:validation:Optional
 	Credential *RegistryCredential `json:"credential,omitempty"`
 
-	// Whether or not the TLS certificate will be verified when Harbor tries to access the registry
+	// Whether the TLS certificate will be verified when Harbor tries to access the registry or not
 	// +kubebuilder:validation:Optional
 	Insecure bool `json:"insecure,omitempty"`
 
@@ -89,6 +89,7 @@ type RegistryStatus struct {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="phase"
 // +kubebuilder:printcolumn:name="ID",type="integer",JSONPath=".status.id",description="harbor registry id"
 // +kubebuilder:object:root=true
+
 type Registry struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

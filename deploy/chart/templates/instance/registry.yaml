@@ -5,7 +5,7 @@ kind: Registry
 metadata:
   name: {{ $instance.name }}-{{ $registry.name }}
   labels:
-  {{- include "harbor-operator.labels" $ | nindent 4 }}
+  {{- include "chart.labels" $ | nindent 4 }}
 spec:
   parentInstance:
     name: {{ $instance.name }}

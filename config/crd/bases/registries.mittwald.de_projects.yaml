@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: projects.registries.mittwald.de
 spec:
   group: registries.mittwald.de
@@ -31,17 +30,21 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: Project is the Schema for the projects API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -54,14 +57,18 @@ spec:
                     role:
                       type: string
                     user:
-                      description: LocalObjectReference contains enough information
-                        to let you locate the referenced object inside the same namespace.
+                      description: |-
+                        LocalObjectReference contains enough information to let you locate the
+                        referenced object inside the same namespace.
                       properties:
                         name:
-                          description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                            TODO: Add other useful fields. apiVersion, kind, uid?'
+                          description: |-
+                            Name of the referent.
+                            More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            TODO: Add other useful fields. apiVersion, kind, uid?
                           type: string
                       type: object
+                      x-kubernetes-map-type: atomic
                   required:
                   - role
                   - user
@@ -74,8 +81,9 @@ spec:
                       or not
                     type: boolean
                   enableContentTrust:
-                    description: Whether content trust is enabled or not If it is,
-                      users can not pull unsigned images from this project
+                    description: |-
+                      Whether content trust is enabled or not
+                      If it is, users can not pull unsigned images from this project
                     type: boolean
                   preventVul:
                     description: Whether to prevent the vulnerable images from running
@@ -85,15 +93,15 @@ spec:
                     description: Public status of the Project
                     type: boolean
                   reuseSysCVEAllowlist:
-                    description: Whether this project reuses the system level CVE
-                      allowlist as the allowlist of its own. The valid values are
-                      "true", "false". If set to "true", the actual allowlist associated
-                      with this project, if any, will be ignored.
+                    description: |-
+                      Whether this project reuses the system level CVE allowlist as the allowlist of its own.
+                      The valid values are "true", "false".
+                      If set to "true", the actual allowlist associated with this project, if any, will be ignored.
                     type: boolean
                   severity:
-                    description: If a vulnerability's severity is higher than the
-                      severity defined here, images can't be pulled. Valid values
-                      are "none", "low", "medium", "high", "critical".
+                    description: |-
+                      If a vulnerability's severity is higher than the severity defined here,
+                      images can't be pulled. Valid values are "none", "low", "medium", "high", "critical".
                     type: string
                 required:
                 - public
@@ -101,28 +109,36 @@ spec:
               name:
                 type: string
               parentInstance:
-                description: ParentInstance is a LocalObjectReference to the name
-                  of the harbor instance the project is created for
+                description: |-
+                  ParentInstance is a LocalObjectReference to the
+                  name of the harbor instance the project is created for
                 properties:
                   name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               proxyCache:
-                description: ProxyCache defines an optional reference to a registry
-                  resource. The project will be created as a "Proxy Cache" project,
-                  if specified.
+                description: |-
+                  ProxyCache defines an optional reference to a registry resource.
+                  The project will be created as a "Proxy Cache" project, if specified.
                 properties:
                   registry:
-                    description: LocalObjectReference contains enough information
-                      to let you locate the referenced object inside the same namespace.
+                    description: |-
+                      LocalObjectReference contains enough information to let you locate the
+                      referenced object inside the same namespace.
                     properties:
                       name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        description: |-
+                          Name of the referent.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?
                         type: string
                     type: object
+                    x-kubernetes-map-type: atomic
                 type: object
               storageLimit:
                 type: integer
@@ -146,14 +162,18 @@ spec:
                 description: Members is the list of existing project member users
                   as LocalObjectReference
                 items:
-                  description: LocalObjectReference contains enough information to
-                    let you locate the referenced object inside the same namespace.
+                  description: |-
+                    LocalObjectReference contains enough information to let you locate the
+                    referenced object inside the same namespace.
                   properties:
                     name:
-                      description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                        TODO: Add other useful fields. apiVersion, kind, uid?'
+                      description: |-
+                        Name of the referent.
+                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?
                       type: string
                   type: object
+                  x-kubernetes-map-type: atomic
                 type: array
               message:
                 type: string
@@ -168,9 +188,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

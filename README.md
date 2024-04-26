@@ -20,7 +20,7 @@ A Kubernetes operator for automated management of [Goharbor](https://github.com/
 
 ### Installation
 
-The helm chart of this operator can be found in this repository under [./deploy/helm-chart/harbor-operator](./deploy/helm-chart/harbor-operator)
+The helm chart of this operator can be found in this repository under [./deploy/chart](./deploy/chart)
 Alternatively, you can use the [helm.mittwald.de](https://helm.mittwald.de) chart repository:
 
 ```shell script
