@@ -30,7 +30,7 @@ const (
 	RegistryTypeQuay             RegistryType = "quay"
 	RegistryTypeGitlab           RegistryType = "gitlab"
 	RegistryTypeHelmHub          RegistryType = "helm-hub"
-	RegistryTypeGitHubGHCR       RegistryType = "github-ghcr"
+	RegistryTypeGitHubGHCR       RegistryType = "github-ghcr" // github container registry
 )
 
 // RegistrySpec defines the desired state of a Registry.
