@@ -15,6 +15,7 @@ env:
   REGISTRY_URL: ghcr.io/verenceLola
   GOLANGCI_LINT_VERSION: v1.57.2
 
+
 jobs:
   lint:
     name: Lint
