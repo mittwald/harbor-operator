@@ -11,8 +11,8 @@ on:
 
 env:
   KUBECONFIG: /tmp/kubeconfig
-  IMAGE_NAME: quay.io/mittwald/harbor-operator
-  REGISTRY_URL: quay.io/mittwald
+  IMAGE_NAME: ghcr.io/verenceLola/harbor-operator
+  REGISTRY_URL: ghcr.io/verenceLola
   GOLANGCI_LINT_VERSION: v1.57.2
 
 jobs:
@@ -81,7 +81,7 @@ jobs:
         id: go
 
       - name: Registry Login
-        run: docker login -u "${{ secrets.dockerLoginUsername }}" -p "${{ secrets.dockerLoginPassword }}" "${REGISTRY_URL}"
+        run: docker login -u "${{ secrets.dockerLoginUsername }}" -p "${secrets.GITHUB_TOKEN}" "${REGISTRY_URL}"
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
@@ -118,12 +118,3 @@ jobs:
 
       - name: Push images
         run: docker push "$IMAGE_NAME:latest" && docker push "$IMAGE_NAME:${GITHUB_REF##*/}"
-
-      - name: Bump chart version
-        uses: mittwald/bump-app-version-action@v1
-        with:
-          mode: 'publish'
-          chartYaml: './deploy/chart/Chart.yaml'
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUBTOKEN }}"
-          HELM_REPO_PASSWORD: "${{ secrets.HELM_REPO_PASSWORD }}"
