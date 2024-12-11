@@ -5,6 +5,10 @@ image:
   pullPolicy: Always
   pullSecret: {}
 
+envFrom:
+#  - configMapRef:
+#      name: env-from-configmap
+
 env:
   helmClientRepositoryCachePath: /tmp/.helmcache
   helmClientRepositoryConfigPath: /tmp/.helmrepo
