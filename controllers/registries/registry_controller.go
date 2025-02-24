@@ -253,6 +253,7 @@ func enumRegistryType(receivedRegistryType v1alpha2.RegistryType) (v1alpha2.Regi
 		v1alpha2.RegistryTypeDockerHub,
 		v1alpha2.RegistryTypeDockerRegistry,
 		v1alpha2.RegistryTypeHuaweiSWR,
+		v1alpha2.RegistryTypeGithubGHCR,
 		v1alpha2.RegistryTypeGoogleGCR,
 		v1alpha2.RegistryTypeAwsECR,
 		v1alpha2.RegistryTypeAzureECR,
