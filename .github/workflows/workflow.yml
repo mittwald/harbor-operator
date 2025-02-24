@@ -125,5 +125,5 @@ jobs:
           mode: 'publish'
           chartYaml: './deploy/chart/Chart.yaml'
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.RELEASE_USER_TOKEN }}"
           HELM_REPO_PASSWORD: "${{ secrets.HELM_REPO_PASSWORD }}"
